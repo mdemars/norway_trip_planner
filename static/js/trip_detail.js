@@ -489,6 +489,63 @@ function showStopOnMap(stopId) {
 // Stop Handlers
 // ============================================================================
 
+function populateAddStopModal() {
+    const addAfterSelect = document.getElementById('addAfterStop');
+
+    // Clear existing options except "Start of trip"
+    addAfterSelect.innerHTML = '<option value="start">Start of trip</option>';
+
+    // Add existing stops as options
+    stops.forEach((stop, index) => {
+        const option = document.createElement('option');
+        option.value = stop.id;
+        option.textContent = `After stop ${index + 1}: ${stop.name}`;
+        addAfterSelect.appendChild(option);
+    });
+
+    // Auto-select the last stop if there are stops
+    if (stops.length > 0) {
+        addAfterSelect.value = stops[stops.length - 1].id;
+    }
+
+    // Calculate initial dates
+    calculateStopDates();
+}
+
+function calculateStopDates() {
+    const addAfterSelect = document.getElementById('addAfterStop');
+    const numberOfNights = parseInt(document.getElementById('numberOfNights').value) || 1;
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+
+    let startDate;
+
+    if (addAfterSelect.value === 'start') {
+        // If adding at start, use today's date
+        startDate = new Date();
+    } else {
+        // Find the selected stop and use its end date as the new start date
+        const selectedStopId = parseInt(addAfterSelect.value);
+        const selectedStop = stops.find(s => s.id === selectedStopId);
+
+        if (selectedStop && selectedStop.end_date) {
+            startDate = new Date(selectedStop.end_date);
+            // Add one day to start the day after the previous stop ends
+            startDate.setDate(startDate.getDate() + 1);
+        } else {
+            startDate = new Date();
+        }
+    }
+
+    // Calculate end date based on number of nights
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + numberOfNights - 1);
+
+    // Set the input values
+    startDateInput.value = formatDateForInput(startDate.toISOString());
+    endDateInput.value = formatDateForInput(endDate.toISOString());
+}
+
 async function handleAddStopSubmit(e) {
     e.preventDefault();
 
@@ -856,6 +913,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Add stop button
     document.getElementById('addStopBtn').addEventListener('click', () => {
+        populateAddStopModal();
         openModal('addStopModal');
     });
 
@@ -887,6 +945,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+
+    // Add stop date calculation listeners
+    document.getElementById('addAfterStop').addEventListener('change', calculateStopDates);
+    document.getElementById('numberOfNights').addEventListener('input', calculateStopDates);
 
     // Add activity form
     document.getElementById('addActivityForm').addEventListener('submit', handleAddActivitySubmit);
