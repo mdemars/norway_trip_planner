@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from datetime import datetime
 from config import Config
-from models import Trip, Stop, Activity, init_db, get_db
+from models import Trip, Stop, Activity, Waypoint, init_db, get_db
 from services import geocoding_service, route_service
+import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -30,6 +31,15 @@ def trip_detail(trip_id):
     """Trip detail page"""
     return render_template('trip_detail.html', trip_id=trip_id, config=Config)
 
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon"""
+    return send_from_directory(
+        os.path.join(app.root_path, 'static', 'images'),
+        'campervan.png',
+        mimetype='image/png'
+    )
+
 
 # ============================================================================
 # API Routes - Trips
@@ -41,7 +51,7 @@ def get_trips():
     db = get_db()
     try:
         trips = db.query(Trip).all()
-        return jsonify([trip.to_dict() for trip in trips])
+        return jsonify([trip.to_dict(include_stops=True) for trip in trips])
     finally:
         db.close()
 
@@ -129,7 +139,7 @@ def get_stops(trip_id):
     """Get all stops for a trip"""
     db = get_db()
     try:
-        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.order_index).all()
+        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.start_date, Stop.order_index).all()
         return jsonify([stop.to_dict(include_activities=True) for stop in stops])
     finally:
         db.close()
@@ -406,6 +416,136 @@ def delete_activity(activity_id):
 
 
 # ============================================================================
+# API Routes - Waypoints
+# ============================================================================
+
+@app.route('/api/trips/<int:trip_id>/waypoints', methods=['GET'])
+def get_waypoints(trip_id):
+    """Get all waypoints for a trip"""
+    db = get_db()
+    try:
+        waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip_id).order_by(Waypoint.order_index).all()
+        return jsonify([wp.to_dict() for wp in waypoints])
+    finally:
+        db.close()
+
+@app.route('/api/trips/<int:trip_id>/waypoints', methods=['POST'])
+def create_waypoint(trip_id):
+    """Create a new waypoint"""
+    data = request.json
+
+    required_fields = ['name', 'order_index', 'location_type']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'{field} is required'}), 400
+
+    db = get_db()
+    try:
+        # Check if trip exists
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+
+        # Handle location
+        latitude = None
+        longitude = None
+        address = None
+
+        if data['location_type'] == 'gps':
+            latitude = float(data.get('latitude'))
+            longitude = float(data.get('longitude'))
+            # Try to get address from coordinates
+            address = geocoding_service.reverse_geocode(latitude, longitude)
+        elif data['location_type'] == 'address':
+            address = data.get('address')
+            # Try to get coordinates from address
+            coords = geocoding_service.geocode_address(address)
+            if coords:
+                latitude, longitude = coords
+
+        # Create waypoint
+        waypoint = Waypoint(
+            trip_id=trip_id,
+            name=data['name'],
+            order_index=float(data['order_index']),
+            location_type=data['location_type'],
+            latitude=latitude,
+            longitude=longitude,
+            address=address
+        )
+
+        db.add(waypoint)
+        db.commit()
+        db.refresh(waypoint)
+        return jsonify(waypoint.to_dict()), 201
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+@app.route('/api/waypoints/<int:waypoint_id>', methods=['PUT'])
+def update_waypoint(waypoint_id):
+    """Update a waypoint"""
+    data = request.json
+
+    db = get_db()
+    try:
+        waypoint = db.query(Waypoint).filter(Waypoint.id == waypoint_id).first()
+        if not waypoint:
+            return jsonify({'error': 'Waypoint not found'}), 404
+
+        # Update fields
+        if 'name' in data:
+            waypoint.name = data['name']
+
+        # Update location if provided
+        if 'location_type' in data:
+            waypoint.location_type = data['location_type']
+
+            if data['location_type'] == 'gps' and 'latitude' in data and 'longitude' in data:
+                waypoint.latitude = float(data['latitude'])
+                waypoint.longitude = float(data['longitude'])
+                # Try to get address
+                address = geocoding_service.reverse_geocode(waypoint.latitude, waypoint.longitude)
+                if address:
+                    waypoint.address = address
+            elif data['location_type'] == 'address' and 'address' in data:
+                waypoint.address = data['address']
+                # Try to get coordinates
+                coords = geocoding_service.geocode_address(data['address'])
+                if coords:
+                    waypoint.latitude, waypoint.longitude = coords
+
+        db.commit()
+        db.refresh(waypoint)
+        return jsonify(waypoint.to_dict())
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+@app.route('/api/waypoints/<int:waypoint_id>', methods=['DELETE'])
+def delete_waypoint(waypoint_id):
+    """Delete a waypoint"""
+    db = get_db()
+    try:
+        waypoint = db.query(Waypoint).filter(Waypoint.id == waypoint_id).first()
+        if not waypoint:
+            return jsonify({'error': 'Waypoint not found'}), 404
+
+        db.delete(waypoint)
+        db.commit()
+        return jsonify({'message': 'Waypoint deleted successfully'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+
+# ============================================================================
 # API Routes - Routing
 # ============================================================================
 
@@ -414,25 +554,42 @@ def get_trip_route(trip_id):
     """Calculate route and distances for a trip"""
     db = get_db()
     try:
-        # Get all stops for the trip
-        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.order_index).all()
-        
+        # Get all stops and waypoints for the trip
+        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.start_date, Stop.order_index).all()
+        waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip_id).order_by(Waypoint.order_index).all()
+
         if not stops:
             return jsonify({'error': 'No stops found for this trip'}), 404
-        
-        # Convert to dict format for route service
-        stop_data = []
+
+        # Merge stops and waypoints, sorted by order_index
+        all_points = []
+
         for stop in stops:
             if stop.latitude and stop.longitude:
-                stop_data.append(stop.to_dict())
+                point_data = stop.to_dict()
+                point_data['type'] = 'stop'
+                all_points.append(point_data)
             else:
                 return jsonify({
                     'error': f'Stop "{stop.name}" does not have valid coordinates'
                 }), 400
-        
+
+        for waypoint in waypoints:
+            if waypoint.latitude and waypoint.longitude:
+                point_data = waypoint.to_dict()
+                point_data['type'] = 'waypoint'
+                all_points.append(point_data)
+            else:
+                return jsonify({
+                    'error': f'Waypoint "{waypoint.name}" does not have valid coordinates'
+                }), 400
+
+        # Sort by order_index
+        all_points.sort(key=lambda x: x['order_index'])
+
         # Calculate route
-        route_info = route_service.calculate_route(stop_data)
-        
+        route_info = route_service.calculate_route(all_points)
+
         return jsonify(route_info)
     finally:
         db.close()

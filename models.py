@@ -14,7 +14,7 @@ class Trip(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Stop.order_index')
+    stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Stop.start_date')
     
     def to_dict(self, include_stops=False):
         """Convert trip to dictionary"""
@@ -69,16 +69,16 @@ class Stop(Base):
 class Activity(Base):
     """Activity model representing things to do at a stop"""
     __tablename__ = 'activities'
-    
+
     id = Column(Integer, primary_key=True)
     stop_id = Column(Integer, ForeignKey('stops.id'), nullable=False)
     name = Column(String(200), nullable=False)
     description = Column(Text)
     url = Column(String(500))
-    
+
     # Relationships
     stop = relationship('Stop', back_populates='activities')
-    
+
     def to_dict(self):
         """Convert activity to dictionary"""
         return {
@@ -87,6 +87,37 @@ class Activity(Base):
             'name': self.name,
             'description': self.description,
             'url': self.url
+        }
+
+
+class Waypoint(Base):
+    """Waypoint model representing intermediate points along the route"""
+    __tablename__ = 'waypoints'
+
+    id = Column(Integer, primary_key=True)
+    trip_id = Column(Integer, ForeignKey('trips.id'), nullable=False)
+    name = Column(String(200), nullable=False)
+    order_index = Column(Float, nullable=False)  # Float to allow insertion between stops
+    location_type = Column(String(20), nullable=False)  # 'gps' or 'address'
+    latitude = Column(Float)
+    longitude = Column(Float)
+    address = Column(String(500))
+
+    # Relationships
+    trip = relationship('Trip', backref='waypoints')
+
+    def to_dict(self):
+        """Convert waypoint to dictionary"""
+        return {
+            'id': self.id,
+            'trip_id': self.trip_id,
+            'name': self.name,
+            'order_index': self.order_index,
+            'location_type': self.location_type,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'address': self.address,
+            'type': 'waypoint'  # To distinguish from stops in UI
         }
 
 

@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip Details - Trip Planner</title>
+    <title>Trip Details - Camping Trip Planner</title>
+    <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/css/style.css">
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&libraries=places,geometry&callback=initMap" async defer></script>
 </head>
 <body>
     <div class="container">
@@ -55,12 +56,27 @@
             </div>
 
             <div class="right-panel">
-                <div id="map" class="map-container">
-                    <div class="map-placeholder">
-                        <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/>
-                        </svg>
-                        <p>Map will display here</p>
+                <div id="calendarView" class="calendar-section">
+                    <div id="calendar" class="calendar-container">
+                        <div class="calendar-placeholder">
+                            <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <p>Add stops to see calendar view</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="mapView" class="map-section">
+                    <div id="map" class="map-container">
+                        <div class="map-placeholder">
+                            <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+                                <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/>
+                            </svg>
+                            <p>Map will display here</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -204,6 +220,90 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('addActivityModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Add Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Duration Change Confirmation Modal -->
+    <div id="durationChangeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adjust Following Stops</h2>
+                <button class="close-btn" onclick="closeModal('durationChangeModal')">&times;</button>
+            </div>
+            <div style="padding: 0 24px 24px 24px;">
+                <p style="margin-bottom: 20px; color: #6c757d;">
+                    You're extending this stop's duration. How should the following stops be adjusted?
+                </p>
+                <div style="display: flex; gap: 12px; flex-direction: column;">
+                    <button id="shiftAllStopsBtn" class="btn btn-primary" style="width: 100%;">
+                        <div style="text-align: left;">
+                            <div style="font-weight: bold; margin-bottom: 4px;">Shift All Following Stops</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">Move all subsequent stops forward by the same amount</div>
+                        </div>
+                    </button>
+                    <button id="adjustNextStopBtn" class="btn btn-secondary" style="width: 100%;">
+                        <div style="text-align: left;">
+                            <div style="font-weight: bold; margin-bottom: 4px;">Adjust Next Stop Only</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">Shorten the immediately following stop</div>
+                        </div>
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal('durationChangeModal')" style="width: 100%;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Waypoint Modal -->
+    <div id="addWaypointModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Add Waypoint</h2>
+                <button class="close-btn" onclick="closeModal('addWaypointModal')">&times;</button>
+            </div>
+            <form id="addWaypointForm">
+                <input type="hidden" id="waypointAfterIndex">
+                <div class="form-group">
+                    <label for="waypointName">Waypoint Name</label>
+                    <input type="text" id="waypointName" name="waypointName" placeholder="e.g., Scenic viewpoint" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Location Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="waypointLocationType" value="address" checked>
+                            Address
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="waypointLocationType" value="gps">
+                            GPS Coordinates
+                        </label>
+                    </div>
+                </div>
+
+                <div id="waypointAddressInput" class="form-group">
+                    <label for="waypointAddress">Address</label>
+                    <input type="text" id="waypointAddress" name="waypointAddress" placeholder="e.g., Stegastein Viewpoint, Norway">
+                </div>
+
+                <div id="waypointGpsInput" class="form-row" style="display: none;">
+                    <div class="form-group">
+                        <label for="waypointLatitude">Latitude</label>
+                        <input type="number" id="waypointLatitude" name="waypointLatitude" step="0.000001" placeholder="60.8795">
+                    </div>
+                    <div class="form-group">
+                        <label for="waypointLongitude">Longitude</label>
+                        <input type="number" id="waypointLongitude" name="waypointLongitude" step="0.000001" placeholder="7.3139">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addWaypointModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Waypoint</button>
                 </div>
             </form>
         </div>

@@ -4,10 +4,24 @@
 
 let currentTrip = null;
 let stops = [];
+let waypoints = [];
 let map = null;
 let markers = [];
 let infoWindows = [];
 let routePath = null;
+let pendingStopUpdate = null; // Store pending update data for duration change
+
+// 8 distinct colors for stops
+const STOP_COLORS = [
+    '#4285F4', // Blue
+    '#34A853', // Green
+    '#FBBC04', // Yellow
+    '#EA4335', // Red
+    '#9334E6', // Purple
+    '#FF6D00', // Orange
+    '#00ACC1', // Cyan
+    '#E91E63'  // Pink
+];
 
 // ============================================================================
 // API Functions
@@ -193,23 +207,113 @@ async function calculateRoute(tripId) {
     }
 }
 
+async function fetchWaypoints(tripId) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/waypoints`);
+        if (!response.ok) throw new Error('Failed to fetch waypoints');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching waypoints:', error);
+        return [];
+    }
+}
+
+async function createWaypoint(tripId, waypointData) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/waypoints`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(waypointData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to create waypoint');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating waypoint:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
+async function deleteWaypoint(waypointId) {
+    try {
+        const response = await fetch(`/api/waypoints/${waypointId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete waypoint');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting waypoint:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
 // ============================================================================
 // UI Rendering
 // ============================================================================
 
-function renderStops(stopsData) {
+function renderStops(stopsData, waypointsData) {
     const container = document.getElementById('stopsContainer');
     stops = stopsData;
+    waypoints = waypointsData || [];
 
     if (stops.length === 0) {
         container.innerHTML = '<div class="info-text" style="text-align: center; padding: 40px; color: #6c757d;">No stops yet. Add your first stop to begin planning!</div>';
         return;
     }
 
-    container.innerHTML = stops.map((stop, index) => createStopCard(stop, index + 1)).join('');
+    // Build combined list with stops and waypoints
+    let html = '';
+    stops.forEach((stop, index) => {
+        html += createStopCard(stop, index + 1);
+
+        // Add button to insert waypoint after this stop (except after the last stop)
+        if (index < stops.length - 1) {
+            const afterIndex = stop.order_index;
+            const beforeIndex = stops[index + 1].order_index;
+
+            // Get waypoints between this stop and the next
+            const waypointsBetween = waypoints.filter(wp =>
+                wp.order_index > afterIndex && wp.order_index < beforeIndex
+            ).sort((a, b) => a.order_index - b.order_index);
+
+            // Render waypoints
+            waypointsBetween.forEach(wp => {
+                html += createWaypointCard(wp);
+            });
+
+            // Add "insert waypoint" button
+            html += `
+                <div style="display: flex; justify-content: center; padding: 8px 0;">
+                    <button class="btn btn-secondary btn-sm" onclick="openAddWaypointModal(${afterIndex}, ${beforeIndex})" style="font-size: 0.85em;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Waypoint
+                    </button>
+                </div>
+            `;
+        }
+    });
+
+    container.innerHTML = html;
 
     // Update map
     updateMap();
+
+    // Always update calendar
+    renderCalendar();
 }
 
 function createStopCard(stop, index) {
@@ -224,6 +328,13 @@ function createStopCard(stop, index) {
         day: 'numeric',
         year: 'numeric'
     });
+
+    // Calculate number of nights (days difference + 1 since dates are inclusive)
+    const start = new Date(stop.start_date);
+    const end = new Date(stop.end_date);
+    const daysDifference = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    const nights = daysDifference + 1;
+    const nightsText = nights === 1 ? '1 night' : `${nights} nights`;
 
     const activities = stop.activities || [];
     const activitiesHtml = activities.length > 0 ? `
@@ -251,30 +362,24 @@ function createStopCard(stop, index) {
         </div>
     `;
 
+    const color = STOP_COLORS[(index - 1) % STOP_COLORS.length];
+
     return `
-        <div class="stop-card" data-stop-id="${stop.id}">
-            <div class="stop-header">
-                <div class="stop-info">
+        <div class="stop-card collapsed" data-stop-id="${stop.id}" style="border-left-color: ${color};">
+            <div class="stop-header" onclick="toggleStopCollapse(${stop.id})">
+                <div class="stop-title-row">
+                    <button class="collapse-toggle" onclick="event.stopPropagation(); toggleStopCollapse(${stop.id})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
                     <h3>
                         <span style="color: #6c757d; font-weight: normal; margin-right: 8px;">${index}.</span>
                         ${escapeHtml(stop.name)}
+                        <span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${nightsText})</span>
                     </h3>
-                    <div class="stop-dates">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        ${startDate} → ${endDate}
-                    </div>
-                    ${stop.address ? `<div class="stop-address">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        ${escapeHtml(stop.address)}
-                    </div>` : ''}
                 </div>
-                <div class="stop-actions">
+                <div class="stop-actions" onclick="event.stopPropagation()">
                     <button class="icon-btn" onclick="showStopOnMap(${stop.id})" title="Show on map">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -295,7 +400,25 @@ function createStopCard(stop, index) {
                     </button>
                 </div>
             </div>
-            ${activitiesHtml}
+            <div class="stop-details">
+                <div class="stop-info-section">
+                    <div class="stop-dates">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        ${startDate} → ${endDate}
+                    </div>
+                    ${stop.address ? `<div class="stop-address">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        ${escapeHtml(stop.address)}
+                    </div>` : ''}
+                </div>
+                ${activitiesHtml}
+            </div>
         </div>
     `;
 }
@@ -315,6 +438,44 @@ function createActivityItem(activity) {
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
                 </button>
+            </div>
+        </div>
+    `;
+}
+
+function createWaypointCard(waypoint) {
+    return `
+        <div class="waypoint-card collapsed" data-waypoint-id="${waypoint.id}" style="margin: 8px 0; padding: 12px; background: #f8f9fa; border-left: 3px solid #6c757d; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleWaypointCollapse(${waypoint.id})">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="collapse-toggle" onclick="event.stopPropagation(); toggleWaypointCollapse(${waypoint.id})" style="background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <div style="font-weight: 500; color: #495057;">${escapeHtml(waypoint.name)}</div>
+                </div>
+                <div onclick="event.stopPropagation()">
+                    <button class="icon-btn danger" onclick="handleDeleteWaypoint(${waypoint.id}, '${escapeHtml(waypoint.name).replace(/'/g, "\\'")}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="waypoint-details" style="margin-top: 12px; padding-left: 40px;">
+                ${waypoint.address ? `<div style="font-size: 0.85em; color: #6c757d; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    ${escapeHtml(waypoint.address)}
+                </div>` : '<div style="font-size: 0.85em; color: #6c757d;">No address</div>'}
             </div>
         </div>
     `;
@@ -414,6 +575,55 @@ function updateMap() {
         }
     });
 
+    // Add markers for waypoints
+    waypoints.forEach((waypoint) => {
+        if (waypoint.latitude && waypoint.longitude) {
+            const position = { lat: waypoint.latitude, lng: waypoint.longitude };
+
+            // Create a simple circular marker for waypoints
+            const waypointIcon = {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: '#6c757d',
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: '#ffffff',
+                scale: 8
+            };
+
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                icon: waypointIcon,
+                title: waypoint.name
+            });
+
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="padding: 8px;">
+                        <h3 style="margin: 0 0 8px 0; color: #6c757d;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            ${escapeHtml(waypoint.name)}
+                        </h3>
+                        <p style="margin: 0; color: #6c757d; font-size: 0.9em;">${escapeHtml(waypoint.address || 'Waypoint')}</p>
+                    </div>
+                `
+            });
+
+            marker.addListener('click', () => {
+                // Close all other info windows
+                infoWindows.forEach(iw => iw.close());
+                infoWindow.open(map, marker);
+            });
+
+            markers.push(marker);
+            infoWindows.push(infoWindow);
+            bounds.extend(position);
+        }
+    });
+
     // Fit map to show all markers
     if (markers.length > 0) {
         map.fitBounds(bounds);
@@ -431,20 +641,32 @@ function drawRoute(routeData) {
         routePath.setMap(null);
     }
 
-    // Create path coordinates
-    const pathCoordinates = [];
-    stops.forEach(stop => {
-        if (stop.latitude && stop.longitude) {
-            pathCoordinates.push({ lat: stop.latitude, lng: stop.longitude });
+    // Build the complete path using polyline data from each segment
+    const allPathCoordinates = [];
+
+    routeData.segments.forEach(segment => {
+        if (segment.polyline) {
+            // Decode the Google polyline format
+            const decodedPath = google.maps.geometry.encoding.decodePath(segment.polyline);
+            allPathCoordinates.push(...decodedPath);
         }
     });
 
-    if (pathCoordinates.length < 2) return;
+    if (allPathCoordinates.length < 2) {
+        // Fallback to straight lines if no polyline data
+        stops.forEach(stop => {
+            if (stop.latitude && stop.longitude) {
+                allPathCoordinates.push({ lat: stop.latitude, lng: stop.longitude });
+            }
+        });
+    }
 
-    // Draw the route
+    if (allPathCoordinates.length < 2) return;
+
+    // Draw the route following roads
     routePath = new google.maps.Polyline({
-        path: pathCoordinates,
-        geodesic: true,
+        path: allPathCoordinates,
+        geodesic: false, // Set to false since we're using exact road paths
         strokeColor: '#0066cc',
         strokeOpacity: 0.8,
         strokeWeight: 4
@@ -482,6 +704,190 @@ function showStopOnMap(stopId) {
     const mapElement = document.getElementById('map');
     if (mapElement && window.innerWidth < 1024) {
         mapElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+// ============================================================================
+// Calendar Functions
+// ============================================================================
+
+function renderCalendar() {
+    if (!stops || stops.length === 0) {
+        document.getElementById('calendar').innerHTML = `
+            <div class="calendar-placeholder">
+                <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <p>Add stops to see calendar view</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Find the date range of the trip
+    const allDates = stops.flatMap(stop => [new Date(stop.start_date), new Date(stop.end_date)]);
+    const minDate = new Date(Math.min(...allDates));
+    const maxDate = new Date(Math.max(...allDates));
+
+    // Generate list of months to display
+    const months = [];
+    const currentMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    const lastMonth = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+
+    while (currentMonth <= lastMonth) {
+        months.push(new Date(currentMonth));
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+    }
+
+    // Build calendar HTML
+    let calendarHTML = '<div class="calendar-months">';
+
+    months.forEach(monthDate => {
+        calendarHTML += renderMonth(monthDate);
+    });
+
+    // Add legend
+    calendarHTML += '<div class="calendar-legend"><h4>Stops</h4><div class="calendar-legend-items">';
+    stops.forEach((stop, index) => {
+        const color = STOP_COLORS[index % STOP_COLORS.length];
+        calendarHTML += `
+            <div class="calendar-legend-item">
+                <div class="calendar-legend-color" style="background: ${color};"></div>
+                <div class="calendar-legend-text" title="${escapeHtml(stop.name)}">${escapeHtml(stop.name)}</div>
+            </div>
+        `;
+    });
+    calendarHTML += '</div></div>';
+
+    calendarHTML += '</div>';
+
+    document.getElementById('calendar').innerHTML = calendarHTML;
+}
+
+function renderMonth(monthDate) {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    // Get first and last day of the month
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    // Get day of week for first day (0 = Sunday)
+    const firstDayOfWeek = firstDay.getDay();
+
+    // Build calendar grid
+    let html = `
+        <div class="calendar-month">
+            <div class="calendar-header">
+                <h3>${monthName}</h3>
+            </div>
+            <div class="calendar-weekdays">
+                <div class="calendar-weekday">Sun</div>
+                <div class="calendar-weekday">Mon</div>
+                <div class="calendar-weekday">Tue</div>
+                <div class="calendar-weekday">Wed</div>
+                <div class="calendar-weekday">Thu</div>
+                <div class="calendar-weekday">Fri</div>
+                <div class="calendar-weekday">Sat</div>
+            </div>
+            <div class="calendar-days">
+    `;
+
+    // Add empty cells for days before the first day of the month
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    const prevMonthStartDay = prevMonthLastDay - firstDayOfWeek + 1;
+    for (let i = 0; i < firstDayOfWeek; i++) {
+        const dayNum = prevMonthStartDay + i;
+        html += `<div class="calendar-day other-month"><div class="calendar-day-number">${dayNum}</div></div>`;
+    }
+
+    // Add days of the current month
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+        const currentDate = new Date(year, month, day);
+        const stopsOnDay = getStopsForDay(currentDate);
+
+        html += `<div class="calendar-day">`;
+        html += `<div class="calendar-day-number">${day}</div>`;
+
+        if (stopsOnDay.length > 0) {
+            html += `<div class="calendar-day-stops">`;
+            stopsOnDay.forEach(({ stop, index, isStart, isEnd }) => {
+                const color = STOP_COLORS[index % STOP_COLORS.length];
+
+                // Show label only on start day
+                if (isStart) {
+                    html += `
+                        <div class="calendar-stop-label" style="background: ${color}; cursor: pointer;" title="Click to view ${escapeHtml(stop.name)}" onclick="handleCalendarStopClick(${stop.id})">
+                            ${escapeHtml(stop.name)}
+                        </div>
+                    `;
+                } else {
+                    html += `<div class="calendar-stop-bar" style="background: ${color}; cursor: pointer;" title="Click to view ${escapeHtml(stop.name)}" onclick="handleCalendarStopClick(${stop.id})"></div>`;
+                }
+            });
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+    }
+
+    // Add empty cells for days after the last day of the month
+    const lastDayOfWeek = lastDay.getDay();
+    const remainingDays = 6 - lastDayOfWeek;
+    for (let i = 1; i <= remainingDays; i++) {
+        html += `<div class="calendar-day other-month"><div class="calendar-day-number">${i}</div></div>`;
+    }
+
+    html += `</div></div>`;
+
+    return html;
+}
+
+function getStopsForDay(date) {
+    const stopsOnDay = [];
+
+    stops.forEach((stop, index) => {
+        const startDate = new Date(stop.start_date);
+        const endDate = new Date(stop.end_date);
+
+        // Set time to midnight for accurate date comparison
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+        const checkDate = new Date(date);
+        checkDate.setHours(0, 0, 0, 0);
+
+        if (checkDate >= startDate && checkDate <= endDate) {
+            stopsOnDay.push({
+                stop,
+                index,
+                isStart: checkDate.getTime() === startDate.getTime(),
+                isEnd: checkDate.getTime() === endDate.getTime()
+            });
+        }
+    });
+
+    return stopsOnDay;
+}
+
+function handleCalendarStopClick(stopId) {
+    // Collapse all stops
+    document.querySelectorAll('.stop-card').forEach(card => {
+        card.classList.add('collapsed');
+    });
+
+    // Expand the clicked stop
+    const stopCard = document.querySelector(`.stop-card[data-stop-id="${stopId}"]`);
+    if (stopCard) {
+        stopCard.classList.remove('collapsed');
+
+        // Scroll to the stop
+        setTimeout(() => {
+            stopCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
     }
 }
 
@@ -589,7 +995,9 @@ async function handleEditStopSubmit(e) {
     e.preventDefault();
 
     const form = e.target;
-    const stopId = document.getElementById('editStopId').value;
+    const stopId = parseInt(document.getElementById('editStopId').value);
+    const stopIndex = stops.findIndex(s => s.id === stopId);
+    const originalStop = stops[stopIndex];
 
     const stopData = {
         name: form.stopName.value.trim(),
@@ -597,6 +1005,28 @@ async function handleEditStopSubmit(e) {
         end_date: form.endDate.value + 'T23:59:59'
     };
 
+    // Check if duration was extended and there are following stops
+    const originalEndDate = new Date(originalStop.end_date);
+    const newEndDate = new Date(stopData.end_date);
+    const hasFollowingStops = stopIndex < stops.length - 1;
+
+    if (newEndDate > originalEndDate && hasFollowingStops) {
+        // Duration extended - ask user how to handle following stops
+        pendingStopUpdate = {
+            stopId,
+            stopIndex,
+            stopData,
+            originalEndDate,
+            newEndDate,
+            daysDifference: Math.round((newEndDate - originalEndDate) / (1000 * 60 * 60 * 24))
+        };
+
+        closeModal('editStopModal');
+        openModal('durationChangeModal');
+        return;
+    }
+
+    // No duration extension or no following stops - just update normally
     try {
         await updateStop(stopId, stopData);
         closeModal('editStopModal');
@@ -632,6 +1062,90 @@ function openEditStopModal(stopId) {
     document.getElementById('editAddress').value = stop.address || '';
 
     openModal('editStopModal');
+}
+
+async function handleShiftAllStops() {
+    if (!pendingStopUpdate) return;
+
+    const { stopId, stopIndex, stopData, daysDifference } = pendingStopUpdate;
+
+    try {
+        // Update the current stop
+        await updateStop(stopId, stopData);
+
+        // Update all following stops
+        const followingStops = stops.slice(stopIndex + 1);
+
+        for (const stop of followingStops) {
+            const startDate = new Date(stop.start_date);
+            const endDate = new Date(stop.end_date);
+
+            // Add the difference to both start and end dates
+            startDate.setDate(startDate.getDate() + daysDifference);
+            endDate.setDate(endDate.getDate() + daysDifference);
+
+            const updatedData = {
+                name: stop.name,
+                start_date: startDate.toISOString().split('T')[0] + 'T00:00:00',
+                end_date: endDate.toISOString().split('T')[0] + 'T23:59:59'
+            };
+
+            await updateStop(stop.id, updatedData);
+        }
+
+        closeModal('durationChangeModal');
+        showSuccess(`Stop updated and ${followingStops.length} following stop(s) shifted`);
+        await loadStops();
+        pendingStopUpdate = null;
+    } catch (error) {
+        showError('Failed to update stops');
+        pendingStopUpdate = null;
+    }
+}
+
+async function handleAdjustNextStop() {
+    if (!pendingStopUpdate) return;
+
+    const { stopId, stopIndex, stopData, newEndDate } = pendingStopUpdate;
+
+    try {
+        // Update the current stop
+        await updateStop(stopId, stopData);
+
+        // Update only the next stop
+        const nextStop = stops[stopIndex + 1];
+
+        if (nextStop) {
+            const nextStartDate = new Date(newEndDate);
+            nextStartDate.setDate(nextStartDate.getDate() + 1); // Day after current stop ends
+
+            const nextEndDate = new Date(nextStop.end_date);
+
+            // Check if the adjustment makes the next stop invalid (start after end)
+            if (nextStartDate >= nextEndDate) {
+                showError('Cannot adjust: this would make the next stop invalid. Consider shifting all stops instead.');
+                pendingStopUpdate = null;
+                closeModal('durationChangeModal');
+                return;
+            }
+
+            const updatedData = {
+                name: nextStop.name,
+                start_date: nextStartDate.toISOString().split('T')[0] + 'T00:00:00',
+                end_date: nextStop.end_date // Keep original end date
+            };
+
+            await updateStop(nextStop.id, updatedData);
+        }
+
+        closeModal('durationChangeModal');
+        showSuccess('Stop updated and next stop adjusted');
+        await loadStops();
+        pendingStopUpdate = null;
+    } catch (error) {
+        showError('Failed to update stops');
+        pendingStopUpdate = null;
+    }
 }
 
 // ============================================================================
@@ -678,6 +1192,92 @@ async function handleDeleteActivity(activityId, activityName) {
         await loadStops();
     } catch (error) {
         // Error already shown
+    }
+}
+
+// ============================================================================
+// Waypoint Handlers
+// ============================================================================
+
+function openAddWaypointModal(afterIndex, beforeIndex) {
+    // Calculate order_index as the midpoint between the two stops
+    const orderIndex = (afterIndex + beforeIndex) / 2;
+
+    document.getElementById('waypointAfterIndex').value = orderIndex;
+    document.getElementById('addWaypointForm').reset();
+    document.getElementById('waypointAfterIndex').value = orderIndex; // Set again after reset
+
+    openModal('addWaypointModal');
+}
+
+async function handleAddWaypointSubmit(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const locationType = form.waypointLocationType.value;
+    const orderIndex = parseFloat(document.getElementById('waypointAfterIndex').value);
+
+    const waypointData = {
+        name: form.waypointName.value.trim(),
+        order_index: orderIndex,
+        location_type: locationType
+    };
+
+    if (locationType === 'address') {
+        waypointData.address = form.waypointAddress.value.trim();
+        if (!waypointData.address) {
+            showError('Address is required');
+            return;
+        }
+    } else {
+        waypointData.latitude = parseFloat(form.waypointLatitude.value);
+        waypointData.longitude = parseFloat(form.waypointLongitude.value);
+        if (isNaN(waypointData.latitude) || isNaN(waypointData.longitude)) {
+            showError('Valid GPS coordinates are required');
+            return;
+        }
+    }
+
+    try {
+        await createWaypoint(tripId, waypointData);
+        closeModal('addWaypointModal');
+        form.reset();
+        showSuccess('Waypoint added successfully');
+        await loadStops();
+    } catch (error) {
+        // Error already shown
+    }
+}
+
+async function handleDeleteWaypoint(waypointId, waypointName) {
+    if (!confirm(`Are you sure you want to delete waypoint "${waypointName}"?`)) {
+        return;
+    }
+
+    try {
+        await deleteWaypoint(waypointId);
+        showSuccess('Waypoint deleted successfully');
+        await loadStops();
+    } catch (error) {
+        // Error already shown
+    }
+}
+
+// ============================================================================
+// Collapse/Expand Handlers
+// ============================================================================
+
+function toggleStopCollapse(stopId) {
+    const stopCard = document.querySelector(`.stop-card[data-stop-id="${stopId}"]`);
+    if (stopCard) {
+        stopCard.classList.toggle('collapsed');
+    }
+}
+
+function toggleWaypointCollapse(waypointId) {
+    const waypointCard = document.querySelector(`.waypoint-card[data-waypoint-id="${waypointId}"]`);
+    if (waypointCard) {
+        waypointCard.classList.toggle('collapsed');
     }
 }
 
@@ -782,7 +1382,7 @@ function displayRouteInfo(routeData) {
                 <h4>Route Segments</h4>
                 ${routeData.segments.map(segment => `
                     <div class="segment">
-                        <div class="route">${escapeHtml(segment.from)} → ${escapeHtml(segment.to)}</div>
+                        <div class="route">${escapeHtml(segment.from_name)} → ${escapeHtml(segment.to_name)}</div>
                         <div class="distance">${segment.distance_km.toFixed(1)} km</div>
                     </div>
                 `).join('')}
@@ -890,7 +1490,8 @@ async function loadTrip() {
 
 async function loadStops() {
     const stopsData = await fetchStops(tripId);
-    renderStops(stopsData);
+    const waypointsData = await fetchWaypoints(tripId);
+    renderStops(stopsData, waypointsData);
 }
 
 // ============================================================================
@@ -969,6 +1570,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Calculate route button
     document.getElementById('calculateRouteBtn').addEventListener('click', handleCalculateRoute);
+
+    // Duration change modal buttons
+    document.getElementById('shiftAllStopsBtn').addEventListener('click', handleShiftAllStops);
+    document.getElementById('adjustNextStopBtn').addEventListener('click', handleAdjustNextStop);
+
+    // Waypoint form
+    document.getElementById('addWaypointForm').addEventListener('submit', handleAddWaypointSubmit);
+
+    // Waypoint location type radio buttons
+    const waypointRadioButtons = document.querySelectorAll('input[name="waypointLocationType"]');
+    waypointRadioButtons.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const addressInput = document.getElementById('waypointAddressInput');
+            const gpsInput = document.getElementById('waypointGpsInput');
+
+            if (e.target.value === 'address') {
+                addressInput.style.display = 'block';
+                gpsInput.style.display = 'none';
+                document.getElementById('waypointAddress').required = true;
+                document.getElementById('waypointLatitude').required = false;
+                document.getElementById('waypointLongitude').required = false;
+            } else {
+                addressInput.style.display = 'none';
+                gpsInput.style.display = 'flex';
+                document.getElementById('waypointAddress').required = false;
+                document.getElementById('waypointLatitude').required = true;
+                document.getElementById('waypointLongitude').required = true;
+            }
+        });
+    });
 });
 
 // Add CSS animations

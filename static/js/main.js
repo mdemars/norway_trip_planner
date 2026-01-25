@@ -93,19 +93,62 @@ function createTripCard(trip) {
         day: 'numeric'
     });
 
+    // Get trip summary info from stops
+    const stops = trip.stops || [];
+    const numStops = stops.length;
+
+    let tripDatesHtml = '';
+    if (numStops > 0) {
+        // Find earliest start date and latest end date
+        const startDates = stops.map(s => new Date(s.start_date));
+        const endDates = stops.map(s => new Date(s.end_date));
+
+        const earliestStart = new Date(Math.min(...startDates));
+        const latestEnd = new Date(Math.max(...endDates));
+
+        const startDateStr = earliestStart.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        const endDateStr = latestEnd.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        tripDatesHtml = `
+            <span class="date">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                ${startDateStr} - ${endDateStr}
+            </span>
+            <span class="date">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                ${numStops} ${numStops === 1 ? 'stop' : 'stops'}
+            </span>
+        `;
+    } else {
+        tripDatesHtml = `
+            <span class="date" style="color: #6c757d;">
+                No stops yet
+            </span>
+        `;
+    }
+
     return `
         <div class="trip-card" onclick="window.location.href='/trip/${trip.id}'">
             <h3>${escapeHtml(trip.name)}</h3>
             <div class="meta">
-                <span class="date">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    Created ${createdDate}
-                </span>
+                ${tripDatesHtml}
             </div>
             <div class="actions">
                 <button id="deleteTrip_${trip.id}" class="btn btn-danger btn-sm">

@@ -318,7 +318,7 @@ header .subtitle {
     background: var(--light-gray);
     border-radius: 8px;
     padding: 16px;
-    border-left: 4px solid var(--primary-color);
+    border-left: 5px solid var(--primary-color);
     transition: all 0.2s;
 }
 
@@ -439,6 +439,78 @@ header .subtitle {
     gap: 4px;
 }
 
+/* Collapse/Expand Styles */
+.stop-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.collapse-toggle {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    min-width: 24px;
+    height: 24px;
+}
+
+.collapse-toggle:hover {
+    background: var(--light-gray);
+}
+
+.chevron {
+    transition: transform 0.3s ease;
+}
+
+.collapsed .chevron {
+    transform: rotate(-90deg);
+}
+
+.stop-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+}
+
+.stop-details,
+.waypoint-details {
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    opacity: 1;
+    margin-top: 12px;
+}
+
+.collapsed .stop-details,
+.collapsed .waypoint-details {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+}
+
+/* Waypoint Card Styles */
+.waypoint-card {
+    background: #fff3cd;
+    border-radius: 8px;
+    padding: 12px 16px;
+    border-left: 4px solid var(--warning-color);
+    transition: all 0.2s;
+    margin-left: 20px;
+}
+
+.waypoint-card:hover {
+    background: #ffe69c;
+    box-shadow: var(--shadow);
+}
+
 /* ============================================================================
    Route Info
    ============================================================================ */
@@ -507,6 +579,18 @@ header .subtitle {
 }
 
 /* ============================================================================
+   Calendar & Map Sections
+   ============================================================================ */
+
+.calendar-section {
+    margin-bottom: 20px;
+}
+
+.map-section {
+    /* Map section styles */
+}
+
+/* ============================================================================
    Map
    ============================================================================ */
 
@@ -530,6 +614,171 @@ header .subtitle {
 #map {
     width: 100%;
     height: 100%;
+}
+
+/* ============================================================================
+   Calendar
+   ============================================================================ */
+
+.calendar-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.calendar-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    color: var(--text-muted);
+}
+
+.calendar-month {
+    margin-bottom: 30px;
+}
+
+.calendar-month:last-child {
+    margin-bottom: 0;
+}
+
+.calendar-header {
+    text-align: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--light-gray);
+}
+
+.calendar-header h3 {
+    font-size: 1.3em;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.calendar-weekday {
+    text-align: center;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 8px 4px;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px;
+    position: relative;
+    background: white;
+    min-height: 70px;
+}
+
+.calendar-day.other-month {
+    background: var(--light-gray);
+    opacity: 0.5;
+}
+
+.calendar-day-number {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.calendar-day.other-month .calendar-day-number {
+    color: var(--text-muted);
+}
+
+.calendar-day-stops {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.calendar-stop-bar {
+    height: 4px;
+    border-radius: 2px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.calendar-stop-bar:hover {
+    height: 6px;
+    opacity: 0.8;
+}
+
+.calendar-stop-label {
+    font-size: 0.7em;
+    font-weight: 500;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+    transition: all 0.2s;
+}
+
+.calendar-stop-label:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.calendar-legend {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid var(--light-gray);
+}
+
+.calendar-legend h4 {
+    font-size: 1em;
+    color: var(--text-color);
+    margin-bottom: 12px;
+}
+
+.calendar-legend-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.calendar-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.calendar-legend-color {
+    width: 20px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.calendar-legend-text {
+    font-size: 0.9em;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ============================================================================
@@ -711,6 +960,7 @@ header .subtitle {
     .header-left {
         flex-direction: column;
         align-items: flex-start;
+        width: 100%;
     }
 
     .header-actions {
