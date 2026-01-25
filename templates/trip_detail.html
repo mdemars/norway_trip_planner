@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Details - Trip Planner</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initMap" async defer></script>
+</head>
+<body>
+    <div class="container">
+        <header class="detail-header">
+            <div class="header-left">
+                <a href="/" class="back-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Trips
+                </a>
+                <h1 id="tripTitle">Loading...</h1>
+            </div>
+            <div class="header-actions">
+                <button id="editTripBtn" class="btn btn-secondary">Edit Name</button>
+                <button id="deleteTripBtn" class="btn btn-danger">Delete Trip</button>
+            </div>
+        </header>
+
+        <div class="trip-detail-content">
+            <div class="left-panel">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Stops</h2>
+                        <button id="addStopBtn" class="btn btn-primary btn-sm">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Stop
+                        </button>
+                    </div>
+                    <div id="stopsContainer" class="stops-list">
+                        <div class="loading">Loading stops...</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Route Information</h2>
+                        <button id="calculateRouteBtn" class="btn btn-secondary btn-sm">Calculate Route</button>
+                    </div>
+                    <div id="routeInfo" class="route-info">
+                        <p class="info-text">Add stops to calculate route</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div id="map" class="map-container">
+                    <div class="map-placeholder">
+                        <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+                            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/>
+                        </svg>
+                        <p>Map will display here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Stop Modal -->
+    <div id="addStopModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Add Stop</h2>
+                <button class="close-btn" onclick="closeModal('addStopModal')">&times;</button>
+            </div>
+            <form id="addStopForm">
+                <div class="form-group">
+                    <label for="stopName">Stop Name</label>
+                    <input type="text" id="stopName" name="stopName" placeholder="e.g., Oslo" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" name="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" name="endDate" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Location Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="locationType" value="address" checked>
+                            Address
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="locationType" value="gps">
+                            GPS Coordinates
+                        </label>
+                    </div>
+                </div>
+
+                <div id="addressInput" class="form-group">
+                    <label for="address">Address</label>
+                    <input type="text" id="address" name="address" placeholder="e.g., Karl Johans gate 22, Oslo, Norway">
+                </div>
+
+                <div id="gpsInput" class="form-row" style="display: none;">
+                    <div class="form-group">
+                        <label for="latitude">Latitude</label>
+                        <input type="number" id="latitude" name="latitude" step="0.000001" placeholder="59.9139">
+                    </div>
+                    <div class="form-group">
+                        <label for="longitude">Longitude</label>
+                        <input type="number" id="longitude" name="longitude" step="0.000001" placeholder="10.7522">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addStopModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Stop</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Stop Modal -->
+    <div id="editStopModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Edit Stop</h2>
+                <button class="close-btn" onclick="closeModal('editStopModal')">&times;</button>
+            </div>
+            <form id="editStopForm">
+                <input type="hidden" id="editStopId">
+                <div class="form-group">
+                    <label for="editStopName">Stop Name</label>
+                    <input type="text" id="editStopName" name="stopName" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editStartDate">Start Date</label>
+                        <input type="date" id="editStartDate" name="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEndDate">End Date</label>
+                        <input type="date" id="editEndDate" name="endDate" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="editAddress">Address</label>
+                    <input type="text" id="editAddress" name="address" readonly>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editStopModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Activity Modal -->
+    <div id="addActivityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Activity</h2>
+                <button class="close-btn" onclick="closeModal('addActivityModal')">&times;</button>
+            </div>
+            <form id="addActivityForm">
+                <input type="hidden" id="activityStopId">
+                <div class="form-group">
+                    <label for="activityName">Activity Name</label>
+                    <input type="text" id="activityName" name="activityName" placeholder="e.g., Visit Viking Ship Museum" required>
+                </div>
+                <div class="form-group">
+                    <label for="activityDescription">Description (Optional)</label>
+                    <textarea id="activityDescription" name="activityDescription" rows="3" placeholder="Details about the activity..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="activityUrl">URL (Optional)</label>
+                    <input type="url" id="activityUrl" name="activityUrl" placeholder="https://...">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addActivityModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Trip Name Modal -->
+    <div id="editTripModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Trip Name</h2>
+                <button class="close-btn" onclick="closeModal('editTripModal')">&times;</button>
+            </div>
+            <form id="editTripForm">
+                <div class="form-group">
+                    <label for="editTripName">Trip Name</label>
+                    <input type="text" id="editTripName" name="tripName" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editTripModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const tripId = {{ trip_id }};
+
+        // Handle Google Maps loading errors
+        window.gm_authFailure = function() {
+            console.error('Google Maps authentication failed. Check your API key configuration.');
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                mapElement.innerHTML = '<div class="map-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #dc3545; padding: 20px; text-align: center;"><svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><h3>Google Maps Error</h3><p>Please check your API key configuration in Google Cloud Console.</p></div>';
+            }
+        };
+    </script>
+    <script src="/static/js/trip_detail.js"></script>
+</body>
+</html>

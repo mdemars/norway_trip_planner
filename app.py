@@ -28,7 +28,7 @@ def index():
 @app.route('/trip/<int:trip_id>')
 def trip_detail(trip_id):
     """Trip detail page"""
-    return render_template('trip_detail.html', trip_id=trip_id)
+    return render_template('trip_detail.html', trip_id=trip_id, config=Config)
 
 
 # ============================================================================
