@@ -312,8 +312,10 @@ function renderStops(stopsData, waypointsData) {
     // Update map
     updateMap();
 
-    // Always update calendar
-    renderCalendar();
+    // Update calendar if in calendar view
+    if (document.getElementById('calendarView').classList.contains('active')) {
+        renderCalendar();
+    }
 }
 
 function createStopCard(stop, index) {
@@ -873,7 +875,35 @@ function getStopsForDay(date) {
     return stopsOnDay;
 }
 
+function switchView(viewName) {
+    // Update button states
+    document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    if (viewName === 'calendar') {
+        document.getElementById('calendarViewBtn').classList.add('active');
+    } else {
+        document.getElementById('detailViewBtn').classList.add('active');
+    }
+
+    // Update view content
+    document.querySelectorAll('.view-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    if (viewName === 'calendar') {
+        document.getElementById('calendarView').classList.add('active');
+        renderCalendar();
+    } else {
+        document.getElementById('mapView').classList.add('active');
+    }
+}
+
 function handleCalendarStopClick(stopId) {
+    // Switch to map view
+    switchView('detail');
+
     // Collapse all stops
     document.querySelectorAll('.stop-card').forEach(card => {
         card.classList.add('collapsed');
@@ -1506,11 +1536,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTrip();
     await loadStops();
 
-    // Initialize map if Google Maps is already loaded
-    if (typeof google !== 'undefined' && google.maps) {
-        initMap();
-    }
-    // Otherwise, wait for callback from script tag
+    // Map will be initialized via callback from Google Maps script
+    // The callback=initMap parameter in the script URL will call initMap() when ready
 
     // Add stop button
     document.getElementById('addStopBtn').addEventListener('click', () => {
@@ -1599,6 +1626,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('waypointLongitude').required = true;
             }
         });
+    });
+
+    // View toggle buttons
+    document.getElementById('detailViewBtn').addEventListener('click', () => {
+        switchView('detail');
+    });
+
+    document.getElementById('calendarViewBtn').addEventListener('click', () => {
+        switchView('calendar');
     });
 });
 

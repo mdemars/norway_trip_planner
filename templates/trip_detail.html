@@ -20,6 +20,25 @@
                 </a>
                 <h1 id="tripTitle">Loading...</h1>
             </div>
+            <div class="header-center">
+                <div class="view-toggle">
+                    <button id="detailViewBtn" class="view-toggle-btn active">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/>
+                        </svg>
+                        Map View
+                    </button>
+                    <button id="calendarViewBtn" class="view-toggle-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Calendar View
+                    </button>
+                </div>
+            </div>
             <div class="header-actions">
                 <button id="editTripBtn" class="btn btn-secondary">Edit Name</button>
                 <button id="deleteTripBtn" class="btn btn-danger">Delete Trip</button>
@@ -56,7 +75,12 @@
             </div>
 
             <div class="right-panel">
-                <div id="calendarView" class="calendar-section">
+                <div id="mapView" class="view-content active">
+                    <div class="map-container">
+                        <div id="map"></div>
+                    </div>
+                </div>
+                <div id="calendarView" class="view-content">
                     <div id="calendar" class="calendar-container">
                         <div class="calendar-placeholder">
                             <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
@@ -66,16 +90,6 @@
                                 <line x1="3" y1="10" x2="21" y2="10"></line>
                             </svg>
                             <p>Add stops to see calendar view</p>
-                        </div>
-                    </div>
-                </div>
-                <div id="mapView" class="map-section">
-                    <div id="map" class="map-container">
-                        <div class="map-placeholder">
-                            <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                                <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/>
-                            </svg>
-                            <p>Map will display here</p>
                         </div>
                     </div>
                 </div>
