@@ -1,0 +1,207 @@
+{
+  "app": {
+    "title": "Camping Trip Planner",
+    "pageTitle": "Camping Trip Planner - Your Trips",
+    "subtitle": "Plan your perfect camping adventure"
+  },
+  "nav": {
+    "backToTrips": "Back to Trips"
+  },
+  "trips": {
+    "newTrip": "New Trip",
+    "createTrip": "Create Trip",
+    "editName": "Edit Name",
+    "deleteTrip": "Delete Trip",
+    "tripName": "Trip Name",
+    "tripNamePlaceholder": "e.g., Summer 2024 Norway Adventure",
+    "noTripsYet": "No trips yet",
+    "createFirstTrip": "Create your first trip to get started",
+    "loading": "Loading trips...",
+    "delete": "Delete",
+    "created": "Created"
+  },
+  "stops": {
+    "title": "Stops",
+    "addStop": "Add Stop",
+    "editStop": "Edit Stop",
+    "stopName": "Stop Name",
+    "stopNamePlaceholder": "e.g., Oslo",
+    "noStopsYet": "No stops yet. Add your first stop to begin planning!",
+    "loadingStops": "Loading stops...",
+    "night_one": "{{count}} night",
+    "night_other": "{{count}} nights",
+    "stop_one": "{{count}} stop",
+    "stop_other": "{{count}} stops",
+    "noStopsMessage": "No stops yet",
+    "showOnMap": "Show on map"
+  },
+  "dates": {
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "autoCalculated": "auto-calculated",
+    "addAfter": "Add After",
+    "startOfTrip": "Start of trip",
+    "afterStop": "After stop {{index}}: {{name}}",
+    "numberOfNights": "Number of Nights",
+    "notSet": "Not set"
+  },
+  "locations": {
+    "title": "Trip Locations",
+    "editLocations": "Edit Locations",
+    "locationType": "Location Type",
+    "address": "Address",
+    "gpsCoordinates": "GPS Coordinates",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "addressPlaceholder": "e.g., Karl Johans gate 22, Oslo, Norway",
+    "startLocation": "Starting Location (Address)",
+    "endLocation": "Ending Location (Address)",
+    "startLocationHelp": "This is where your trip begins",
+    "endLocationHelp": "This is where your trip ends",
+    "start": "Start",
+    "end": "End",
+    "notSet": "Not set",
+    "tripStart": "Trip Start",
+    "tripEnd": "Trip End",
+    "startingLocation": "Starting location",
+    "endingLocation": "Ending location",
+    "noAddress": "No address"
+  },
+  "activities": {
+    "title": "Activities",
+    "addActivity": "Add Activity",
+    "activityName": "Activity Name",
+    "activityNamePlaceholder": "e.g., Visit Viking Ship Museum",
+    "description": "Description (Optional)",
+    "descriptionPlaceholder": "Details about the activity...",
+    "url": "URL (Optional)",
+    "viewLink": "View Link"
+  },
+  "waypoints": {
+    "title": "Waypoints",
+    "addWaypoint": "Add Waypoint",
+    "waypointName": "Waypoint Name",
+    "waypointNamePlaceholder": "e.g., Scenic viewpoint",
+    "waypoint": "Waypoint",
+    "waypointBetween": "Waypoint between stops {{from}} and {{to}}"
+  },
+  "route": {
+    "title": "Route Information",
+    "calculateRoute": "Calculate Route",
+    "calculating": "Calculating...",
+    "addStopsToCalculate": "Add stops to calculate route",
+    "unableToCalculate": "Unable to calculate route",
+    "kmTotal": "km total",
+    "hoursEst": "hours (est.)",
+    "routeSegments": "Route Segments",
+    "needTwoStops": "You need at least 2 stops to calculate a route",
+    "to": "to"
+  },
+  "map": {
+    "title": "Map",
+    "showOnMap": "Show on map",
+    "unableToShow": "Unable to show stop on map - no coordinates available",
+    "notInitialized": "Map not initialized",
+    "errorLoading": "Error loading Google Maps. Check console for details.",
+    "authError": "Google Maps Error",
+    "checkApiKey": "Please check your API key configuration in Google Cloud Console."
+  },
+  "calendar": {
+    "title": "Calendar",
+    "addStopsToSee": "Add stops to see calendar view",
+    "stops": "Stops",
+    "weekdays": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    }
+  },
+  "modals": {
+    "createNewTrip": "Create New Trip",
+    "editTripName": "Edit Trip Name",
+    "editTripLocations": "Edit Trip Locations",
+    "adjustFollowingStops": "Adjust Following Stops",
+    "durationChangeMessage": "You're extending this stop's duration. How should the following stops be adjusted?",
+    "shiftAllStops": "Shift All Following Stops",
+    "shiftAllDescription": "Move all subsequent stops forward by the same amount",
+    "adjustNextOnly": "Adjust Next Stop Only",
+    "adjustNextDescription": "Shorten the immediately following stop"
+  },
+  "buttons": {
+    "cancel": "Cancel",
+    "save": "Save Changes",
+    "create": "Create Trip",
+    "add": "Add",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "validation": {
+    "tripNameRequired": "Trip name is required",
+    "addressRequired": "Address is required",
+    "validCoordinatesRequired": "Valid GPS coordinates are required",
+    "addressNotFound": "Address not found - please check the spelling",
+    "couldNotValidate": "Could not validate address",
+    "stopNameRequired": "Stop name is required",
+    "activityNameRequired": "Activity name is required",
+    "waypointNameRequired": "Waypoint name is required"
+  },
+  "notifications": {
+    "tripCreated": "Trip created successfully",
+    "tripUpdated": "Trip name updated successfully",
+    "tripDeleted": "Trip deleted successfully",
+    "locationsUpdated": "Trip locations updated successfully",
+    "stopAdded": "Stop added successfully",
+    "stopUpdated": "Stop updated successfully",
+    "stopDeleted": "Stop deleted successfully",
+    "stopsShifted": "Stop updated and following stops shifted",
+    "nextStopAdjusted": "Stop updated and next stop adjusted",
+    "activityAdded": "Activity added successfully",
+    "activityDeleted": "Activity deleted successfully",
+    "waypointAdded": "Waypoint added successfully",
+    "waypointDeleted": "Waypoint deleted successfully",
+    "routeCalculated": "Route calculated successfully",
+    "cannotAdjust": "Cannot adjust: this would make the next stop invalid. Consider shifting all stops instead."
+  },
+  "confirmations": {
+    "deleteTrip": "Are you sure you want to delete \"{{name}}\"? This will also delete all stops and activities.",
+    "deleteStop": "Are you sure you want to delete \"{{name}}\"? This will also delete all activities at this stop.",
+    "deleteActivity": "Are you sure you want to delete \"{{name}}\"?",
+    "deleteWaypoint": "Are you sure you want to delete waypoint \"{{name}}\"?"
+  },
+  "errors": {
+    "failedToLoadTrips": "Failed to load trips",
+    "failedToCreateTrip": "Failed to create trip",
+    "failedToDeleteTrip": "Failed to delete trip",
+    "failedToUpdateTrip": "Failed to update trip",
+    "failedToLoadTrip": "Failed to load trip",
+    "failedToLoadStops": "Failed to load stops",
+    "failedToCreateStop": "Failed to create stop",
+    "failedToUpdateStop": "Failed to update stop",
+    "failedToDeleteStop": "Failed to delete stop",
+    "failedToCreateActivity": "Failed to create activity",
+    "failedToDeleteActivity": "Failed to delete activity",
+    "failedToCreateWaypoint": "Failed to create waypoint",
+    "failedToDeleteWaypoint": "Failed to delete waypoint",
+    "failedToCalculateRoute": "Failed to calculate route",
+    "failedToUpdateLocations": "Failed to update locations",
+    "failedToUpdateStops": "Failed to update stops"
+  }
+}

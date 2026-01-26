@@ -9,7 +9,7 @@ async function fetchTrips() {
         return await response.json();
     } catch (error) {
         console.error('Error fetching trips:', error);
-        showError('Failed to load trips');
+        showError(t('errors.failedToLoadTrips'));
         return [];
     }
 }
@@ -26,7 +26,7 @@ async function createTrip(name) {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Failed to create trip');
+            throw new Error(error.error || t('errors.failedToCreateTrip'));
         }
 
         return await response.json();
@@ -45,7 +45,7 @@ async function deleteTrip(tripId) {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Failed to delete trip');
+            throw new Error(error.error || t('errors.failedToDeleteTrip'));
         }
 
         return await response.json();
@@ -87,11 +87,7 @@ function renderTrips(trips) {
 }
 
 function createTripCard(trip) {
-    const createdDate = new Date(trip.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
+    const createdDate = formatDate(trip.created_at);
 
     // Get trip summary info from stops
     const stops = trip.stops || [];
@@ -106,17 +102,8 @@ function createTripCard(trip) {
         const earliestStart = new Date(Math.min(...startDates));
         const latestEnd = new Date(Math.max(...endDates));
 
-        const startDateStr = earliestStart.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-
-        const endDateStr = latestEnd.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        const dateRangeStr = formatDateRange(earliestStart, latestEnd);
+        const stopsText = t('stops.stop', { count: numStops });
 
         tripDatesHtml = `
             <span class="date">
@@ -126,20 +113,20 @@ function createTripCard(trip) {
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
-                ${startDateStr} - ${endDateStr}
+                ${dateRangeStr}
             </span>
             <span class="date">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                 </svg>
-                ${numStops} ${numStops === 1 ? 'stop' : 'stops'}
+                ${stopsText}
             </span>
         `;
     } else {
         tripDatesHtml = `
             <span class="date" style="color: #6c757d;">
-                No stops yet
+                ${t('stops.noStopsMessage')}
             </span>
         `;
     }
@@ -156,7 +143,7 @@ function createTripCard(trip) {
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
-                    Delete
+                    ${t('trips.delete')}
                 </button>
             </div>
         </div>
@@ -170,13 +157,13 @@ function escapeHtml(text) {
 }
 
 async function handleDeleteTrip(tripId, tripName) {
-    if (!confirm(`Are you sure you want to delete "${tripName}"? This will also delete all stops and activities.`)) {
+    if (!confirm(t('confirmations.deleteTrip', { name: tripName }))) {
         return;
     }
 
     try {
         await deleteTrip(tripId);
-        showSuccess('Trip deleted successfully');
+        showSuccess(t('notifications.tripDeleted'));
         await loadTrips();
     } catch (error) {
         // Error already shown in deleteTrip
@@ -226,7 +213,7 @@ async function handleNewTripSubmit(e) {
     const tripName = form.tripName.value.trim();
 
     if (!tripName) {
-        showError('Trip name is required');
+        showError(t('validation.tripNameRequired'));
         return;
     }
 
@@ -234,7 +221,7 @@ async function handleNewTripSubmit(e) {
         const trip = await createTrip(tripName);
         closeModal('newTripModal');
         form.reset();
-        showSuccess('Trip created successfully');
+        showSuccess(t('notifications.tripCreated'));
 
         // Redirect to trip detail page
         window.location.href = `/trip/${trip.id}`;
@@ -293,7 +280,20 @@ function showSuccess(message) {
 // Event Listeners
 // ============================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize i18n first
+    await initI18n();
+
+    // Insert language selector
+    const langContainer = document.getElementById('languageSelectorContainer');
+    if (langContainer) {
+        langContainer.innerHTML = createLanguageSelector();
+        setupLanguageSelector();
+    }
+
+    // Update all static translations
+    updateAllTranslations();
+
     // Load trips
     loadTrips();
 
@@ -304,6 +304,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // New trip form
     document.getElementById('newTripForm').addEventListener('submit', handleNewTripSubmit);
+});
+
+// Listen for language changes to re-render dynamic content
+document.addEventListener('languageChanged', () => {
+    loadTrips();
 });
 
 // Add CSS animations

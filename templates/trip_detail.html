@@ -6,6 +6,10 @@
     <title>Trip Details - Camping Trip Planner</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/css/style.css">
+    <!-- i18next scripts -->
+    <script src="https://unpkg.com/i18next@23.7.6/i18next.min.js"></script>
+    <script src="https://unpkg.com/i18next-http-backend@2.4.2/i18nextHttpBackend.min.js"></script>
+    <script src="/static/js/i18n.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&libraries=places,geometry&callback=initMap" async defer></script>
 </head>
 <body>
@@ -16,13 +20,14 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
-                    Back to Trips
+                    <span data-i18n="nav.backToTrips">Back to Trips</span>
                 </a>
                 <h1 id="tripTitle">Loading...</h1>
             </div>
             <div class="header-actions">
-                <button id="editTripBtn" class="btn btn-secondary">Edit Name</button>
-                <button id="deleteTripBtn" class="btn btn-danger">Delete Trip</button>
+                <div id="languageSelectorContainer"></div>
+                <button id="editTripBtn" class="btn btn-secondary" data-i18n="trips.editName">Edit Name</button>
+                <button id="deleteTripBtn" class="btn btn-danger" data-i18n="trips.deleteTrip">Delete Trip</button>
             </div>
         </header>
 
@@ -30,44 +35,44 @@
             <div class="left-panel">
                 <div class="section">
                     <div class="section-header">
-                        <h2>Trip Locations</h2>
-                        <button id="editLocationsBtn" class="btn btn-secondary btn-sm">Edit Locations</button>
+                        <h2 data-i18n="locations.title">Trip Locations</h2>
+                        <button id="editLocationsBtn" class="btn btn-secondary btn-sm" data-i18n="locations.editLocations">Edit Locations</button>
                     </div>
                     <div class="trip-locations">
                         <div class="location-item">
-                            <strong>Start:</strong>
-                            <span id="startLocationDisplay" style="color: #6c757d;">Not set</span>
+                            <strong data-i18n="locations.start">Start:</strong>
+                            <span id="startLocationDisplay" style="color: #6c757d;" data-i18n="locations.notSet">Not set</span>
                         </div>
                         <div class="location-item">
-                            <strong>End:</strong>
-                            <span id="endLocationDisplay" style="color: #6c757d;">Not set</span>
+                            <strong data-i18n="locations.end">End:</strong>
+                            <span id="endLocationDisplay" style="color: #6c757d;" data-i18n="locations.notSet">Not set</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="section">
                     <div class="section-header">
-                        <h2>Stops</h2>
+                        <h2 data-i18n="stops.title">Stops</h2>
                         <button id="addStopBtn" class="btn btn-primary btn-sm">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            Add Stop
+                            <span data-i18n="stops.addStop">Add Stop</span>
                         </button>
                     </div>
                     <div id="stopsContainer" class="stops-list">
-                        <div class="loading">Loading stops...</div>
+                        <div class="loading" data-i18n="stops.loadingStops">Loading stops...</div>
                     </div>
                 </div>
 
                 <div class="section">
                     <div class="section-header">
-                        <h2>Route Information</h2>
-                        <button id="calculateRouteBtn" class="btn btn-secondary btn-sm">Calculate Route</button>
+                        <h2 data-i18n="route.title">Route Information</h2>
+                        <button id="calculateRouteBtn" class="btn btn-secondary btn-sm" data-i18n="route.calculateRoute">Calculate Route</button>
                     </div>
                     <div id="routeInfo" class="route-info">
-                        <p class="info-text">Add stops to calculate route</p>
+                        <p class="info-text" data-i18n="route.addStopsToCalculate">Add stops to calculate route</p>
                     </div>
                 </div>
             </div>
@@ -75,7 +80,7 @@
             <div class="right-panel">
                 <div class="section">
                     <div class="section-header">
-                        <h2>Map</h2>
+                        <h2 data-i18n="map.title">Map</h2>
                     </div>
                     <div class="map-container">
                         <div id="map"></div>
@@ -83,7 +88,7 @@
                 </div>
                 <div class="section">
                     <div class="section-header">
-                        <h2>Calendar</h2>
+                        <h2 data-i18n="calendar.title">Calendar</h2>
                     </div>
                     <div id="calendar" class="calendar-container">
                         <div class="calendar-placeholder">
@@ -93,7 +98,7 @@
                                 <line x1="8" y1="2" x2="8" y2="6"></line>
                                 <line x1="3" y1="10" x2="21" y2="10"></line>
                             </svg>
-                            <p>Add stops to see calendar view</p>
+                            <p data-i18n="calendar.addStopsToSee">Add stops to see calendar view</p>
                         </div>
                     </div>
                 </div>
@@ -105,75 +110,75 @@
     <div id="addStopModal" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>Add Stop</h2>
+                <h2 data-i18n="stops.addStop">Add Stop</h2>
                 <button class="close-btn" onclick="closeModal('addStopModal')">&times;</button>
             </div>
             <form id="addStopForm">
                 <div class="form-group">
-                    <label for="stopName">Stop Name</label>
-                    <input type="text" id="stopName" name="stopName" placeholder="e.g., Oslo" required>
+                    <label for="stopName" data-i18n="stops.stopName">Stop Name</label>
+                    <input type="text" id="stopName" name="stopName" data-i18n-placeholder="stops.stopNamePlaceholder" placeholder="e.g., Oslo" required>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="addAfterStop">Add After</label>
+                        <label for="addAfterStop" data-i18n="dates.addAfter">Add After</label>
                         <select id="addAfterStop" name="addAfterStop">
-                            <option value="start">Start of trip</option>
+                            <option value="start" data-i18n="dates.startOfTrip">Start of trip</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="numberOfNights">Number of Nights</label>
+                        <label for="numberOfNights" data-i18n="dates.numberOfNights">Number of Nights</label>
                         <input type="number" id="numberOfNights" name="numberOfNights" min="1" value="1" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="startDate">Start Date <span style="font-size: 0.85em; color: #6c757d;">(auto-calculated)</span></label>
+                        <label for="startDate"><span data-i18n="dates.startDate">Start Date</span> <span style="font-size: 0.85em; color: #6c757d;">(<span data-i18n="dates.autoCalculated">auto-calculated</span>)</span></label>
                         <input type="date" id="startDate" name="startDate" required>
                     </div>
                     <div class="form-group">
-                        <label for="endDate">End Date <span style="font-size: 0.85em; color: #6c757d;">(auto-calculated)</span></label>
+                        <label for="endDate"><span data-i18n="dates.endDate">End Date</span> <span style="font-size: 0.85em; color: #6c757d;">(<span data-i18n="dates.autoCalculated">auto-calculated</span>)</span></label>
                         <input type="date" id="endDate" name="endDate" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Location Type</label>
+                    <label data-i18n="locations.locationType">Location Type</label>
                     <div class="radio-group">
                         <label class="radio-label">
                             <input type="radio" name="locationType" value="address" checked>
-                            Address
+                            <span data-i18n="locations.address">Address</span>
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="locationType" value="gps">
-                            GPS Coordinates
+                            <span data-i18n="locations.gpsCoordinates">GPS Coordinates</span>
                         </label>
                     </div>
                 </div>
 
                 <div id="addressInput" class="form-group">
-                    <label for="address">Address</label>
+                    <label for="address" data-i18n="locations.address">Address</label>
                     <div class="input-with-validation">
-                        <input type="text" id="address" name="address" placeholder="e.g., Karl Johans gate 22, Oslo, Norway">
+                        <input type="text" id="address" name="address" data-i18n-placeholder="locations.addressPlaceholder" placeholder="e.g., Karl Johans gate 22, Oslo, Norway">
                         <span id="addressValidation" class="validation-icon"></span>
                     </div>
                 </div>
 
                 <div id="gpsInput" class="form-row" style="display: none;">
                     <div class="form-group">
-                        <label for="latitude">Latitude</label>
+                        <label for="latitude" data-i18n="locations.latitude">Latitude</label>
                         <input type="number" id="latitude" name="latitude" step="0.000001" placeholder="59.9139">
                     </div>
                     <div class="form-group">
-                        <label for="longitude">Longitude</label>
+                        <label for="longitude" data-i18n="locations.longitude">Longitude</label>
                         <input type="number" id="longitude" name="longitude" step="0.000001" placeholder="10.7522">
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('addStopModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Stop</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addStopModal')" data-i18n="buttons.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="stops.addStop">Add Stop</button>
                 </div>
             </form>
         </div>
@@ -183,63 +188,63 @@
     <div id="editStopModal" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>Edit Stop</h2>
+                <h2 data-i18n="stops.editStop">Edit Stop</h2>
                 <button class="close-btn" onclick="closeModal('editStopModal')">&times;</button>
             </div>
             <form id="editStopForm">
                 <input type="hidden" id="editStopId">
                 <div class="form-group">
-                    <label for="editStopName">Stop Name</label>
+                    <label for="editStopName" data-i18n="stops.stopName">Stop Name</label>
                     <input type="text" id="editStopName" name="stopName" required>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="editStartDate">Start Date</label>
+                        <label for="editStartDate" data-i18n="dates.startDate">Start Date</label>
                         <input type="date" id="editStartDate" name="startDate" required>
                     </div>
                     <div class="form-group">
-                        <label for="editEndDate">End Date</label>
+                        <label for="editEndDate" data-i18n="dates.endDate">End Date</label>
                         <input type="date" id="editEndDate" name="endDate" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Location Type</label>
+                    <label data-i18n="locations.locationType">Location Type</label>
                     <div class="radio-group">
                         <label class="radio-label">
                             <input type="radio" name="editLocationType" value="address" checked>
-                            Address
+                            <span data-i18n="locations.address">Address</span>
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="editLocationType" value="gps">
-                            GPS Coordinates
+                            <span data-i18n="locations.gpsCoordinates">GPS Coordinates</span>
                         </label>
                     </div>
                 </div>
 
                 <div id="editAddressInput" class="form-group">
-                    <label for="editAddress">Address</label>
+                    <label for="editAddress" data-i18n="locations.address">Address</label>
                     <div class="input-with-validation">
-                        <input type="text" id="editAddress" name="address" placeholder="e.g., Karl Johans gate 22, Oslo, Norway">
+                        <input type="text" id="editAddress" name="address" data-i18n-placeholder="locations.addressPlaceholder" placeholder="e.g., Karl Johans gate 22, Oslo, Norway">
                         <span id="editAddressValidation" class="validation-icon"></span>
                     </div>
                 </div>
 
                 <div id="editGpsInput" class="form-row" style="display: none;">
                     <div class="form-group">
-                        <label for="editLatitude">Latitude</label>
+                        <label for="editLatitude" data-i18n="locations.latitude">Latitude</label>
                         <input type="number" id="editLatitude" name="latitude" step="0.000001" placeholder="59.9139">
                     </div>
                     <div class="form-group">
-                        <label for="editLongitude">Longitude</label>
+                        <label for="editLongitude" data-i18n="locations.longitude">Longitude</label>
                         <input type="number" id="editLongitude" name="longitude" step="0.000001" placeholder="10.7522">
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('editStopModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editStopModal')" data-i18n="buttons.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="buttons.save">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -249,26 +254,26 @@
     <div id="addActivityModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Add Activity</h2>
+                <h2 data-i18n="activities.addActivity">Add Activity</h2>
                 <button class="close-btn" onclick="closeModal('addActivityModal')">&times;</button>
             </div>
             <form id="addActivityForm">
                 <input type="hidden" id="activityStopId">
                 <div class="form-group">
-                    <label for="activityName">Activity Name</label>
-                    <input type="text" id="activityName" name="activityName" placeholder="e.g., Visit Viking Ship Museum" required>
+                    <label for="activityName" data-i18n="activities.activityName">Activity Name</label>
+                    <input type="text" id="activityName" name="activityName" data-i18n-placeholder="activities.activityNamePlaceholder" placeholder="e.g., Visit Viking Ship Museum" required>
                 </div>
                 <div class="form-group">
-                    <label for="activityDescription">Description (Optional)</label>
-                    <textarea id="activityDescription" name="activityDescription" rows="3" placeholder="Details about the activity..."></textarea>
+                    <label for="activityDescription" data-i18n="activities.description">Description (Optional)</label>
+                    <textarea id="activityDescription" name="activityDescription" rows="3" data-i18n-placeholder="activities.descriptionPlaceholder" placeholder="Details about the activity..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="activityUrl">URL (Optional)</label>
+                    <label for="activityUrl" data-i18n="activities.url">URL (Optional)</label>
                     <input type="url" id="activityUrl" name="activityUrl" placeholder="https://...">
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('addActivityModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Activity</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addActivityModal')" data-i18n="buttons.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="activities.addActivity">Add Activity</button>
                 </div>
             </form>
         </div>
@@ -278,27 +283,27 @@
     <div id="durationChangeModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Adjust Following Stops</h2>
+                <h2 data-i18n="modals.adjustFollowingStops">Adjust Following Stops</h2>
                 <button class="close-btn" onclick="closeModal('durationChangeModal')">&times;</button>
             </div>
             <div style="padding: 0 24px 24px 24px;">
-                <p style="margin-bottom: 20px; color: #6c757d;">
+                <p style="margin-bottom: 20px; color: #6c757d;" data-i18n="modals.durationChangeMessage">
                     You're extending this stop's duration. How should the following stops be adjusted?
                 </p>
                 <div style="display: flex; gap: 12px; flex-direction: column;">
                     <button id="shiftAllStopsBtn" class="btn btn-primary" style="width: 100%;">
                         <div style="text-align: left;">
-                            <div style="font-weight: bold; margin-bottom: 4px;">Shift All Following Stops</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">Move all subsequent stops forward by the same amount</div>
+                            <div style="font-weight: bold; margin-bottom: 4px;" data-i18n="modals.shiftAllStops">Shift All Following Stops</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;" data-i18n="modals.shiftAllDescription">Move all subsequent stops forward by the same amount</div>
                         </div>
                     </button>
                     <button id="adjustNextStopBtn" class="btn btn-secondary" style="width: 100%;">
                         <div style="text-align: left;">
-                            <div style="font-weight: bold; margin-bottom: 4px;">Adjust Next Stop Only</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">Shorten the immediately following stop</div>
+                            <div style="font-weight: bold; margin-bottom: 4px;" data-i18n="modals.adjustNextOnly">Adjust Next Stop Only</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;" data-i18n="modals.adjustNextDescription">Shorten the immediately following stop</div>
                         </div>
                     </button>
-                    <button class="btn btn-secondary" onclick="closeModal('durationChangeModal')" style="width: 100%;">
+                    <button class="btn btn-secondary" onclick="closeModal('durationChangeModal')" style="width: 100%;" data-i18n="buttons.cancel">
                         Cancel
                     </button>
                 </div>
@@ -310,32 +315,32 @@
     <div id="addWaypointModal" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>Add Waypoint</h2>
+                <h2 data-i18n="waypoints.addWaypoint">Add Waypoint</h2>
                 <button class="close-btn" onclick="closeModal('addWaypointModal')">&times;</button>
             </div>
             <form id="addWaypointForm">
                 <input type="hidden" id="waypointAfterIndex">
                 <div class="form-group">
-                    <label for="waypointName">Waypoint Name</label>
-                    <input type="text" id="waypointName" name="waypointName" placeholder="e.g., Scenic viewpoint" required>
+                    <label for="waypointName" data-i18n="waypoints.waypointName">Waypoint Name</label>
+                    <input type="text" id="waypointName" name="waypointName" data-i18n-placeholder="waypoints.waypointNamePlaceholder" placeholder="e.g., Scenic viewpoint" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Location Type</label>
+                    <label data-i18n="locations.locationType">Location Type</label>
                     <div class="radio-group">
                         <label class="radio-label">
                             <input type="radio" name="waypointLocationType" value="address" checked>
-                            Address
+                            <span data-i18n="locations.address">Address</span>
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="waypointLocationType" value="gps">
-                            GPS Coordinates
+                            <span data-i18n="locations.gpsCoordinates">GPS Coordinates</span>
                         </label>
                     </div>
                 </div>
 
                 <div id="waypointAddressInput" class="form-group">
-                    <label for="waypointAddress">Address</label>
+                    <label for="waypointAddress" data-i18n="locations.address">Address</label>
                     <div class="input-with-validation">
                         <input type="text" id="waypointAddress" name="waypointAddress" placeholder="e.g., Stegastein Viewpoint, Norway">
                         <span id="waypointAddressValidation" class="validation-icon"></span>
@@ -344,18 +349,18 @@
 
                 <div id="waypointGpsInput" class="form-row" style="display: none;">
                     <div class="form-group">
-                        <label for="waypointLatitude">Latitude</label>
+                        <label for="waypointLatitude" data-i18n="locations.latitude">Latitude</label>
                         <input type="number" id="waypointLatitude" name="waypointLatitude" step="0.000001" placeholder="60.8795">
                     </div>
                     <div class="form-group">
-                        <label for="waypointLongitude">Longitude</label>
+                        <label for="waypointLongitude" data-i18n="locations.longitude">Longitude</label>
                         <input type="number" id="waypointLongitude" name="waypointLongitude" step="0.000001" placeholder="7.3139">
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('addWaypointModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Waypoint</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addWaypointModal')" data-i18n="buttons.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="waypoints.addWaypoint">Add Waypoint</button>
                 </div>
             </form>
         </div>
@@ -365,17 +370,17 @@
     <div id="editTripModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Edit Trip Name</h2>
+                <h2 data-i18n="modals.editTripName">Edit Trip Name</h2>
                 <button class="close-btn" onclick="closeModal('editTripModal')">&times;</button>
             </div>
             <form id="editTripForm">
                 <div class="form-group">
-                    <label for="editTripName">Trip Name</label>
+                    <label for="editTripName" data-i18n="trips.tripName">Trip Name</label>
                     <input type="text" id="editTripName" name="tripName" required>
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('editTripModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editTripModal')" data-i18n="buttons.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="buttons.save">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -385,29 +390,29 @@
     <div id="editLocationsModal" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>Edit Trip Locations</h2>
+                <h2 data-i18n="modals.editTripLocations">Edit Trip Locations</h2>
                 <button class="close-btn" onclick="closeModal('editLocationsModal')">&times;</button>
             </div>
             <form id="editLocationsForm">
                 <div class="form-group">
-                    <label for="startLocationAddress">Starting Location (Address)</label>
+                    <label for="startLocationAddress" data-i18n="locations.startLocation">Starting Location (Address)</label>
                     <div class="input-with-validation">
                         <input type="text" id="startLocationAddress" name="startLocationAddress" placeholder="e.g., Oslo Airport, Norway">
                         <span id="startLocationValidation" class="validation-icon"></span>
                     </div>
-                    <small style="color: #6c757d;">This is where your trip begins</small>
+                    <small style="color: #6c757d;" data-i18n="locations.startLocationHelp">This is where your trip begins</small>
                 </div>
                 <div class="form-group">
-                    <label for="endLocationAddress">Ending Location (Address)</label>
+                    <label for="endLocationAddress" data-i18n="locations.endLocation">Ending Location (Address)</label>
                     <div class="input-with-validation">
                         <input type="text" id="endLocationAddress" name="endLocationAddress" placeholder="e.g., Bergen, Norway">
                         <span id="endLocationValidation" class="validation-icon"></span>
                     </div>
-                    <small style="color: #6c757d;">This is where your trip ends</small>
+                    <small style="color: #6c757d;" data-i18n="locations.endLocationHelp">This is where your trip ends</small>
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('editLocationsModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Locations</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editLocationsModal')" data-i18n="buttons.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="buttons.save">Save Locations</button>
                 </div>
             </form>
         </div>
@@ -421,7 +426,7 @@
             console.error('Google Maps authentication failed. Check your API key configuration.');
             const mapElement = document.getElementById('map');
             if (mapElement) {
-                mapElement.innerHTML = '<div class="map-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #dc3545; padding: 20px; text-align: center;"><svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><h3>Google Maps Error</h3><p>Please check your API key configuration in Google Cloud Console.</p></div>';
+                mapElement.innerHTML = `<div class="map-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #dc3545; padding: 20px; text-align: center;"><svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><h3>${t ? t('map.authError') : 'Google Maps Error'}</h3><p>${t ? t('map.checkApiKey') : 'Please check your API key configuration in Google Cloud Console.'}</p></div>`;
             }
         };
     </script>

@@ -1,0 +1,207 @@
+{
+  "app": {
+    "title": "Planificateur de Voyage Camping",
+    "pageTitle": "Planificateur de Voyage Camping - Vos Voyages",
+    "subtitle": "Planifiez votre aventure camping parfaite"
+  },
+  "nav": {
+    "backToTrips": "Retour aux voyages"
+  },
+  "trips": {
+    "newTrip": "Nouveau voyage",
+    "createTrip": "Creer un voyage",
+    "editName": "Modifier le nom",
+    "deleteTrip": "Supprimer le voyage",
+    "tripName": "Nom du voyage",
+    "tripNamePlaceholder": "ex: Aventure Norvege Ete 2024",
+    "noTripsYet": "Aucun voyage",
+    "createFirstTrip": "Creez votre premier voyage pour commencer",
+    "loading": "Chargement des voyages...",
+    "delete": "Supprimer",
+    "created": "Cree"
+  },
+  "stops": {
+    "title": "Etapes",
+    "addStop": "Ajouter une etape",
+    "editStop": "Modifier l'etape",
+    "stopName": "Nom de l'etape",
+    "stopNamePlaceholder": "ex: Oslo",
+    "noStopsYet": "Aucune etape. Ajoutez votre premiere etape pour commencer!",
+    "loadingStops": "Chargement des etapes...",
+    "night_one": "{{count}} nuit",
+    "night_other": "{{count}} nuits",
+    "stop_one": "{{count}} etape",
+    "stop_other": "{{count}} etapes",
+    "noStopsMessage": "Aucune etape",
+    "showOnMap": "Afficher sur la carte"
+  },
+  "dates": {
+    "startDate": "Date de debut",
+    "endDate": "Date de fin",
+    "autoCalculated": "calcule automatiquement",
+    "addAfter": "Ajouter apres",
+    "startOfTrip": "Debut du voyage",
+    "afterStop": "Apres l'etape {{index}}: {{name}}",
+    "numberOfNights": "Nombre de nuits",
+    "notSet": "Non defini"
+  },
+  "locations": {
+    "title": "Lieux du voyage",
+    "editLocations": "Modifier les lieux",
+    "locationType": "Type de lieu",
+    "address": "Adresse",
+    "gpsCoordinates": "Coordonnees GPS",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "addressPlaceholder": "ex: Karl Johans gate 22, Oslo, Norvege",
+    "startLocation": "Lieu de depart (Adresse)",
+    "endLocation": "Lieu d'arrivee (Adresse)",
+    "startLocationHelp": "C'est ici que votre voyage commence",
+    "endLocationHelp": "C'est ici que votre voyage se termine",
+    "start": "Depart",
+    "end": "Arrivee",
+    "notSet": "Non defini",
+    "tripStart": "Depart du voyage",
+    "tripEnd": "Fin du voyage",
+    "startingLocation": "Lieu de depart",
+    "endingLocation": "Lieu d'arrivee",
+    "noAddress": "Pas d'adresse"
+  },
+  "activities": {
+    "title": "Activites",
+    "addActivity": "Ajouter une activite",
+    "activityName": "Nom de l'activite",
+    "activityNamePlaceholder": "ex: Visiter le Musee des Bateaux Vikings",
+    "description": "Description (Optionnel)",
+    "descriptionPlaceholder": "Details sur l'activite...",
+    "url": "URL (Optionnel)",
+    "viewLink": "Voir le lien"
+  },
+  "waypoints": {
+    "title": "Points de passage",
+    "addWaypoint": "Ajouter un point de passage",
+    "waypointName": "Nom du point de passage",
+    "waypointNamePlaceholder": "ex: Point de vue panoramique",
+    "waypoint": "Point de passage",
+    "waypointBetween": "Point de passage entre les etapes {{from}} et {{to}}"
+  },
+  "route": {
+    "title": "Informations sur l'itineraire",
+    "calculateRoute": "Calculer l'itineraire",
+    "calculating": "Calcul en cours...",
+    "addStopsToCalculate": "Ajoutez des etapes pour calculer l'itineraire",
+    "unableToCalculate": "Impossible de calculer l'itineraire",
+    "kmTotal": "km au total",
+    "hoursEst": "heures (est.)",
+    "routeSegments": "Segments de l'itineraire",
+    "needTwoStops": "Vous avez besoin d'au moins 2 etapes pour calculer un itineraire",
+    "to": "vers"
+  },
+  "map": {
+    "title": "Carte",
+    "showOnMap": "Afficher sur la carte",
+    "unableToShow": "Impossible d'afficher l'etape sur la carte - coordonnees non disponibles",
+    "notInitialized": "Carte non initialisee",
+    "errorLoading": "Erreur lors du chargement de Google Maps. Verifiez la console.",
+    "authError": "Erreur Google Maps",
+    "checkApiKey": "Veuillez verifier la configuration de votre cle API dans Google Cloud Console."
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "addStopsToSee": "Ajoutez des etapes pour voir le calendrier",
+    "stops": "Etapes",
+    "weekdays": {
+      "sun": "Dim",
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Jeu",
+      "fri": "Ven",
+      "sat": "Sam"
+    },
+    "months": {
+      "january": "Janvier",
+      "february": "Fevrier",
+      "march": "Mars",
+      "april": "Avril",
+      "may": "Mai",
+      "june": "Juin",
+      "july": "Juillet",
+      "august": "Aout",
+      "september": "Septembre",
+      "october": "Octobre",
+      "november": "Novembre",
+      "december": "Decembre"
+    }
+  },
+  "modals": {
+    "createNewTrip": "Creer un nouveau voyage",
+    "editTripName": "Modifier le nom du voyage",
+    "editTripLocations": "Modifier les lieux du voyage",
+    "adjustFollowingStops": "Ajuster les etapes suivantes",
+    "durationChangeMessage": "Vous prolongez la duree de cette etape. Comment ajuster les etapes suivantes?",
+    "shiftAllStops": "Decaler toutes les etapes suivantes",
+    "shiftAllDescription": "Deplacer toutes les etapes suivantes du meme montant",
+    "adjustNextOnly": "Ajuster uniquement l'etape suivante",
+    "adjustNextDescription": "Raccourcir l'etape immediatement suivante"
+  },
+  "buttons": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "create": "Creer le voyage",
+    "add": "Ajouter",
+    "delete": "Supprimer",
+    "edit": "Modifier"
+  },
+  "validation": {
+    "tripNameRequired": "Le nom du voyage est requis",
+    "addressRequired": "L'adresse est requise",
+    "validCoordinatesRequired": "Des coordonnees GPS valides sont requises",
+    "addressNotFound": "Adresse non trouvee - veuillez verifier l'orthographe",
+    "couldNotValidate": "Impossible de valider l'adresse",
+    "stopNameRequired": "Le nom de l'etape est requis",
+    "activityNameRequired": "Le nom de l'activite est requis",
+    "waypointNameRequired": "Le nom du point de passage est requis"
+  },
+  "notifications": {
+    "tripCreated": "Voyage cree avec succes",
+    "tripUpdated": "Nom du voyage mis a jour",
+    "tripDeleted": "Voyage supprime avec succes",
+    "locationsUpdated": "Lieux du voyage mis a jour",
+    "stopAdded": "Etape ajoutee avec succes",
+    "stopUpdated": "Etape mise a jour",
+    "stopDeleted": "Etape supprimee",
+    "stopsShifted": "Etape mise a jour et etapes suivantes decalees",
+    "nextStopAdjusted": "Etape mise a jour et etape suivante ajustee",
+    "activityAdded": "Activite ajoutee",
+    "activityDeleted": "Activite supprimee",
+    "waypointAdded": "Point de passage ajoute",
+    "waypointDeleted": "Point de passage supprime",
+    "routeCalculated": "Itineraire calcule avec succes",
+    "cannotAdjust": "Impossible d'ajuster: cela rendrait l'etape suivante invalide. Envisagez de decaler toutes les etapes."
+  },
+  "confirmations": {
+    "deleteTrip": "Etes-vous sur de vouloir supprimer \"{{name}}\"? Cela supprimera aussi toutes les etapes et activites.",
+    "deleteStop": "Etes-vous sur de vouloir supprimer \"{{name}}\"? Cela supprimera aussi toutes les activites de cette etape.",
+    "deleteActivity": "Etes-vous sur de vouloir supprimer \"{{name}}\"?",
+    "deleteWaypoint": "Etes-vous sur de vouloir supprimer le point de passage \"{{name}}\"?"
+  },
+  "errors": {
+    "failedToLoadTrips": "Echec du chargement des voyages",
+    "failedToCreateTrip": "Echec de la creation du voyage",
+    "failedToDeleteTrip": "Echec de la suppression du voyage",
+    "failedToUpdateTrip": "Echec de la mise a jour du voyage",
+    "failedToLoadTrip": "Echec du chargement du voyage",
+    "failedToLoadStops": "Echec du chargement des etapes",
+    "failedToCreateStop": "Echec de la creation de l'etape",
+    "failedToUpdateStop": "Echec de la mise a jour de l'etape",
+    "failedToDeleteStop": "Echec de la suppression de l'etape",
+    "failedToCreateActivity": "Echec de la creation de l'activite",
+    "failedToDeleteActivity": "Echec de la suppression de l'activite",
+    "failedToCreateWaypoint": "Echec de la creation du point de passage",
+    "failedToDeleteWaypoint": "Echec de la suppression du point de passage",
+    "failedToCalculateRoute": "Echec du calcul de l'itineraire",
+    "failedToUpdateLocations": "Echec de la mise a jour des lieux",
+    "failedToUpdateStops": "Echec de la mise a jour des etapes"
+  }
+}

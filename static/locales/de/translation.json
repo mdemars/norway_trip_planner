@@ -1,0 +1,207 @@
+{
+  "app": {
+    "title": "Camping-Reiseplaner",
+    "pageTitle": "Camping-Reiseplaner - Ihre Reisen",
+    "subtitle": "Planen Sie Ihr perfektes Camping-Abenteuer"
+  },
+  "nav": {
+    "backToTrips": "Zuruck zu Reisen"
+  },
+  "trips": {
+    "newTrip": "Neue Reise",
+    "createTrip": "Reise erstellen",
+    "editName": "Name bearbeiten",
+    "deleteTrip": "Reise loschen",
+    "tripName": "Reisename",
+    "tripNamePlaceholder": "z.B. Sommer 2024 Norwegen Abenteuer",
+    "noTripsYet": "Noch keine Reisen",
+    "createFirstTrip": "Erstellen Sie Ihre erste Reise",
+    "loading": "Reisen werden geladen...",
+    "delete": "Loschen",
+    "created": "Erstellt"
+  },
+  "stops": {
+    "title": "Stopps",
+    "addStop": "Stopp hinzufugen",
+    "editStop": "Stopp bearbeiten",
+    "stopName": "Stopp-Name",
+    "stopNamePlaceholder": "z.B. Oslo",
+    "noStopsYet": "Noch keine Stopps. Fugen Sie Ihren ersten Stopp hinzu!",
+    "loadingStops": "Stopps werden geladen...",
+    "night_one": "{{count}} Nacht",
+    "night_other": "{{count}} Nachte",
+    "stop_one": "{{count}} Stopp",
+    "stop_other": "{{count}} Stopps",
+    "noStopsMessage": "Noch keine Stopps",
+    "showOnMap": "Auf Karte anzeigen"
+  },
+  "dates": {
+    "startDate": "Startdatum",
+    "endDate": "Enddatum",
+    "autoCalculated": "automatisch berechnet",
+    "addAfter": "Hinzufugen nach",
+    "startOfTrip": "Reisebeginn",
+    "afterStop": "Nach Stopp {{index}}: {{name}}",
+    "numberOfNights": "Anzahl der Nachte",
+    "notSet": "Nicht festgelegt"
+  },
+  "locations": {
+    "title": "Reiseorte",
+    "editLocations": "Orte bearbeiten",
+    "locationType": "Ortstyp",
+    "address": "Adresse",
+    "gpsCoordinates": "GPS-Koordinaten",
+    "latitude": "Breitengrad",
+    "longitude": "Langengrad",
+    "addressPlaceholder": "z.B. Karl Johans gate 22, Oslo, Norwegen",
+    "startLocation": "Startort (Adresse)",
+    "endLocation": "Zielort (Adresse)",
+    "startLocationHelp": "Hier beginnt Ihre Reise",
+    "endLocationHelp": "Hier endet Ihre Reise",
+    "start": "Start",
+    "end": "Ende",
+    "notSet": "Nicht festgelegt",
+    "tripStart": "Reisestart",
+    "tripEnd": "Reiseende",
+    "startingLocation": "Startort",
+    "endingLocation": "Zielort",
+    "noAddress": "Keine Adresse"
+  },
+  "activities": {
+    "title": "Aktivitaten",
+    "addActivity": "Aktivitat hinzufugen",
+    "activityName": "Aktivitatsname",
+    "activityNamePlaceholder": "z.B. Wikingerschiff-Museum besuchen",
+    "description": "Beschreibung (Optional)",
+    "descriptionPlaceholder": "Details zur Aktivitat...",
+    "url": "URL (Optional)",
+    "viewLink": "Link ansehen"
+  },
+  "waypoints": {
+    "title": "Wegpunkte",
+    "addWaypoint": "Wegpunkt hinzufugen",
+    "waypointName": "Wegpunkt-Name",
+    "waypointNamePlaceholder": "z.B. Aussichtspunkt",
+    "waypoint": "Wegpunkt",
+    "waypointBetween": "Wegpunkt zwischen Stopps {{from}} und {{to}}"
+  },
+  "route": {
+    "title": "Routeninformationen",
+    "calculateRoute": "Route berechnen",
+    "calculating": "Berechnung...",
+    "addStopsToCalculate": "Stopps hinzufugen um Route zu berechnen",
+    "unableToCalculate": "Route konnte nicht berechnet werden",
+    "kmTotal": "km gesamt",
+    "hoursEst": "Stunden (gesch.)",
+    "routeSegments": "Routenabschnitte",
+    "needTwoStops": "Sie benotigen mindestens 2 Stopps um eine Route zu berechnen",
+    "to": "nach"
+  },
+  "map": {
+    "title": "Karte",
+    "showOnMap": "Auf Karte anzeigen",
+    "unableToShow": "Stopp kann nicht auf Karte angezeigt werden - keine Koordinaten verfugbar",
+    "notInitialized": "Karte nicht initialisiert",
+    "errorLoading": "Fehler beim Laden von Google Maps. Siehe Konsole.",
+    "authError": "Google Maps Fehler",
+    "checkApiKey": "Bitte uberprufen Sie Ihre API-Schlussel-Konfiguration in der Google Cloud Console."
+  },
+  "calendar": {
+    "title": "Kalender",
+    "addStopsToSee": "Stopps hinzufugen um Kalender zu sehen",
+    "stops": "Stopps",
+    "weekdays": {
+      "sun": "So",
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa"
+    },
+    "months": {
+      "january": "Januar",
+      "february": "Februar",
+      "march": "Marz",
+      "april": "April",
+      "may": "Mai",
+      "june": "Juni",
+      "july": "Juli",
+      "august": "August",
+      "september": "September",
+      "october": "Oktober",
+      "november": "November",
+      "december": "Dezember"
+    }
+  },
+  "modals": {
+    "createNewTrip": "Neue Reise erstellen",
+    "editTripName": "Reisenamen bearbeiten",
+    "editTripLocations": "Reiseorte bearbeiten",
+    "adjustFollowingStops": "Folgende Stopps anpassen",
+    "durationChangeMessage": "Sie verlangern die Dauer dieses Stopps. Wie sollen die folgenden Stopps angepasst werden?",
+    "shiftAllStops": "Alle folgenden Stopps verschieben",
+    "shiftAllDescription": "Alle nachfolgenden Stopps um den gleichen Betrag verschieben",
+    "adjustNextOnly": "Nur nachsten Stopp anpassen",
+    "adjustNextDescription": "Den unmittelbar folgenden Stopp verkurzen"
+  },
+  "buttons": {
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "create": "Reise erstellen",
+    "add": "Hinzufugen",
+    "delete": "Loschen",
+    "edit": "Bearbeiten"
+  },
+  "validation": {
+    "tripNameRequired": "Reisename ist erforderlich",
+    "addressRequired": "Adresse ist erforderlich",
+    "validCoordinatesRequired": "Gultige GPS-Koordinaten sind erforderlich",
+    "addressNotFound": "Adresse nicht gefunden - bitte Schreibweise uberprufen",
+    "couldNotValidate": "Adresse konnte nicht validiert werden",
+    "stopNameRequired": "Stopp-Name ist erforderlich",
+    "activityNameRequired": "Aktivitatsname ist erforderlich",
+    "waypointNameRequired": "Wegpunkt-Name ist erforderlich"
+  },
+  "notifications": {
+    "tripCreated": "Reise erfolgreich erstellt",
+    "tripUpdated": "Reisename erfolgreich aktualisiert",
+    "tripDeleted": "Reise erfolgreich geloscht",
+    "locationsUpdated": "Reiseorte erfolgreich aktualisiert",
+    "stopAdded": "Stopp erfolgreich hinzugefugt",
+    "stopUpdated": "Stopp erfolgreich aktualisiert",
+    "stopDeleted": "Stopp erfolgreich geloscht",
+    "stopsShifted": "Stopp aktualisiert und folgende Stopps verschoben",
+    "nextStopAdjusted": "Stopp aktualisiert und nachster Stopp angepasst",
+    "activityAdded": "Aktivitat erfolgreich hinzugefugt",
+    "activityDeleted": "Aktivitat erfolgreich geloscht",
+    "waypointAdded": "Wegpunkt erfolgreich hinzugefugt",
+    "waypointDeleted": "Wegpunkt erfolgreich geloscht",
+    "routeCalculated": "Route erfolgreich berechnet",
+    "cannotAdjust": "Anpassung nicht moglich: Der nachste Stopp wurde ungultig. Erwagen Sie alle Stopps zu verschieben."
+  },
+  "confirmations": {
+    "deleteTrip": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten? Dies loscht auch alle Stopps und Aktivitaten.",
+    "deleteStop": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten? Dies loscht auch alle Aktivitaten an diesem Stopp.",
+    "deleteActivity": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten?",
+    "deleteWaypoint": "Sind Sie sicher, dass Sie den Wegpunkt \"{{name}}\" loschen mochten?"
+  },
+  "errors": {
+    "failedToLoadTrips": "Reisen konnten nicht geladen werden",
+    "failedToCreateTrip": "Reise konnte nicht erstellt werden",
+    "failedToDeleteTrip": "Reise konnte nicht geloscht werden",
+    "failedToUpdateTrip": "Reise konnte nicht aktualisiert werden",
+    "failedToLoadTrip": "Reise konnte nicht geladen werden",
+    "failedToLoadStops": "Stopps konnten nicht geladen werden",
+    "failedToCreateStop": "Stopp konnte nicht erstellt werden",
+    "failedToUpdateStop": "Stopp konnte nicht aktualisiert werden",
+    "failedToDeleteStop": "Stopp konnte nicht geloscht werden",
+    "failedToCreateActivity": "Aktivitat konnte nicht erstellt werden",
+    "failedToDeleteActivity": "Aktivitat konnte nicht geloscht werden",
+    "failedToCreateWaypoint": "Wegpunkt konnte nicht erstellt werden",
+    "failedToDeleteWaypoint": "Wegpunkt konnte nicht geloscht werden",
+    "failedToCalculateRoute": "Route konnte nicht berechnet werden",
+    "failedToUpdateLocations": "Orte konnten nicht aktualisiert werden",
+    "failedToUpdateStops": "Stopps konnten nicht aktualisiert werden"
+  }
+}
