@@ -92,16 +92,42 @@ def get_trip(trip_id):
 def update_trip(trip_id):
     """Update a trip"""
     data = request.json
-    
+
     db = get_db()
     try:
         trip = db.query(Trip).filter(Trip.id == trip_id).first()
         if not trip:
             return jsonify({'error': 'Trip not found'}), 404
-        
+
         if 'name' in data:
             trip.name = data['name']
-        
+
+        # Handle start location
+        if 'start_location_address' in data:
+            trip.start_location_address = data['start_location_address']
+            if data['start_location_address']:
+                # Geocode the address
+                coords = geocoding_service.geocode_address(data['start_location_address'])
+                if coords:
+                    trip.start_location_latitude, trip.start_location_longitude = coords
+            else:
+                # Clear location if address is empty
+                trip.start_location_latitude = None
+                trip.start_location_longitude = None
+
+        # Handle end location
+        if 'end_location_address' in data:
+            trip.end_location_address = data['end_location_address']
+            if data['end_location_address']:
+                # Geocode the address
+                coords = geocoding_service.geocode_address(data['end_location_address'])
+                if coords:
+                    trip.end_location_latitude, trip.end_location_longitude = coords
+            else:
+                # Clear location if address is empty
+                trip.end_location_latitude = None
+                trip.end_location_longitude = None
+
         db.commit()
         db.refresh(trip)
         return jsonify(trip.to_dict())
@@ -554,6 +580,11 @@ def get_trip_route(trip_id):
     """Calculate route and distances for a trip"""
     db = get_db()
     try:
+        # Get trip
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+
         # Get all stops and waypoints for the trip
         stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.start_date, Stop.order_index).all()
         waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip_id).order_by(Waypoint.order_index).all()
@@ -563,6 +594,21 @@ def get_trip_route(trip_id):
 
         # Merge stops and waypoints, sorted by order_index
         all_points = []
+
+        # Add start location if it exists
+        if trip.start_location_latitude and trip.start_location_longitude:
+            # Get the first stop's start date for the trip start
+            trip_start_date = stops[0].start_date if stops else None
+            all_points.append({
+                'id': 'start',
+                'name': 'Trip Start',
+                'latitude': trip.start_location_latitude,
+                'longitude': trip.start_location_longitude,
+                'address': trip.start_location_address,
+                'order_index': -1,
+                'type': 'start',
+                'start_date': trip_start_date.isoformat() if trip_start_date else None
+            })
 
         for stop in stops:
             if stop.latitude and stop.longitude:
@@ -583,6 +629,21 @@ def get_trip_route(trip_id):
                 return jsonify({
                     'error': f'Waypoint "{waypoint.name}" does not have valid coordinates'
                 }), 400
+
+        # Add end location if it exists
+        if trip.end_location_latitude and trip.end_location_longitude:
+            # Get the last stop's end date for the trip end
+            trip_end_date = stops[-1].end_date if stops else None
+            all_points.append({
+                'id': 'end',
+                'name': 'Trip End',
+                'latitude': trip.end_location_latitude,
+                'longitude': trip.end_location_longitude,
+                'address': trip.end_location_address,
+                'order_index': 9999,
+                'type': 'end',
+                'start_date': trip_end_date.isoformat() if trip_end_date else None
+            })
 
         # Sort by order_index
         all_points.sort(key=lambda x: x['order_index'])

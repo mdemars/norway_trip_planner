@@ -307,6 +307,29 @@ header .subtitle {
 }
 
 /* ============================================================================
+   Trip Locations
+   ============================================================================ */
+
+.trip-locations {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.location-item {
+    padding: 12px;
+    background: var(--light-gray);
+    border-radius: 6px;
+    display: flex;
+    gap: 8px;
+}
+
+.location-item strong {
+    min-width: 50px;
+    color: var(--text-color);
+}
+
+/* ============================================================================
    Stops List
    ============================================================================ */
 
