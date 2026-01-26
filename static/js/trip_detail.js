@@ -1447,6 +1447,45 @@ async function handleEditTripSubmit(e) {
     }
 }
 
+async function validateAddressField(inputId, validationIconId) {
+    const input = document.getElementById(inputId);
+    const validationIcon = document.getElementById(validationIconId);
+    const address = input.value.trim();
+
+    // Clear previous validation state
+    validationIcon.className = 'validation-icon';
+
+    // If empty, don't validate
+    if (!address) {
+        return;
+    }
+
+    // Show validating state
+    validationIcon.className = 'validation-icon validating';
+
+    try {
+        const response = await fetch('/api/validate-address', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address })
+        });
+
+        const result = await response.json();
+
+        if (result.valid) {
+            validationIcon.className = 'validation-icon valid';
+            validationIcon.title = `Valid address (${result.latitude.toFixed(4)}, ${result.longitude.toFixed(4)})`;
+        } else {
+            validationIcon.className = 'validation-icon invalid';
+            validationIcon.title = 'Address not found - please check the spelling';
+        }
+    } catch (error) {
+        console.error('Address validation error:', error);
+        validationIcon.className = 'validation-icon invalid';
+        validationIcon.title = 'Could not validate address';
+    }
+}
+
 async function handleEditLocationsSubmit(e) {
     e.preventDefault();
 
@@ -1822,6 +1861,75 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Edit locations form
     document.getElementById('editLocationsForm').addEventListener('submit', handleEditLocationsSubmit);
+
+    // Address validation on blur
+    document.getElementById('startLocationAddress').addEventListener('blur', () => {
+        validateAddressField('startLocationAddress', 'startLocationValidation');
+    });
+
+    document.getElementById('endLocationAddress').addEventListener('blur', () => {
+        validateAddressField('endLocationAddress', 'endLocationValidation');
+    });
+
+    // Clear validation icons when user starts typing
+    document.getElementById('startLocationAddress').addEventListener('input', () => {
+        const validationIcon = document.getElementById('startLocationValidation');
+        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
+            validationIcon.className = 'validation-icon';
+        }
+    });
+
+    document.getElementById('endLocationAddress').addEventListener('input', () => {
+        const validationIcon = document.getElementById('endLocationValidation');
+        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
+            validationIcon.className = 'validation-icon';
+        }
+    });
+
+    // Add Stop modal - address validation
+    document.getElementById('address').addEventListener('blur', () => {
+        const locationType = document.querySelector('input[name="locationType"]:checked').value;
+        if (locationType === 'address') {
+            validateAddressField('address', 'addressValidation');
+        }
+    });
+
+    document.getElementById('address').addEventListener('input', () => {
+        const validationIcon = document.getElementById('addressValidation');
+        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
+            validationIcon.className = 'validation-icon';
+        }
+    });
+
+    // Edit Stop modal - address validation
+    document.getElementById('editAddress').addEventListener('blur', () => {
+        const locationType = document.querySelector('input[name="editLocationType"]:checked').value;
+        if (locationType === 'address') {
+            validateAddressField('editAddress', 'editAddressValidation');
+        }
+    });
+
+    document.getElementById('editAddress').addEventListener('input', () => {
+        const validationIcon = document.getElementById('editAddressValidation');
+        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
+            validationIcon.className = 'validation-icon';
+        }
+    });
+
+    // Add Waypoint modal - address validation
+    document.getElementById('waypointAddress').addEventListener('blur', () => {
+        const locationType = document.querySelector('input[name="waypointLocationType"]:checked').value;
+        if (locationType === 'address') {
+            validateAddressField('waypointAddress', 'waypointAddressValidation');
+        }
+    });
+
+    document.getElementById('waypointAddress').addEventListener('input', () => {
+        const validationIcon = document.getElementById('waypointAddressValidation');
+        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
+            validationIcon.className = 'validation-icon';
+        }
+    });
 
     // Delete trip button
     document.getElementById('deleteTripBtn').addEventListener('click', handleDeleteTrip);

@@ -597,8 +597,7 @@ def get_trip_route(trip_id):
 
         # Add start location if it exists
         if trip.start_location_latitude and trip.start_location_longitude:
-            # Get the first stop's start date for the trip start
-            trip_start_date = stops[0].start_date if stops else None
+            # Use a fixed early date to ensure trip start sorts first
             all_points.append({
                 'id': 'start',
                 'name': 'Trip Start',
@@ -607,7 +606,7 @@ def get_trip_route(trip_id):
                 'address': trip.start_location_address,
                 'order_index': -1,
                 'type': 'start',
-                'start_date': trip_start_date.isoformat() if trip_start_date else None
+                'start_date': '2000-01-01T00:00:00'
             })
 
         for stop in stops:
@@ -624,6 +623,7 @@ def get_trip_route(trip_id):
             if waypoint.latitude and waypoint.longitude:
                 point_data = waypoint.to_dict()
                 point_data['type'] = 'waypoint'
+                # Waypoints will be sorted by order_index in calculate_route
                 all_points.append(point_data)
             else:
                 return jsonify({
@@ -632,8 +632,7 @@ def get_trip_route(trip_id):
 
         # Add end location if it exists
         if trip.end_location_latitude and trip.end_location_longitude:
-            # Get the last stop's end date for the trip end
-            trip_end_date = stops[-1].end_date if stops else None
+            # Use a fixed late date to ensure trip end sorts last
             all_points.append({
                 'id': 'end',
                 'name': 'Trip End',
@@ -642,7 +641,7 @@ def get_trip_route(trip_id):
                 'address': trip.end_location_address,
                 'order_index': 9999,
                 'type': 'end',
-                'start_date': trip_end_date.isoformat() if trip_end_date else None
+                'start_date': '2100-01-01T00:00:00'
             })
 
         # Sort by order_index
@@ -654,6 +653,40 @@ def get_trip_route(trip_id):
         return jsonify(route_info)
     finally:
         db.close()
+
+
+# ============================================================================
+# API Routes - Validation
+# ============================================================================
+
+@app.route('/api/validate-address', methods=['POST'])
+def validate_address():
+    """Validate an address by attempting to geocode it"""
+    data = request.json
+
+    if not data or not data.get('address'):
+        return jsonify({'valid': False, 'error': 'Address is required'}), 400
+
+    address = data['address'].strip()
+
+    if not address:
+        return jsonify({'valid': False, 'error': 'Address cannot be empty'}), 400
+
+    # Try to geocode the address
+    coords = geocoding_service.geocode_address(address)
+
+    if coords:
+        latitude, longitude = coords
+        return jsonify({
+            'valid': True,
+            'latitude': latitude,
+            'longitude': longitude
+        })
+    else:
+        return jsonify({
+            'valid': False,
+            'error': 'Address not found'
+        })
 
 
 # ============================================================================

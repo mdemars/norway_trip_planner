@@ -925,6 +925,48 @@ header .subtitle {
     gap: 16px;
 }
 
+.input-with-validation {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-validation input {
+    flex: 1;
+    padding-right: 40px;
+}
+
+.validation-icon {
+    position: absolute;
+    right: 12px;
+    display: none;
+    font-size: 20px;
+    pointer-events: none;
+}
+
+.validation-icon.validating::after {
+    content: "⏳";
+    color: #6c757d;
+}
+
+.validation-icon.valid::after {
+    content: "✓";
+    color: #28a745;
+    font-weight: bold;
+}
+
+.validation-icon.invalid::after {
+    content: "✗";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.validation-icon.validating,
+.validation-icon.valid,
+.validation-icon.invalid {
+    display: inline-block;
+}
+
 .radio-group {
     display: flex;
     gap: 20px;

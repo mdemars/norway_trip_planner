@@ -64,39 +64,43 @@ class RouteService:
                 'total_distance_km': 0,
                 'segments': []
             }
-        
+
         if len(stops) < 2:
             return {
                 'total_distance_km': 0,
                 'segments': []
             }
-        
+
         try:
+            # Sort stops by start_date to ensure chronological order
+            # Use order_index as fallback for items without start_date
+            sorted_stops = sorted(stops, key=lambda s: (s.get('start_date', ''), s.get('order_index', 0)))
+
             segments = []
             total_distance_meters = 0
-            
+
             # Calculate distance for each segment
-            for i in range(len(stops) - 1):
-                origin = (stops[i]['latitude'], stops[i]['longitude'])
-                destination = (stops[i + 1]['latitude'], stops[i + 1]['longitude'])
-                
+            for i in range(len(sorted_stops) - 1):
+                origin = (sorted_stops[i]['latitude'], sorted_stops[i]['longitude'])
+                destination = (sorted_stops[i + 1]['latitude'], sorted_stops[i + 1]['longitude'])
+
                 # Get directions
                 directions = self.gmaps.directions(
                     origin=origin,
                     destination=destination,
                     mode='driving'
                 )
-                
+
                 if directions:
                     leg = directions[0]['legs'][0]
                     distance_meters = leg['distance']['value']
                     total_distance_meters += distance_meters
 
                     segment = {
-                        'from_stop_id': stops[i]['id'],
-                        'to_stop_id': stops[i + 1]['id'],
-                        'from_name': stops[i]['name'],
-                        'to_name': stops[i + 1]['name'],
+                        'from_stop_id': sorted_stops[i]['id'],
+                        'to_stop_id': sorted_stops[i + 1]['id'],
+                        'from_name': sorted_stops[i]['name'],
+                        'to_name': sorted_stops[i + 1]['name'],
                         'distance_km': round(distance_meters / 1000, 2),
                         'distance_text': leg['distance']['text'],
                         'duration_text': leg['duration']['text'],
@@ -104,8 +108,8 @@ class RouteService:
                     }
 
                     # Add start_date if available (for stops)
-                    if 'start_date' in stops[i]:
-                        segment['start_date'] = stops[i]['start_date']
+                    if 'start_date' in sorted_stops[i]:
+                        segment['start_date'] = sorted_stops[i]['start_date']
 
                     segments.append(segment)
             
