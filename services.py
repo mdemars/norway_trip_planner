@@ -91,8 +91,8 @@ class RouteService:
                     leg = directions[0]['legs'][0]
                     distance_meters = leg['distance']['value']
                     total_distance_meters += distance_meters
-                    
-                    segments.append({
+
+                    segment = {
                         'from_stop_id': stops[i]['id'],
                         'to_stop_id': stops[i + 1]['id'],
                         'from_name': stops[i]['name'],
@@ -101,7 +101,13 @@ class RouteService:
                         'distance_text': leg['distance']['text'],
                         'duration_text': leg['duration']['text'],
                         'polyline': directions[0]['overview_polyline']['points']
-                    })
+                    }
+
+                    # Add start_date if available (for stops)
+                    if 'start_date' in stops[i]:
+                        segment['start_date'] = stops[i]['start_date']
+
+                    segments.append(segment)
             
             return {
                 'total_distance_km': round(total_distance_meters / 1000, 2),

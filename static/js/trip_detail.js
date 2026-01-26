@@ -312,10 +312,8 @@ function renderStops(stopsData, waypointsData) {
     // Update map
     updateMap();
 
-    // Update calendar if in calendar view
-    if (document.getElementById('calendarView').classList.contains('active')) {
-        renderCalendar();
-    }
+    // Update calendar
+    renderCalendar();
 }
 
 function createStopCard(stop, index) {
@@ -331,11 +329,11 @@ function createStopCard(stop, index) {
         year: 'numeric'
     });
 
-    // Calculate number of nights (days difference + 1 since dates are inclusive)
+    // Calculate number of nights (days difference, excluding last day)
     const start = new Date(stop.start_date);
     const end = new Date(stop.end_date);
     const daysDifference = Math.round((end - start) / (1000 * 60 * 60 * 24));
-    const nights = daysDifference + 1;
+    const nights = daysDifference;
     const nightsText = nights === 1 ? '1 night' : `${nights} nights`;
 
     const activities = stop.activities || [];
@@ -875,35 +873,7 @@ function getStopsForDay(date) {
     return stopsOnDay;
 }
 
-function switchView(viewName) {
-    // Update button states
-    document.querySelectorAll('.view-toggle-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-
-    if (viewName === 'calendar') {
-        document.getElementById('calendarViewBtn').classList.add('active');
-    } else {
-        document.getElementById('detailViewBtn').classList.add('active');
-    }
-
-    // Update view content
-    document.querySelectorAll('.view-content').forEach(content => {
-        content.classList.remove('active');
-    });
-
-    if (viewName === 'calendar') {
-        document.getElementById('calendarView').classList.add('active');
-        renderCalendar();
-    } else {
-        document.getElementById('mapView').classList.add('active');
-    }
-}
-
 function handleCalendarStopClick(stopId) {
-    // Switch to map view
-    switchView('detail');
-
     // Collapse all stops
     document.querySelectorAll('.stop-card').forEach(card => {
         card.classList.add('collapsed');
@@ -973,9 +943,9 @@ function calculateStopDates() {
         }
     }
 
-    // Calculate end date based on number of nights
+    // Calculate end date based on number of nights (end date is departure day)
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + numberOfNights - 1);
+    endDate.setDate(endDate.getDate() + numberOfNights);
 
     // Set the input values
     startDateInput.value = formatDateForInput(startDate.toISOString());
@@ -1407,10 +1377,18 @@ function displayRouteInfo(routeData) {
     `;
 
     if (routeData.segments && routeData.segments.length > 0) {
+        // Sort segments by start_date if available
+        const sortedSegments = [...routeData.segments].sort((a, b) => {
+            if (a.start_date && b.start_date) {
+                return new Date(a.start_date) - new Date(b.start_date);
+            }
+            return 0;
+        });
+
         html += `
             <div class="route-segments">
                 <h4>Route Segments</h4>
-                ${routeData.segments.map(segment => `
+                ${sortedSegments.map(segment => `
                     <div class="segment">
                         <div class="route">${escapeHtml(segment.from_name)} → ${escapeHtml(segment.to_name)}</div>
                         <div class="distance">${segment.distance_km.toFixed(1)} km</div>
@@ -1628,14 +1606,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // View toggle buttons
-    document.getElementById('detailViewBtn').addEventListener('click', () => {
-        switchView('detail');
-    });
-
-    document.getElementById('calendarViewBtn').addEventListener('click', () => {
-        switchView('calendar');
-    });
+    // Render calendar on page load
+    renderCalendar();
 });
 
 // Add CSS animations
