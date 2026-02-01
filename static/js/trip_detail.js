@@ -1163,7 +1163,7 @@ async function handleEditStopSubmit(e) {
     e.preventDefault();
 
     const form = e.target;
-    const stopId = document.getElementById('editStopId').value;
+    const stopId = parseInt(document.getElementById('editStopId').value);
     const tripLocationType = form.dataset.tripLocationType;
     
     // Check if this is a trip location edit

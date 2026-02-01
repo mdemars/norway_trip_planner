@@ -7,6 +7,7 @@
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/admin.css">
+    <script src="/static/js/theme.js"></script>
 </head>
 <body>
     <div class="container">
@@ -16,13 +17,16 @@
                     <h1>Admin Panel</h1>
                     <p class="subtitle">Database entity management</p>
                 </div>
-                <a href="/" class="btn btn-secondary btn-back">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                    Back to Trips
-                </a>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="themeToggleContainer"></div>
+                    <a href="/" class="btn btn-secondary btn-back">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Trips
+                    </a>
+                </div>
             </div>
         </header>
 

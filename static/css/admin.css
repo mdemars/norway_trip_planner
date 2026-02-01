@@ -14,34 +14,37 @@
     gap: 12px;
     margin-bottom: 20px;
     padding: 16px;
-    background: white;
+    background: var(--bg-surface, white);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
 }
 
 .admin-controls label {
     font-weight: 600;
     white-space: nowrap;
+    color: var(--text-color);
 }
 
 .admin-controls select {
     padding: 8px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color, #ddd);
     border-radius: 6px;
     font-size: 14px;
     min-width: 200px;
+    background: var(--bg-surface, white);
+    color: var(--text-color);
 }
 
 .row-count {
-    color: var(--secondary-color, #6c757d);
+    color: var(--text-muted, #6c757d);
     font-size: 14px;
     margin-left: auto;
 }
 
 .admin-table-container {
-    background: white;
+    background: var(--bg-surface, white);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
     padding: 16px;
 }
 
@@ -53,13 +56,14 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    color: var(--text-color);
 }
 
 .admin-table th,
 .admin-table td {
     padding: 8px 12px;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color, #eee);
     max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -67,17 +71,17 @@
 }
 
 .admin-table th {
-    background: #f8f9fa;
+    background: var(--light-gray, #f8f9fa);
     font-weight: 600;
     position: sticky;
     top: 0;
     font-size: 12px;
     text-transform: uppercase;
-    color: #555;
+    color: var(--text-muted, #555);
 }
 
 .admin-table tbody tr:hover {
-    background: #f0f4ff;
+    background: var(--bg-hover, #f0f4ff);
 }
 
 .admin-table .btn-delete {
@@ -86,12 +90,12 @@
 }
 
 .null-value {
-    color: #aaa;
+    color: var(--text-muted, #aaa);
     font-style: italic;
 }
 
 .admin-placeholder {
     text-align: center;
-    color: var(--secondary-color, #6c757d);
+    color: var(--text-muted, #6c757d);
     padding: 40px 20px;
 }
