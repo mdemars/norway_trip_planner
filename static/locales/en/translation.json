@@ -18,7 +18,12 @@
     "createFirstTrip": "Create your first trip to get started",
     "loading": "Loading trips...",
     "delete": "Delete",
-    "created": "Created"
+    "created": "Created",
+    "startAddress": "Starting Address",
+    "endAddress": "Ending Address",
+    "startAddressPlaceholder": "e.g., Oslo, Norway",
+    "endAddressPlaceholder": "e.g., Bergen, Norway",
+    "addressOptional": "Optional - where your trip begins"
   },
   "stops": {
     "title": "Stops",
@@ -161,6 +166,7 @@
     "validCoordinatesRequired": "Valid GPS coordinates are required",
     "addressNotFound": "Address not found - please check the spelling",
     "couldNotValidate": "Could not validate address",
+    "validatingAddress": "Please wait, address is being validated...",
     "stopNameRequired": "Stop name is required",
     "activityNameRequired": "Activity name is required",
     "waypointNameRequired": "Waypoint name is required"

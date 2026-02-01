@@ -14,14 +14,18 @@ async function fetchTrips() {
     }
 }
 
-async function createTrip(name) {
+async function createTrip(name, startAddress, endAddress) {
+    const body = { name };
+    if (startAddress) body.start_location_address = startAddress;
+    if (endAddress) body.end_location_address = endAddress;
+
     try {
         const response = await fetch('/api/trips', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ name })
+            body: JSON.stringify(body)
         });
 
         if (!response.ok) {
@@ -211,22 +215,126 @@ async function handleNewTripSubmit(e) {
 
     const form = e.target;
     const tripName = form.tripName.value.trim();
+    const startAddress = form.tripStartAddress.value.trim();
+    const endAddress = form.tripEndAddress.value.trim();
 
     if (!tripName) {
         showError(t('validation.tripNameRequired'));
         return;
     }
 
+    // Check address validation status for non-empty addresses
+    const startStatus = document.getElementById('tripStartAddress').dataset.validationState;
+    const endStatus = document.getElementById('tripEndAddress').dataset.validationState;
+
+    if (startAddress && startStatus === 'invalid') {
+        showError(t('validation.addressNotFound'));
+        return;
+    }
+    if (endAddress && endStatus === 'invalid') {
+        showError(t('validation.addressNotFound'));
+        return;
+    }
+    if (startAddress && startStatus === 'validating') {
+        showError(t('validation.validatingAddress'));
+        return;
+    }
+    if (endAddress && endStatus === 'validating') {
+        showError(t('validation.validatingAddress'));
+        return;
+    }
+
     try {
-        const trip = await createTrip(tripName);
+        const trip = await createTrip(tripName, startAddress, endAddress);
         closeModal('newTripModal');
         form.reset();
+        resetAddressValidation('tripStartAddress', 'tripStartAddressStatus');
+        resetAddressValidation('tripEndAddress', 'tripEndAddressStatus');
         showSuccess(t('notifications.tripCreated'));
 
         // Redirect to trip detail page
         window.location.href = `/trip/${trip.id}`;
     } catch (error) {
         // Error already shown in createTrip
+    }
+}
+
+// ============================================================================
+// Address Validation
+// ============================================================================
+
+let addressValidationTimers = {};
+
+function setupAddressValidation(inputId, statusId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    input.addEventListener('input', () => {
+        clearTimeout(addressValidationTimers[inputId]);
+        const address = input.value.trim();
+
+        if (!address) {
+            resetAddressValidation(inputId, statusId);
+            return;
+        }
+
+        setAddressStatus(inputId, statusId, 'validating');
+
+        addressValidationTimers[inputId] = setTimeout(() => {
+            validateAddress(inputId, statusId, address);
+        }, 500);
+    });
+}
+
+async function validateAddress(inputId, statusId, address) {
+    try {
+        const response = await fetch('/api/validate-address', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address })
+        });
+        const result = await response.json();
+
+        // Only update if the input still has the same value
+        const currentValue = document.getElementById(inputId).value.trim();
+        if (currentValue !== address) return;
+
+        if (result.valid) {
+            setAddressStatus(inputId, statusId, 'valid');
+        } else {
+            setAddressStatus(inputId, statusId, 'invalid');
+        }
+    } catch (error) {
+        setAddressStatus(inputId, statusId, 'invalid');
+    }
+}
+
+function setAddressStatus(inputId, statusId, state) {
+    const input = document.getElementById(inputId);
+    const status = document.getElementById(statusId);
+    if (!input || !status) return;
+
+    input.dataset.validationState = state;
+
+    if (state === 'validating') {
+        status.className = 'address-validation-status validating';
+        status.textContent = '...';
+    } else if (state === 'valid') {
+        status.className = 'address-validation-status valid';
+        status.textContent = '\u2713';
+    } else if (state === 'invalid') {
+        status.className = 'address-validation-status invalid';
+        status.textContent = '\u2717';
+    }
+}
+
+function resetAddressValidation(inputId, statusId) {
+    const input = document.getElementById(inputId);
+    const status = document.getElementById(statusId);
+    if (input) delete input.dataset.validationState;
+    if (status) {
+        status.className = 'address-validation-status';
+        status.textContent = '';
     }
 }
 
@@ -304,6 +412,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // New trip form
     document.getElementById('newTripForm').addEventListener('submit', handleNewTripSubmit);
+
+    // Address validation on trip creation modal
+    setupAddressValidation('tripStartAddress', 'tripStartAddressStatus');
+    setupAddressValidation('tripEndAddress', 'tripEndAddressStatus');
 });
 
 // Listen for language changes to re-render dynamic content

@@ -62,6 +62,22 @@
                     <label for="tripName" data-i18n="trips.tripName">Trip Name</label>
                     <input type="text" id="tripName" name="tripName" data-i18n-placeholder="trips.tripNamePlaceholder" placeholder="e.g., Summer 2024 Norway Adventure" required>
                 </div>
+                <div class="form-group">
+                    <label for="tripStartAddress" data-i18n="trips.startAddress">Starting Address</label>
+                    <div class="address-input-wrapper">
+                        <input type="text" id="tripStartAddress" name="tripStartAddress" data-i18n-placeholder="trips.startAddressPlaceholder" placeholder="e.g., Oslo, Norway">
+                        <span id="tripStartAddressStatus" class="address-validation-status"></span>
+                    </div>
+                    <small class="form-help" data-i18n="trips.addressOptional">Optional - where your trip begins</small>
+                </div>
+                <div class="form-group">
+                    <label for="tripEndAddress" data-i18n="trips.endAddress">Ending Address</label>
+                    <div class="address-input-wrapper">
+                        <input type="text" id="tripEndAddress" name="tripEndAddress" data-i18n-placeholder="trips.endAddressPlaceholder" placeholder="e.g., Bergen, Norway">
+                        <span id="tripEndAddressStatus" class="address-validation-status"></span>
+                    </div>
+                    <small class="form-help" data-i18n="trips.addressOptional">Optional - where your trip ends</small>
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('newTripModal')" data-i18n="buttons.cancel">Cancel</button>
                     <button type="submit" class="btn btn-primary" data-i18n="buttons.create">Create Trip</button>

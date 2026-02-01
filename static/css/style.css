@@ -992,6 +992,44 @@ header .subtitle {
     display: inline-block;
 }
 
+.address-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.address-input-wrapper input {
+    flex: 1;
+    padding-right: 36px;
+}
+
+.address-validation-status {
+    position: absolute;
+    right: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+.address-validation-status.validating {
+    color: var(--text-muted);
+}
+
+.address-validation-status.valid {
+    color: var(--success-color);
+}
+
+.address-validation-status.invalid {
+    color: var(--danger-color);
+}
+
+.form-help {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
 .radio-group {
     display: flex;
     gap: 20px;

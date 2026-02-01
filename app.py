@@ -66,6 +66,23 @@ def create_trip():
     db = get_db()
     try:
         trip = Trip(name=data['name'])
+
+        # Handle start location
+        start_address = data.get('start_location_address', '').strip()
+        if start_address:
+            trip.start_location_address = start_address
+            coords = geocoding_service.geocode_address(start_address)
+            if coords:
+                trip.start_location_latitude, trip.start_location_longitude = round(coords[0], 4), round(coords[1], 4)
+
+        # Handle end location
+        end_address = data.get('end_location_address', '').strip()
+        if end_address:
+            trip.end_location_address = end_address
+            coords = geocoding_service.geocode_address(end_address)
+            if coords:
+                trip.end_location_latitude, trip.end_location_longitude = round(coords[0], 4), round(coords[1], 4)
+
         db.add(trip)
         db.commit()
         db.refresh(trip)

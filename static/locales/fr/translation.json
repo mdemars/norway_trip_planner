@@ -18,7 +18,12 @@
     "createFirstTrip": "Creez votre premier voyage pour commencer",
     "loading": "Chargement des voyages...",
     "delete": "Supprimer",
-    "created": "Cree"
+    "created": "Cree",
+    "startAddress": "Adresse de depart",
+    "endAddress": "Adresse d'arrivee",
+    "startAddressPlaceholder": "ex: Oslo, Norvege",
+    "endAddressPlaceholder": "ex: Bergen, Norvege",
+    "addressOptional": "Optionnel - ou votre voyage commence"
   },
   "stops": {
     "title": "Etapes",
@@ -161,6 +166,7 @@
     "validCoordinatesRequired": "Des coordonnees GPS valides sont requises",
     "addressNotFound": "Adresse non trouvee - veuillez verifier l'orthographe",
     "couldNotValidate": "Impossible de valider l'adresse",
+    "validatingAddress": "Veuillez patienter, l'adresse est en cours de validation...",
     "stopNameRequired": "Le nom de l'etape est requis",
     "activityNameRequired": "Le nom de l'activite est requis",
     "waypointNameRequired": "Le nom du point de passage est requis"
