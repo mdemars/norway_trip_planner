@@ -277,13 +277,19 @@ function renderStops(stopsData, waypointsData) {
     stops.forEach((stop, index) => {
         html += createStopCard(stop, index + 1);
 
-        // Add button to insert waypoint after this stop (except after the last stop)
+        // Add buttons to insert stop/waypoint after this stop (except after the last stop)
         if (index < stops.length - 1) {
             const nextStop = stops[index + 1];
-            
-            // Add "insert waypoint" button
+
             html += `
-                <div style="display: flex; justify-content: center; padding: 8px 0;">
+                <div style="display: flex; justify-content: center; gap: 8px; padding: 8px 0;">
+                    <button class="btn btn-primary btn-sm" onclick="openAddStopAfter(${stop.id})" style="font-size: 0.85em;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        ${t('stops.addStop')}
+                    </button>
                     <button class="btn btn-secondary btn-sm" onclick="openAddWaypointModal('${stop.id}', '${nextStop.id}')" style="font-size: 0.85em;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1044,6 +1050,13 @@ function handleCalendarStopClick(stopId) {
 // Stop Handlers
 // ============================================================================
 
+function openAddStopAfter(stopId) {
+    populateAddStopModal();
+    document.getElementById('addAfterStop').value = stopId;
+    calculateStopDates();
+    openModal('addStopModal');
+}
+
 function populateAddStopModal() {
     const addAfterSelect = document.getElementById('addAfterStop');
 
@@ -1641,6 +1654,7 @@ async function handleEditTripSubmit(e) {
         const updatedTrip = await updateTrip(tripId, tripName);
         closeModal('editTripModal');
         document.getElementById('tripTitle').textContent = updatedTrip.name;
+        document.getElementById('tripName').textContent = updatedTrip.name;
         currentTrip = updatedTrip;
         showSuccess(t('notifications.tripUpdated'));
     } catch (error) {
@@ -1937,6 +1951,7 @@ async function loadTrip() {
     if (trip) {
         currentTrip = trip;
         document.getElementById('tripTitle').textContent = trip.name;
+        document.getElementById('tripName').textContent = trip.name;
     }
 }
 

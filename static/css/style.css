@@ -63,6 +63,14 @@ header .subtitle {
     opacity: 0.95;
 }
 
+.trip-name-heading {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 20px;
+    padding: 0 4px;
+}
+
 .detail-header {
     display: flex;
     justify-content: space-between;
