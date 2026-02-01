@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Camping Trip Planner</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-text">
+                    <h1>Admin Panel</h1>
+                    <p class="subtitle">Database entity management</p>
+                </div>
+                <a href="/" class="btn btn-secondary btn-back">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Trips
+                </a>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="admin-controls">
+                <label for="entitySelect">Entity type:</label>
+                <select id="entitySelect">
+                    <option value="">-- Select an entity --</option>
+                </select>
+                <span id="rowCount" class="row-count"></span>
+            </div>
+
+            <div id="tableContainer" class="admin-table-container">
+                <p class="admin-placeholder">Select an entity type to view its records.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

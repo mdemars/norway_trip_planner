@@ -277,13 +277,19 @@ function renderStops(stopsData, waypointsData) {
     stops.forEach((stop, index) => {
         html += createStopCard(stop, index + 1);
 
+        // Render any waypoints that come after this stop
+        const stopWaypoints = waypoints.filter(w => w.previous_location_guid === stop.guid);
+        stopWaypoints.forEach(wp => {
+            html += createWaypointCard(wp);
+        });
+
         // Add buttons to insert stop/waypoint after this stop (except after the last stop)
         if (index < stops.length - 1) {
             const nextStop = stops[index + 1];
 
             html += `
                 <div style="display: flex; justify-content: center; gap: 8px; padding: 8px 0;">
-                    <button class="btn btn-primary btn-sm" onclick="openAddStopAfter(${stop.id})" style="font-size: 0.85em;">
+                    <button class="btn btn-primary btn-sm" onclick="openAddStopAfter('${stop.id}')" style="font-size: 0.85em;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>

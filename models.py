@@ -1,7 +1,6 @@
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from sqlalchemy.ext.declarative import declared_attr
 from config import Config
 import uuid
 
@@ -26,7 +25,7 @@ class Trip(Base):
     end_location_longitude = Column(Float)
 
     # Relationships
-    stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Stop.start_date')
+    stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Location.start_date')
 
     def to_dict(self, include_stops=False):
         """Convert trip to dictionary"""
@@ -53,7 +52,7 @@ class Trip(Base):
 class Location(Base):
     """Base class for Stop and Waypoint - represents a location in a trip"""
     __tablename__ = 'locations'
-    
+
     id = Column(Integer, primary_key=True)
     guid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     trip_id = Column(Integer, ForeignKey('trips.id'), nullable=False)
@@ -64,11 +63,17 @@ class Location(Base):
     address = Column(String(500))
     previous_location_guid = Column(String(36), ForeignKey('locations.guid'), nullable=True)
     type = Column(String(20))  # 'stop' or 'waypoint' - for polymorphism
-    
+
+    # Stop-specific fields (nullable, only used when type='stop')
+    start_date = Column(DateTime, nullable=True)
+    end_date = Column(DateTime, nullable=True)
+
     # Relationships
-    trip = relationship('Trip', backref='locations')
+    trip = relationship('Trip', foreign_keys=[trip_id],
+                        overlaps='stops,trip', backref=None)
+    # Trip.locations is defined via backref-free access; use Trip.stops for stops
     previous_location = relationship('Location', remote_side=[guid], backref='next_locations')
-    
+
     __mapper_args__ = {
         'polymorphic_identity': 'location',
         'polymorphic_on': type
@@ -76,21 +81,18 @@ class Location(Base):
 
 
 class Stop(Location):
-    """Stop model representing a location in a trip"""
-    __tablename__ = 'stops'
-    
-    id = Column(Integer, ForeignKey('locations.id'), primary_key=True)
-    start_date = Column(DateTime, nullable=False)
-    end_date = Column(DateTime, nullable=False)
-    
+    """Stop model representing a location in a trip with dates"""
+
     # Relationships
-    trip = relationship('Trip', back_populates='stops', foreign_keys=[Location.trip_id])
-    activities = relationship('Activity', back_populates='stop', cascade='all, delete-orphan')
-    
+    trip = relationship('Trip', back_populates='stops', foreign_keys=[Location.trip_id],
+                        overlaps='locations,trip')
+    activities = relationship('Activity', back_populates='stop', cascade='all, delete-orphan',
+                              foreign_keys='Activity.stop_id')
+
     __mapper_args__ = {
         'polymorphic_identity': 'stop',
     }
-    
+
     def to_dict(self, include_activities=False):
         """Convert stop to dictionary"""
         data = {
@@ -117,13 +119,13 @@ class Activity(Base):
     __tablename__ = 'activities'
 
     id = Column(Integer, primary_key=True)
-    stop_id = Column(Integer, ForeignKey('stops.id'), nullable=False)
+    stop_id = Column(Integer, ForeignKey('locations.id'), nullable=False)
     name = Column(String(200), nullable=False)
     description = Column(Text)
     url = Column(String(500))
 
     # Relationships
-    stop = relationship('Stop', back_populates='activities')
+    stop = relationship('Stop', back_populates='activities', foreign_keys=[stop_id])
 
     def to_dict(self):
         """Convert activity to dictionary"""
@@ -138,9 +140,6 @@ class Activity(Base):
 
 class Waypoint(Location):
     """Waypoint model representing intermediate points along the route"""
-    __tablename__ = 'waypoints'
-
-    id = Column(Integer, ForeignKey('locations.id'), primary_key=True)
 
     __mapper_args__ = {
         'polymorphic_identity': 'waypoint',
@@ -166,8 +165,47 @@ class Waypoint(Location):
 engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
 SessionLocal = sessionmaker(bind=engine)
 
+
+def _migrate_to_single_table(engine):
+    """One-time migration: merge stops/waypoints tables into locations."""
+    insp = inspect(engine)
+    existing_tables = insp.get_table_names()
+
+    # Only run if old 'stops' table still exists
+    if 'stops' not in existing_tables:
+        return
+
+    print("Migrating from joined-table to single-table inheritance...")
+    with engine.connect() as conn:
+        # Add start_date and end_date columns to locations if missing
+        location_cols = [c['name'] for c in insp.get_columns('locations')]
+        if 'start_date' not in location_cols:
+            conn.execute(text("ALTER TABLE locations ADD COLUMN start_date DATETIME"))
+        if 'end_date' not in location_cols:
+            conn.execute(text("ALTER TABLE locations ADD COLUMN end_date DATETIME"))
+
+        # Copy dates from stops into locations
+        conn.execute(text("""
+            UPDATE locations
+            SET start_date = (SELECT s.start_date FROM stops s WHERE s.id = locations.id),
+                end_date = (SELECT s.end_date FROM stops s WHERE s.id = locations.id)
+            WHERE locations.id IN (SELECT s.id FROM stops s)
+        """))
+
+        # Update activities FK: the IDs are the same, just pointing at a different table
+        # SQLite doesn't enforce FK constraints by default so just leave the data as-is
+
+        # Drop old child tables
+        conn.execute(text("DROP TABLE IF EXISTS stops"))
+        conn.execute(text("DROP TABLE IF EXISTS waypoints"))
+        conn.commit()
+
+    print("Migration complete.")
+
+
 def init_db():
     """Initialize the database"""
+    _migrate_to_single_table(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 
