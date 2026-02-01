@@ -162,29 +162,29 @@ function updateLanguageSelectorUI() {
 // Setup language selector event listeners
 function setupLanguageSelector() {
     const toggle = document.getElementById('languageToggle');
-    const dropdown = document.getElementById('languageDropdown');
+    const selector = toggle?.closest('.language-selector');
 
-    if (!toggle || !dropdown) return;
+    if (!toggle || !selector) return;
 
     // Toggle dropdown
     toggle.addEventListener('click', (e) => {
         e.stopPropagation();
-        dropdown.classList.toggle('active');
+        selector.classList.toggle('open');
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', () => {
-        dropdown.classList.remove('active');
+        selector.classList.remove('open');
     });
 
     // Language selection
-    dropdown.addEventListener('click', async (e) => {
+    selector.addEventListener('click', async (e) => {
         const option = e.target.closest('.language-option');
         if (option) {
             e.stopPropagation();
             const lang = option.dataset.lang;
             await changeLanguage(lang);
-            dropdown.classList.remove('active');
+            selector.classList.remove('open');
         }
     });
 }

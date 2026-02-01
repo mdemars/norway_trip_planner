@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from datetime import datetime
 from config import Config
-from models import Trip, Stop, Activity, Waypoint, init_db, get_db
+from models import Trip, Stop, Activity, Waypoint, Location, init_db, get_db
 from services import geocoding_service, route_service
 import os
 
@@ -109,7 +109,7 @@ def update_trip(trip_id):
                 # Geocode the address
                 coords = geocoding_service.geocode_address(data['start_location_address'])
                 if coords:
-                    trip.start_location_latitude, trip.start_location_longitude = coords
+                    trip.start_location_latitude, trip.start_location_longitude = round(coords[0], 4), round(coords[1], 4)
             else:
                 # Clear location if address is empty
                 trip.start_location_latitude = None
@@ -122,7 +122,7 @@ def update_trip(trip_id):
                 # Geocode the address
                 coords = geocoding_service.geocode_address(data['end_location_address'])
                 if coords:
-                    trip.end_location_latitude, trip.end_location_longitude = coords
+                    trip.end_location_latitude, trip.end_location_longitude = round(coords[0], 4), round(coords[1], 4)
             else:
                 # Clear location if address is empty
                 trip.end_location_latitude = None
@@ -165,7 +165,7 @@ def get_stops(trip_id):
     """Get all stops for a trip"""
     db = get_db()
     try:
-        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.start_date, Stop.order_index).all()
+        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.start_date).all()
         return jsonify([stop.to_dict(include_activities=True) for stop in stops])
     finally:
         db.close()
@@ -199,6 +199,10 @@ def create_stop(trip_id):
         if end_date < start_date:
             return jsonify({'error': 'End date must be after start date'}), 400
         
+        # Find the previous location (last location in trip by order)
+        previous_location = db.query(Location).filter(Location.trip_id == trip_id).order_by(Location.id.desc()).first()
+        previous_location_guid = previous_location.guid if previous_location else None
+        
         # Get the next order index
         max_order = db.query(Stop).filter(Stop.trip_id == trip_id).count()
         
@@ -229,7 +233,7 @@ def create_stop(trip_id):
             latitude=latitude,
             longitude=longitude,
             address=address,
-            order_index=max_order
+            previous_location_guid=previous_location_guid
         )
         
         db.add(stop)
@@ -284,8 +288,8 @@ def update_stop(stop_id):
             stop.location_type = data['location_type']
             
             if data['location_type'] == 'gps' and 'latitude' in data and 'longitude' in data:
-                stop.latitude = float(data['latitude'])
-                stop.longitude = float(data['longitude'])
+                stop.latitude = round(float(data['latitude']), 4)
+                stop.longitude = round(float(data['longitude']), 4)
                 # Try to get address
                 address = geocoding_service.reverse_geocode(stop.latitude, stop.longitude)
                 if address:
@@ -295,7 +299,7 @@ def update_stop(stop_id):
                 # Try to get coordinates
                 coords = geocoding_service.geocode_address(data['address'])
                 if coords:
-                    stop.latitude, stop.longitude = coords
+                    stop.latitude, stop.longitude = round(coords[0], 4), round(coords[1], 4)
         
         db.commit()
         db.refresh(stop)
@@ -315,20 +319,7 @@ def delete_stop(stop_id):
         if not stop:
             return jsonify({'error': 'Stop not found'}), 404
         
-        trip_id = stop.trip_id
-        order_index = stop.order_index
-        
         db.delete(stop)
-        
-        # Reorder remaining stops
-        remaining_stops = db.query(Stop).filter(
-            Stop.trip_id == trip_id,
-            Stop.order_index > order_index
-        ).all()
-        
-        for s in remaining_stops:
-            s.order_index -= 1
-        
         db.commit()
         return jsonify({'message': 'Stop deleted successfully'})
     except Exception as e:
@@ -339,24 +330,10 @@ def delete_stop(stop_id):
 
 @app.route('/api/stops/reorder', methods=['POST'])
 def reorder_stops():
-    """Reorder stops"""
-    data = request.json
-    stop_orders = data.get('stops', [])  # List of {id, order_index}
-    
-    db = get_db()
-    try:
-        for item in stop_orders:
-            stop = db.query(Stop).filter(Stop.id == item['id']).first()
-            if stop:
-                stop.order_index = item['order_index']
-        
-        db.commit()
-        return jsonify({'message': 'Stops reordered successfully'})
-    except Exception as e:
-        db.rollback()
-        return jsonify({'error': str(e)}), 500
-    finally:
-        db.close()
+    """Reorder stops using location chain"""
+    # With location chain (previous_location_guid), stops are ordered by their chain
+    # This endpoint is no longer needed but kept for compatibility
+    return jsonify({'message': 'Reordering is handled via location chain'})
 
 
 # ============================================================================
@@ -450,7 +427,7 @@ def get_waypoints(trip_id):
     """Get all waypoints for a trip"""
     db = get_db()
     try:
-        waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip_id).order_by(Waypoint.order_index).all()
+        waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip_id).all()
         return jsonify([wp.to_dict() for wp in waypoints])
     finally:
         db.close()
@@ -460,7 +437,7 @@ def create_waypoint(trip_id):
     """Create a new waypoint"""
     data = request.json
 
-    required_fields = ['name', 'order_index', 'location_type']
+    required_fields = ['name', 'location_type']
     for field in required_fields:
         if field not in data:
             return jsonify({'error': f'{field} is required'}), 400
@@ -478,8 +455,10 @@ def create_waypoint(trip_id):
         address = None
 
         if data['location_type'] == 'gps':
-            latitude = float(data.get('latitude'))
-            longitude = float(data.get('longitude'))
+            if 'latitude' not in data or 'longitude' not in data:
+                return jsonify({'error': 'latitude and longitude are required for GPS location type'}), 400
+            latitude = round(float(data['latitude']), 4)
+            longitude = round(float(data['longitude']), 4)
             # Try to get address from coordinates
             address = geocoding_service.reverse_geocode(latitude, longitude)
         elif data['location_type'] == 'address':
@@ -487,17 +466,24 @@ def create_waypoint(trip_id):
             # Try to get coordinates from address
             coords = geocoding_service.geocode_address(address)
             if coords:
-                latitude, longitude = coords
+                latitude, longitude = round(coords[0], 4), round(coords[1], 4)
+
+        # Use provided previous_location_guid or fall back to auto-detection
+        previous_location_guid = data.get('previous_location_guid')
+        if previous_location_guid is None:
+            # Fall back to auto-detecting the last location in trip
+            previous_location = db.query(Location).filter(Location.trip_id == trip_id).order_by(Location.id.desc()).first()
+            previous_location_guid = previous_location.guid if previous_location else None
 
         # Create waypoint
         waypoint = Waypoint(
             trip_id=trip_id,
             name=data['name'],
-            order_index=float(data['order_index']),
             location_type=data['location_type'],
             latitude=latitude,
             longitude=longitude,
-            address=address
+            address=address,
+            previous_location_guid=previous_location_guid
         )
 
         db.add(waypoint)
@@ -530,8 +516,8 @@ def update_waypoint(waypoint_id):
             waypoint.location_type = data['location_type']
 
             if data['location_type'] == 'gps' and 'latitude' in data and 'longitude' in data:
-                waypoint.latitude = float(data['latitude'])
-                waypoint.longitude = float(data['longitude'])
+                waypoint.latitude = round(float(data['latitude']), 4)
+                waypoint.longitude = round(float(data['longitude']), 4)
                 # Try to get address
                 address = geocoding_service.reverse_geocode(waypoint.latitude, waypoint.longitude)
                 if address:
@@ -541,7 +527,7 @@ def update_waypoint(waypoint_id):
                 # Try to get coordinates
                 coords = geocoding_service.geocode_address(data['address'])
                 if coords:
-                    waypoint.latitude, waypoint.longitude = coords
+                    waypoint.latitude, waypoint.longitude = round(coords[0], 4), round(coords[1], 4)
 
         db.commit()
         db.refresh(waypoint)
@@ -585,72 +571,142 @@ def get_trip_route(trip_id):
         if not trip:
             return jsonify({'error': 'Trip not found'}), 404
 
-        # Get all stops and waypoints for the trip
-        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.start_date, Stop.order_index).all()
-        waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip_id).order_by(Waypoint.order_index).all()
+        # Get all locations for the trip
+        all_locations = db.query(Location).filter(Location.trip_id == trip_id).all()
 
-        if not stops:
-            return jsonify({'error': 'No stops found for this trip'}), 404
+        if not all_locations:
+            return jsonify({'error': 'No locations found for this trip'}), 404
 
-        # Merge stops and waypoints, sorted by order_index
+        # Create a map of GUIDs to locations for quick lookup
+        location_map = {loc.guid: loc for loc in all_locations}
+        
+        # Find the end location (one that no other location points to)
+        guids_referenced = {loc.previous_location_guid for loc in all_locations if loc.previous_location_guid}
+        end_location = None
+        for loc in all_locations:
+            if loc.guid not in guids_referenced:
+                end_location = loc
+                break
+        
+        if not end_location:
+            return jsonify({'error': 'Could not determine route (invalid location chain)'}), 400
+
+        # Traverse backwards from end to start
         all_points = []
+        current = end_location
+        
+        while current:
+            # Validate location has coordinates
+            if not current.latitude or not current.longitude:
+                return jsonify({
+                    'error': f'Location "{current.name}" does not have valid coordinates'
+                }), 400
+            
+            # Build point data based on location type
+            if isinstance(current, Stop):
+                point_data = current.to_dict(include_activities=False)
+            else:
+                point_data = current.to_dict()
+            
+            # Ensure it has the required fields for routing
+            point_data['latitude'] = current.latitude
+            point_data['longitude'] = current.longitude
+            all_points.append(point_data)
+            
+            # Get the previous location
+            if current.previous_location_guid:
+                current = location_map.get(current.previous_location_guid)
+            else:
+                current = None
+        
+        # Reverse to get start-to-end order
+        all_points.reverse()
 
-        # Add start location if it exists
+        # Add trip start location at the beginning if it exists
         if trip.start_location_latitude and trip.start_location_longitude:
-            # Use a fixed early date to ensure trip start sorts first
-            all_points.append({
-                'id': 'start',
+            all_points.insert(0, {
+                'id': 0,
                 'name': 'Trip Start',
                 'latitude': trip.start_location_latitude,
                 'longitude': trip.start_location_longitude,
                 'address': trip.start_location_address,
-                'order_index': -1,
-                'type': 'start',
-                'start_date': '2000-01-01T00:00:00'
+                'type': 'start'
             })
 
-        for stop in stops:
-            if stop.latitude and stop.longitude:
-                point_data = stop.to_dict()
-                point_data['type'] = 'stop'
-                all_points.append(point_data)
-            else:
-                return jsonify({
-                    'error': f'Stop "{stop.name}" does not have valid coordinates'
-                }), 400
-
-        for waypoint in waypoints:
-            if waypoint.latitude and waypoint.longitude:
-                point_data = waypoint.to_dict()
-                point_data['type'] = 'waypoint'
-                # Waypoints will be sorted by order_index in calculate_route
-                all_points.append(point_data)
-            else:
-                return jsonify({
-                    'error': f'Waypoint "{waypoint.name}" does not have valid coordinates'
-                }), 400
-
-        # Add end location if it exists
+        # Add trip end location at the end if it exists
         if trip.end_location_latitude and trip.end_location_longitude:
-            # Use a fixed late date to ensure trip end sorts last
             all_points.append({
-                'id': 'end',
+                'id': len(all_points),
                 'name': 'Trip End',
                 'latitude': trip.end_location_latitude,
                 'longitude': trip.end_location_longitude,
                 'address': trip.end_location_address,
-                'order_index': 9999,
-                'type': 'end',
-                'start_date': '2100-01-01T00:00:00'
+                'type': 'end'
             })
-
-        # Sort by order_index
-        all_points.sort(key=lambda x: x['order_index'])
 
         # Calculate route
         route_info = route_service.calculate_route(all_points)
 
         return jsonify(route_info)
+    finally:
+        db.close()
+
+
+# ============================================================================
+# API Routes - Validation
+# ============================================================================
+# API Routes - Locations
+# ============================================================================
+
+@app.route('/api/trips/<int:trip_id>/locations', methods=['GET'])
+def get_trip_locations(trip_id):
+    """Get all locations for a trip in reverse order (from end to start)"""
+    db = get_db()
+    try:
+        # Check if trip exists
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+        
+        # Find the last location (no next location pointing to it)
+        locations = []
+        
+        # Get all locations for this trip
+        all_locations = db.query(Location).filter(Location.trip_id == trip_id).all()
+        
+        if not all_locations:
+            return jsonify([])
+        
+        # Create a map of GUIDs to locations for quick lookup
+        location_map = {loc.guid: loc for loc in all_locations}
+        
+        # Find the end location (one that no other location points to)
+        guids_referenced = {loc.previous_location_guid for loc in all_locations if loc.previous_location_guid}
+        end_location = None
+        for loc in all_locations:
+            if loc.guid not in guids_referenced:
+                end_location = loc
+                break
+        
+        # Traverse backwards from end to start
+        current = end_location
+        while current:
+            location_data = None
+            if isinstance(current, Stop):
+                location_data = current.to_dict(include_activities=False)
+            else:
+                location_data = current.to_dict()
+            locations.append(location_data)
+            
+            # Get the previous location
+            if current.previous_location_guid:
+                current = location_map.get(current.previous_location_guid)
+            else:
+                current = None
+        
+        return jsonify(locations)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     finally:
         db.close()
 

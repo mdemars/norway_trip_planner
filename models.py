@@ -1,7 +1,9 @@
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.ext.declarative import declared_attr
 from config import Config
+import uuid
 
 Base = declarative_base()
 
@@ -48,29 +50,52 @@ class Trip(Base):
         return data
 
 
-class Stop(Base):
-    """Stop model representing a location in a trip"""
-    __tablename__ = 'stops'
+class Location(Base):
+    """Base class for Stop and Waypoint - represents a location in a trip"""
+    __tablename__ = 'locations'
     
     id = Column(Integer, primary_key=True)
+    guid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     trip_id = Column(Integer, ForeignKey('trips.id'), nullable=False)
     name = Column(String(200), nullable=False)
-    start_date = Column(DateTime, nullable=False)
-    end_date = Column(DateTime, nullable=False)
     location_type = Column(String(20), nullable=False)  # 'gps' or 'address'
     latitude = Column(Float)
     longitude = Column(Float)
     address = Column(String(500))
-    order_index = Column(Integer, nullable=False, default=0)
+    previous_location_guid = Column(String(36), ForeignKey('locations.guid'), nullable=True)
+    type = Column(String(20))  # 'stop' or 'waypoint' - for polymorphism
     
     # Relationships
-    trip = relationship('Trip', back_populates='stops')
+    trip = relationship('Trip', backref='locations')
+    previous_location = relationship('Location', remote_side=[guid], backref='next_locations')
+    
+    __mapper_args__ = {
+        'polymorphic_identity': 'location',
+        'polymorphic_on': type
+    }
+
+
+class Stop(Location):
+    """Stop model representing a location in a trip"""
+    __tablename__ = 'stops'
+    
+    id = Column(Integer, ForeignKey('locations.id'), primary_key=True)
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    
+    # Relationships
+    trip = relationship('Trip', back_populates='stops', foreign_keys=[Location.trip_id])
     activities = relationship('Activity', back_populates='stop', cascade='all, delete-orphan')
+    
+    __mapper_args__ = {
+        'polymorphic_identity': 'stop',
+    }
     
     def to_dict(self, include_activities=False):
         """Convert stop to dictionary"""
         data = {
             'id': self.id,
+            'guid': self.guid,
             'trip_id': self.trip_id,
             'name': self.name,
             'start_date': self.start_date.isoformat() if self.start_date else None,
@@ -79,7 +104,8 @@ class Stop(Base):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'address': self.address,
-            'order_index': self.order_index
+            'previous_location_guid': self.previous_location_guid,
+            'type': 'stop'
         }
         if include_activities:
             data['activities'] = [activity.to_dict() for activity in self.activities]
@@ -110,34 +136,29 @@ class Activity(Base):
         }
 
 
-class Waypoint(Base):
+class Waypoint(Location):
     """Waypoint model representing intermediate points along the route"""
     __tablename__ = 'waypoints'
 
-    id = Column(Integer, primary_key=True)
-    trip_id = Column(Integer, ForeignKey('trips.id'), nullable=False)
-    name = Column(String(200), nullable=False)
-    order_index = Column(Float, nullable=False)  # Float to allow insertion between stops
-    location_type = Column(String(20), nullable=False)  # 'gps' or 'address'
-    latitude = Column(Float)
-    longitude = Column(Float)
-    address = Column(String(500))
+    id = Column(Integer, ForeignKey('locations.id'), primary_key=True)
 
-    # Relationships
-    trip = relationship('Trip', backref='waypoints')
+    __mapper_args__ = {
+        'polymorphic_identity': 'waypoint',
+    }
 
     def to_dict(self):
         """Convert waypoint to dictionary"""
         return {
             'id': self.id,
+            'guid': self.guid,
             'trip_id': self.trip_id,
             'name': self.name,
-            'order_index': self.order_index,
             'location_type': self.location_type,
             'latitude': self.latitude,
             'longitude': self.longitude,
             'address': self.address,
-            'type': 'waypoint'  # To distinguish from stops in UI
+            'previous_location_guid': self.previous_location_guid,
+            'type': 'waypoint'
         }
 
 

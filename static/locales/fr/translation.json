@@ -83,7 +83,9 @@
     "waypointName": "Nom du point de passage",
     "waypointNamePlaceholder": "ex: Point de vue panoramique",
     "waypoint": "Point de passage",
-    "waypointBetween": "Point de passage entre les etapes {{from}} et {{to}}"
+    "waypointBetween": "Point de passage entre les etapes {{from}} et {{to}}",
+    "previousLocation": "Lieu precedent",
+    "noPreviousLocation": "Aucun (debut de l'itineraire)"
   },
   "route": {
     "title": "Informations sur l'itineraire",

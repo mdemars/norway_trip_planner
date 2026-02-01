@@ -17,6 +17,17 @@
             ],
             "jinja": true,
             "justMyCode": true
+        },
+        {
+            "name": "Load Trip",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "trip_io.py",
+            "args": [
+                "load",
+                "1"
+            ],
+            "console": "integratedTerminal"
         }
     ]
 }

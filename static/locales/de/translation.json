@@ -83,7 +83,9 @@
     "waypointName": "Wegpunkt-Name",
     "waypointNamePlaceholder": "z.B. Aussichtspunkt",
     "waypoint": "Wegpunkt",
-    "waypointBetween": "Wegpunkt zwischen Stopps {{from}} und {{to}}"
+    "waypointBetween": "Wegpunkt zwischen Stopps {{from}} und {{to}}",
+    "previousLocation": "Vorheriger Standort",
+    "noPreviousLocation": "Keiner (Routenbeginn)"
   },
   "route": {
     "title": "Routeninformationen",

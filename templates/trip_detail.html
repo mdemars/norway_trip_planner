@@ -26,30 +26,23 @@
             </div>
             <div class="header-actions">
                 <div id="languageSelectorContainer"></div>
-                <button id="editTripBtn" class="btn btn-secondary" data-i18n="trips.editName">Edit Name</button>
-                <button id="deleteTripBtn" class="btn btn-danger" data-i18n="trips.deleteTrip">Delete Trip</button>
+                <button id="editTripBtn" class="icon-btn" data-i18n-title="trips.editName" title="Edit Name">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
+                <button id="deleteTripBtn" class="icon-btn danger" data-i18n-title="trips.deleteTrip" title="Delete Trip">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
             </div>
         </header>
 
         <div class="trip-detail-content">
             <div class="left-panel">
-                <div class="section">
-                    <div class="section-header">
-                        <h2 data-i18n="locations.title">Trip Locations</h2>
-                        <button id="editLocationsBtn" class="btn btn-secondary btn-sm" data-i18n="locations.editLocations">Edit Locations</button>
-                    </div>
-                    <div class="trip-locations">
-                        <div class="location-item">
-                            <strong data-i18n="locations.start">Start:</strong>
-                            <span id="startLocationDisplay" style="color: #6c757d;" data-i18n="locations.notSet">Not set</span>
-                        </div>
-                        <div class="location-item">
-                            <strong data-i18n="locations.end">End:</strong>
-                            <span id="endLocationDisplay" style="color: #6c757d;" data-i18n="locations.notSet">Not set</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="section">
                     <div class="section-header">
                         <h2 data-i18n="stops.title">Stops</h2>
@@ -231,14 +224,14 @@
                     </div>
                 </div>
 
-                <div id="editGpsInput" class="form-row" style="display: none;">
+                <div id="editGpsInput" class="form-row">
                     <div class="form-group">
                         <label for="editLatitude" data-i18n="locations.latitude">Latitude</label>
-                        <input type="number" id="editLatitude" name="latitude" step="0.000001" placeholder="59.9139">
+                        <input type="number" id="editLatitude" name="latitude" step="0.0001" placeholder="59.9139">
                     </div>
                     <div class="form-group">
                         <label for="editLongitude" data-i18n="locations.longitude">Longitude</label>
-                        <input type="number" id="editLongitude" name="longitude" step="0.000001" placeholder="10.7522">
+                        <input type="number" id="editLongitude" name="longitude" step="0.0001" placeholder="10.7522">
                     </div>
                 </div>
 
@@ -323,6 +316,13 @@
                 <div class="form-group">
                     <label for="waypointName" data-i18n="waypoints.waypointName">Waypoint Name</label>
                     <input type="text" id="waypointName" name="waypointName" data-i18n-placeholder="waypoints.waypointNamePlaceholder" placeholder="e.g., Scenic viewpoint" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="waypointPreviousLocation" data-i18n="waypoints.previousLocation">Previous Location</label>
+                    <select id="waypointPreviousLocation" name="waypointPreviousLocation">
+                        <option value="" data-i18n="waypoints.noPreviousLocation">None (start of route)</option>
+                    </select>
                 </div>
 
                 <div class="form-group">

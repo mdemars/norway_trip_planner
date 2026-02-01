@@ -279,23 +279,12 @@ function renderStops(stopsData, waypointsData) {
 
         // Add button to insert waypoint after this stop (except after the last stop)
         if (index < stops.length - 1) {
-            const afterIndex = stop.order_index;
-            const beforeIndex = stops[index + 1].order_index;
-
-            // Get waypoints between this stop and the next
-            const waypointsBetween = waypoints.filter(wp =>
-                wp.order_index > afterIndex && wp.order_index < beforeIndex
-            ).sort((a, b) => a.order_index - b.order_index);
-
-            // Render waypoints
-            waypointsBetween.forEach(wp => {
-                html += createWaypointCard(wp);
-            });
-
+            const nextStop = stops[index + 1];
+            
             // Add "insert waypoint" button
             html += `
                 <div style="display: flex; justify-content: center; padding: 8px 0;">
-                    <button class="btn btn-secondary btn-sm" onclick="openAddWaypointModal(${afterIndex}, ${beforeIndex})" style="font-size: 0.85em;">
+                    <button class="btn btn-secondary btn-sm" onclick="openAddWaypointModal('${stop.id}', '${nextStop.id}')" style="font-size: 0.85em;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -317,6 +306,63 @@ function renderStops(stopsData, waypointsData) {
 }
 
 function createStopCard(stop, index) {
+    // Check if this is a trip location (start/end)
+    if (stop.is_trip_location) {
+        const color = STOP_COLORS[(index - 1) % STOP_COLORS.length];
+        const labelText = stop.type === 'trip-start' ? t('locations.start') : t('locations.end');
+        
+        return `
+            <div class="stop-card collapsed trip-location-card" data-stop-id="${stop.id}" style="border-left-color: ${color};">
+                <div class="stop-header" onclick="toggleStopCollapse('${stop.id}')">
+                    <div class="stop-title-row">
+                        <button class="collapse-toggle" onclick="event.stopPropagation(); toggleStopCollapse('${stop.id}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <h3>
+                            <span style="color: #6c757d; font-weight: normal; margin-right: 8px;">${index}.</span>
+                            <span style="font-style: italic; color: #6c757d;">${labelText}:</span>
+                            ${escapeHtml(stop.name)}
+                        </h3>
+                    </div>
+                    <div class="stop-actions" onclick="event.stopPropagation()">
+                        <button class="icon-btn" onclick="showStopOnMap('${stop.id}')" title="${t('stops.showOnMap')}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </button>
+                        <button class="icon-btn" onclick="openEditTripLocationModal('${stop.id}', '${stop.type}')" title="${t('buttons.edit')}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button class="icon-btn danger" onclick="handleDeleteTripLocation('${stop.id}', '${stop.type}', '${escapeHtml(stop.name).replace(/'/g, "\\'")}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="stop-details">
+                    <div class="stop-info-section">
+                        ${stop.address ? `<div class="stop-address">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            ${escapeHtml(stop.address)}
+                        </div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Regular stop card
     const startDate = formatDate(stop.start_date);
     const endDate = formatDate(stop.end_date);
 
@@ -800,7 +846,10 @@ function showStopOnMap(stopId) {
 // ============================================================================
 
 function renderCalendar() {
-    if (!stops || stops.length === 0) {
+    // Filter to only stops with dates (exclude trip start/end locations)
+    const stopsWithDates = stops.filter(stop => stop.start_date && stop.end_date);
+
+    if (!stopsWithDates || stopsWithDates.length === 0) {
         document.getElementById('calendar').innerHTML = `
             <div class="calendar-placeholder">
                 <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
@@ -816,7 +865,7 @@ function renderCalendar() {
     }
 
     // Find the date range of the trip
-    const allDates = stops.flatMap(stop => [new Date(stop.start_date), new Date(stop.end_date)]);
+    const allDates = stopsWithDates.flatMap(stop => [new Date(stop.start_date), new Date(stop.end_date)]);
     const minDate = new Date(Math.min(...allDates));
     const maxDate = new Date(Math.max(...allDates));
 
@@ -837,9 +886,9 @@ function renderCalendar() {
         calendarHTML += renderMonth(monthDate);
     });
 
-    // Add legend
+    // Add legend (only for stops with dates)
     calendarHTML += `<div class="calendar-legend"><h4>${t('calendar.stops')}</h4><div class="calendar-legend-items">`;
-    stops.forEach((stop, index) => {
+    stopsWithDates.forEach((stop, index) => {
         const color = STOP_COLORS[index % STOP_COLORS.length];
         calendarHTML += `
             <div class="calendar-legend-item">
@@ -947,7 +996,10 @@ function renderMonth(monthDate) {
 function getStopsForDay(date) {
     const stopsOnDay = [];
 
-    stops.forEach((stop, index) => {
+    // Filter to only stops with dates (exclude trip start/end locations)
+    const stopsWithDates = stops.filter(stop => stop.start_date && stop.end_date);
+
+    stopsWithDates.forEach((stop, index) => {
         const startDate = new Date(stop.start_date);
         const endDate = new Date(stop.end_date);
 
@@ -1092,7 +1144,63 @@ async function handleEditStopSubmit(e) {
     e.preventDefault();
 
     const form = e.target;
-    const stopId = parseInt(document.getElementById('editStopId').value);
+    const stopId = document.getElementById('editStopId').value;
+    const tripLocationType = form.dataset.tripLocationType;
+    
+    // Check if this is a trip location edit
+    if (tripLocationType) {
+        const locationType = form.editLocationType.value;
+        const isStart = tripLocationType === 'trip-start';
+        
+        const locationData = {
+            location_type: locationType
+        };
+
+        if (locationType === 'address') {
+            locationData[isStart ? 'start_location_address' : 'end_location_address'] = form.address.value.trim();
+            if (!locationData[isStart ? 'start_location_address' : 'end_location_address']) {
+                showError(t('validation.addressRequired'));
+                return;
+            }
+        } else if (locationType === 'gps') {
+            const latitude = parseFloat(form.latitude.value);
+            const longitude = parseFloat(form.longitude.value);
+            if (isNaN(latitude) || isNaN(longitude)) {
+                showError(t('validation.validCoordinatesRequired'));
+                return;
+            }
+            locationData[isStart ? 'start_location_latitude' : 'end_location_latitude'] = latitude;
+            locationData[isStart ? 'start_location_longitude' : 'end_location_longitude'] = longitude;
+            locationData[isStart ? 'start_location_address' : 'end_location_address'] = form.address.value.trim() || null;
+        }
+
+        try {
+            const response = await fetch(`/api/trips/${tripId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(locationData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update location');
+            }
+
+            closeModal('editStopModal');
+            form.dataset.tripLocationType = '';
+            document.getElementById('editStartDate').parentElement.style.display = 'block';
+            document.getElementById('editEndDate').parentElement.style.display = 'block';
+            showSuccess(t('notifications.stopUpdated'));
+            await loadTrip();
+            await loadStops();
+        } catch (error) {
+            console.error('Error updating trip location:', error);
+            showError(error.message);
+        }
+        return;
+    }
+
+    // Regular stop edit
     const stopIndex = stops.findIndex(s => s.id === stopId);
     const originalStop = stops[stopIndex];
     const locationType = form.editLocationType.value;
@@ -1169,10 +1277,21 @@ function openEditStopModal(stopId) {
     const stop = stops.find(s => s.id === stopId);
     if (!stop) return;
 
+    // Clear any trip location type from previous edit
+    document.getElementById('editStopForm').dataset.tripLocationType = '';
+
     document.getElementById('editStopId').value = stop.id;
     document.getElementById('editStopName').value = stop.name;
-    document.getElementById('editStartDate').value = formatDateForInput(stop.start_date);
-    document.getElementById('editEndDate').value = formatDateForInput(stop.end_date);
+
+    // Show date fields and restore required attribute for regular stops
+    const startDateInput = document.getElementById('editStartDate');
+    const endDateInput = document.getElementById('editEndDate');
+    startDateInput.parentElement.style.display = 'block';
+    endDateInput.parentElement.style.display = 'block';
+    startDateInput.required = true;
+    endDateInput.required = true;
+    startDateInput.value = formatDateForInput(stop.start_date);
+    endDateInput.value = formatDateForInput(stop.end_date);
 
     // Set location type and values
     const locationType = stop.location_type || 'address';
@@ -1180,25 +1299,31 @@ function openEditStopModal(stopId) {
 
     // Populate fields
     document.getElementById('editAddress').value = stop.address || '';
-    document.getElementById('editLatitude').value = stop.latitude || '';
-    document.getElementById('editLongitude').value = stop.longitude || '';
+    // Round coordinates to 4 decimal places for display
+    document.getElementById('editLatitude').value = stop.latitude ? parseFloat(stop.latitude).toFixed(4) : '';
+    document.getElementById('editLongitude').value = stop.longitude ? parseFloat(stop.longitude).toFixed(4) : '';
 
-    // Show/hide appropriate fields
+    // Always show both address and GPS fields
     const addressInput = document.getElementById('editAddressInput');
     const gpsInput = document.getElementById('editGpsInput');
+    const latInput = document.getElementById('editLatitude');
+    const lonInput = document.getElementById('editLongitude');
+
+    addressInput.style.display = 'block';
+    gpsInput.style.display = 'flex';
 
     if (locationType === 'gps') {
-        addressInput.style.display = 'none';
-        gpsInput.style.display = 'flex';
         document.getElementById('editAddress').required = false;
-        document.getElementById('editLatitude').required = true;
-        document.getElementById('editLongitude').required = true;
+        latInput.required = true;
+        lonInput.required = true;
+        latInput.readOnly = false;
+        lonInput.readOnly = false;
     } else {
-        addressInput.style.display = 'block';
-        gpsInput.style.display = 'none';
         document.getElementById('editAddress').required = true;
-        document.getElementById('editLatitude').required = false;
-        document.getElementById('editLongitude').required = false;
+        latInput.required = false;
+        lonInput.required = false;
+        latInput.readOnly = true;
+        lonInput.readOnly = true;
     }
 
     openModal('editStopModal');
@@ -1292,6 +1417,73 @@ async function handleAdjustNextStop() {
 // Activity Handlers
 // ============================================================================
 
+function openEditTripLocationModal(locationId, locationType) {
+    const isStart = locationType === 'trip-start';
+    const location = isStart ? currentTrip.start_location : currentTrip.end_location;
+
+    if (!location) return;
+
+    // Determine modal to use (we'll use the edit stop modal for consistency)
+    document.getElementById('editStopId').value = locationId;
+    document.getElementById('editStopName').value = location.address || '';
+
+    // Set location type
+    const type = location.latitude && location.longitude ? 'gps' : 'address';
+    document.querySelector(`input[name="editLocationType"][value="${type}"]`).checked = true;
+
+    // Populate fields
+    document.getElementById('editAddress').value = location.address || '';
+    document.getElementById('editLatitude').value = location.latitude || '';
+    document.getElementById('editLongitude').value = location.longitude || '';
+
+    // Hide date fields and remove required attribute (not applicable to trip locations)
+    const startDateInput = document.getElementById('editStartDate');
+    const endDateInput = document.getElementById('editEndDate');
+    startDateInput.parentElement.style.display = 'none';
+    endDateInput.parentElement.style.display = 'none';
+    startDateInput.required = false;
+    endDateInput.required = false;
+
+    // Store that this is a trip location for the save handler
+    document.getElementById('editStopForm').dataset.tripLocationType = locationType;
+
+    // Trigger change event to show/hide appropriate fields
+    document.querySelector(`input[name="editLocationType"][value="${type}"]`).dispatchEvent(new Event('change'));
+
+    openModal('editStopModal');
+}
+
+async function handleDeleteTripLocation(locationId, locationType, address) {
+    if (!confirm(`${t('confirmations.deleteStop', { name: address })}`)) {
+        return;
+    }
+
+    try {
+        const isStart = locationType === 'trip-start';
+        const updateData = isStart ? 
+            { start_location_address: null } : 
+            { end_location_address: null };
+
+        const response = await fetch(`/api/trips/${tripId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete location');
+        }
+
+        showSuccess(t('notifications.stopDeleted'));
+        await loadTrip();
+        await loadStops();
+    } catch (error) {
+        console.error('Error deleting trip location:', error);
+        showError(error.message);
+    }
+}
+
 function openAddActivityModal(stopId) {
     document.getElementById('activityStopId').value = stopId;
     document.getElementById('addActivityForm').reset();
@@ -1339,13 +1531,22 @@ async function handleDeleteActivity(activityId, activityName) {
 // Waypoint Handlers
 // ============================================================================
 
-function openAddWaypointModal(afterIndex, beforeIndex) {
-    // Calculate order_index as the midpoint between the two stops
-    const orderIndex = (afterIndex + beforeIndex) / 2;
-
-    document.getElementById('waypointAfterIndex').value = orderIndex;
+function openAddWaypointModal(afterStopId, beforeStopId) {
     document.getElementById('addWaypointForm').reset();
-    document.getElementById('waypointAfterIndex').value = orderIndex; // Set again after reset
+
+    // Populate previous location dropdown
+    const previousLocationSelect = document.getElementById('waypointPreviousLocation');
+    previousLocationSelect.innerHTML = `<option value="">${t('waypoints.noPreviousLocation') || 'None (start of route)'}</option>`;
+
+    // Add the stop after which we're inserting the waypoint
+    const afterStop = stops.find(s => s.id === afterStopId);
+    if (afterStop) {
+        const option = document.createElement('option');
+        option.value = afterStop.guid;
+        option.textContent = afterStop.name;
+        previousLocationSelect.appendChild(option);
+        previousLocationSelect.value = afterStop.guid; // Auto-select
+    }
 
     openModal('addWaypointModal');
 }
@@ -1354,24 +1555,24 @@ async function handleAddWaypointSubmit(e) {
     e.preventDefault();
 
     const form = e.target;
-    const locationType = form.waypointLocationType.value;
-    const orderIndex = parseFloat(document.getElementById('waypointAfterIndex').value);
+    const locationType = document.querySelector('input[name="waypointLocationType"]:checked').value;
+    const previousLocationGuid = document.getElementById('waypointPreviousLocation').value || null;
 
     const waypointData = {
         name: form.waypointName.value.trim(),
-        order_index: orderIndex,
-        location_type: locationType
+        location_type: locationType,
+        previous_location_guid: previousLocationGuid
     };
 
     if (locationType === 'address') {
-        waypointData.address = form.waypointAddress.value.trim();
+        waypointData.address = document.getElementById('waypointAddress').value.trim();
         if (!waypointData.address) {
             showError(t('validation.addressRequired'));
             return;
         }
     } else {
-        waypointData.latitude = parseFloat(form.waypointLatitude.value);
-        waypointData.longitude = parseFloat(form.waypointLongitude.value);
+        waypointData.latitude = parseFloat(document.getElementById('waypointLatitude').value);
+        waypointData.longitude = parseFloat(document.getElementById('waypointLongitude').value);
         if (isNaN(waypointData.latitude) || isNaN(waypointData.longitude)) {
             showError(t('validation.validCoordinatesRequired'));
             return;
@@ -1447,7 +1648,7 @@ async function handleEditTripSubmit(e) {
     }
 }
 
-async function validateAddressField(inputId, validationIconId) {
+async function validateAddressField(inputId, validationIconId, latInputId = null, lonInputId = null) {
     const input = document.getElementById(inputId);
     const validationIcon = document.getElementById(validationIconId);
     const address = input.value.trim();
@@ -1475,6 +1676,12 @@ async function validateAddressField(inputId, validationIconId) {
         if (result.valid) {
             validationIcon.className = 'validation-icon valid';
             validationIcon.title = `${result.latitude.toFixed(4)}, ${result.longitude.toFixed(4)}`;
+
+            // Update coordinate fields if provided
+            if (latInputId && lonInputId) {
+                document.getElementById(latInputId).value = result.latitude.toFixed(4);
+                document.getElementById(lonInputId).value = result.longitude.toFixed(4);
+            }
         } else {
             validationIcon.className = 'validation-icon invalid';
             validationIcon.title = t('validation.addressNotFound');
@@ -1730,35 +1937,48 @@ async function loadTrip() {
     if (trip) {
         currentTrip = trip;
         document.getElementById('tripTitle').textContent = trip.name;
-
-        // Update location displays
-        const startLocationDisplay = document.getElementById('startLocationDisplay');
-        const endLocationDisplay = document.getElementById('endLocationDisplay');
-
-        if (trip.start_location && trip.start_location.address) {
-            startLocationDisplay.textContent = trip.start_location.address;
-            startLocationDisplay.style.color = '#212529';
-            startLocationDisplay.removeAttribute('data-i18n');
-        } else {
-            startLocationDisplay.textContent = t('locations.notSet');
-            startLocationDisplay.style.color = '#6c757d';
-        }
-
-        if (trip.end_location && trip.end_location.address) {
-            endLocationDisplay.textContent = trip.end_location.address;
-            endLocationDisplay.style.color = '#212529';
-            endLocationDisplay.removeAttribute('data-i18n');
-        } else {
-            endLocationDisplay.textContent = t('locations.notSet');
-            endLocationDisplay.style.color = '#6c757d';
-        }
     }
 }
 
 async function loadStops() {
     const stopsData = await fetchStops(tripId);
     const waypointsData = await fetchWaypoints(tripId);
-    renderStops(stopsData, waypointsData);
+    
+    // Add trip start and end as pseudo-stops
+    let allStops = [];
+    
+    // Add start location if it exists
+    if (currentTrip && currentTrip.start_location && currentTrip.start_location.address) {
+        allStops.push({
+            id: 'trip-start',
+            name: currentTrip.start_location.address,
+            address: currentTrip.start_location.address,
+            latitude: currentTrip.start_location.latitude,
+            longitude: currentTrip.start_location.longitude,
+            type: 'trip-start',
+            is_trip_location: true,
+            activities: []
+        });
+    }
+    
+    // Add regular stops
+    allStops = allStops.concat(stopsData);
+    
+    // Add end location if it exists
+    if (currentTrip && currentTrip.end_location && currentTrip.end_location.address) {
+        allStops.push({
+            id: 'trip-end',
+            name: currentTrip.end_location.address,
+            address: currentTrip.end_location.address,
+            latitude: currentTrip.end_location.latitude,
+            longitude: currentTrip.end_location.longitude,
+            type: 'trip-end',
+            is_trip_location: true,
+            activities: []
+        });
+    }
+    
+    renderStops(allStops, waypointsData);
 }
 
 // ============================================================================
@@ -1828,21 +2048,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editRadioButtons = document.querySelectorAll('input[name="editLocationType"]');
     editRadioButtons.forEach(radio => {
         radio.addEventListener('change', (e) => {
-            const addressInput = document.getElementById('editAddressInput');
-            const gpsInput = document.getElementById('editGpsInput');
+            const latInput = document.getElementById('editLatitude');
+            const lonInput = document.getElementById('editLongitude');
 
             if (e.target.value === 'address') {
-                addressInput.style.display = 'block';
-                gpsInput.style.display = 'none';
                 document.getElementById('editAddress').required = true;
-                document.getElementById('editLatitude').required = false;
-                document.getElementById('editLongitude').required = false;
+                latInput.required = false;
+                lonInput.required = false;
+                latInput.readOnly = true;
+                lonInput.readOnly = true;
             } else {
-                addressInput.style.display = 'none';
-                gpsInput.style.display = 'flex';
                 document.getElementById('editAddress').required = false;
-                document.getElementById('editLatitude').required = true;
-                document.getElementById('editLongitude').required = true;
+                latInput.required = true;
+                lonInput.required = true;
+                latInput.readOnly = false;
+                lonInput.readOnly = false;
             }
         });
     });
@@ -1865,43 +2085,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Edit trip form
     document.getElementById('editTripForm').addEventListener('submit', handleEditTripSubmit);
 
-    // Edit locations button
-    document.getElementById('editLocationsBtn').addEventListener('click', () => {
-        if (currentTrip) {
-            const startAddr = currentTrip.start_location ? currentTrip.start_location.address : '';
-            const endAddr = currentTrip.end_location ? currentTrip.end_location.address : '';
-            document.getElementById('startLocationAddress').value = startAddr || '';
-            document.getElementById('endLocationAddress').value = endAddr || '';
-            openModal('editLocationsModal');
-        }
-    });
+    // Edit locations button (optional - may not exist in all views)
+    const editLocationsBtn = document.getElementById('editLocationsBtn');
+    if (editLocationsBtn) {
+        editLocationsBtn.addEventListener('click', () => {
+            if (currentTrip) {
+                const startAddr = currentTrip.start_location ? currentTrip.start_location.address : '';
+                const endAddr = currentTrip.end_location ? currentTrip.end_location.address : '';
+                document.getElementById('startLocationAddress').value = startAddr || '';
+                document.getElementById('endLocationAddress').value = endAddr || '';
+                openModal('editLocationsModal');
+            }
+        });
+    }
 
-    // Edit locations form
-    document.getElementById('editLocationsForm').addEventListener('submit', handleEditLocationsSubmit);
+    // Edit locations form (optional - may not exist in all views)
+    const editLocationsForm = document.getElementById('editLocationsForm');
+    if (editLocationsForm) {
+        editLocationsForm.addEventListener('submit', handleEditLocationsSubmit);
+    }
 
-    // Address validation on blur
-    document.getElementById('startLocationAddress').addEventListener('blur', () => {
-        validateAddressField('startLocationAddress', 'startLocationValidation');
-    });
+    // Address validation on blur (optional elements)
+    const startLocationAddress = document.getElementById('startLocationAddress');
+    const endLocationAddress = document.getElementById('endLocationAddress');
 
-    document.getElementById('endLocationAddress').addEventListener('blur', () => {
-        validateAddressField('endLocationAddress', 'endLocationValidation');
-    });
+    if (startLocationAddress) {
+        startLocationAddress.addEventListener('blur', () => {
+            validateAddressField('startLocationAddress', 'startLocationValidation');
+        });
 
-    // Clear validation icons when user starts typing
-    document.getElementById('startLocationAddress').addEventListener('input', () => {
-        const validationIcon = document.getElementById('startLocationValidation');
-        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
-            validationIcon.className = 'validation-icon';
-        }
-    });
+        startLocationAddress.addEventListener('input', () => {
+            const validationIcon = document.getElementById('startLocationValidation');
+            if (validationIcon && (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid'))) {
+                validationIcon.className = 'validation-icon';
+            }
+        });
+    }
 
-    document.getElementById('endLocationAddress').addEventListener('input', () => {
-        const validationIcon = document.getElementById('endLocationValidation');
-        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
-            validationIcon.className = 'validation-icon';
-        }
-    });
+    if (endLocationAddress) {
+        endLocationAddress.addEventListener('blur', () => {
+            validateAddressField('endLocationAddress', 'endLocationValidation');
+        });
+
+        endLocationAddress.addEventListener('input', () => {
+            const validationIcon = document.getElementById('endLocationValidation');
+            if (validationIcon && (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid'))) {
+                validationIcon.className = 'validation-icon';
+            }
+        });
+    }
 
     // Add Stop modal - address validation
     document.getElementById('address').addEventListener('blur', () => {
@@ -1922,7 +2154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('editAddress').addEventListener('blur', () => {
         const locationType = document.querySelector('input[name="editLocationType"]:checked').value;
         if (locationType === 'address') {
-            validateAddressField('editAddress', 'editAddressValidation');
+            validateAddressField('editAddress', 'editAddressValidation', 'editLatitude', 'editLongitude');
         }
     });
 
