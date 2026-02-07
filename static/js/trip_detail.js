@@ -385,6 +385,12 @@ function createStopCard(stop, index) {
     const nights = daysDifference;
     const nightsText = t('stops.night', { count: nights });
 
+    // Format dates as dd/MMM for summary (explicitly exclude year)
+    const shortDateOptions = { day: '2-digit', month: 'short', year: undefined };
+    const startDateShort = formatDate(stop.start_date, shortDateOptions);
+    const endDateShort = formatDate(stop.end_date, shortDateOptions);
+    const dateRangeText = `${startDateShort} - ${endDateShort}`;
+
     const activities = stop.activities || [];
     const activitiesHtml = activities.length > 0 ? `
         <div class="activities-list">
@@ -425,7 +431,7 @@ function createStopCard(stop, index) {
                     <h3>
                         <span style="color: #6c757d; font-weight: normal; margin-right: 8px;">${index}.</span>
                         ${escapeHtml(stop.name)}
-                        <span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${nightsText})</span>
+                        <span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${dateRangeText}, ${nightsText})</span>
                     </h3>
                 </div>
                 <div class="stop-actions" onclick="event.stopPropagation()">
@@ -1069,8 +1075,9 @@ function populateAddStopModal() {
     // Clear existing options except "Start of trip"
     addAfterSelect.innerHTML = `<option value="start">${t('dates.startOfTrip')}</option>`;
 
-    // Add existing stops as options
-    stops.forEach((stop, index) => {
+    // Add existing stops as options (excluding pseudo-stops like trip-start and trip-end)
+    const realStops = stops.filter(s => !s.is_trip_location);
+    realStops.forEach((stop, index) => {
         const option = document.createElement('option');
         option.value = stop.id;
         option.textContent = t('dates.afterStop', { index: index + 1, name: stop.name });
@@ -1078,8 +1085,8 @@ function populateAddStopModal() {
     });
 
     // Auto-select the last stop if there are stops
-    if (stops.length > 0) {
-        addAfterSelect.value = stops[stops.length - 1].id;
+    if (realStops.length > 0) {
+        addAfterSelect.value = realStops[realStops.length - 1].id;
     }
 
     // Calculate initial dates
@@ -1553,18 +1560,23 @@ async function handleDeleteActivity(activityId, activityName) {
 function openAddWaypointModal(afterStopId, beforeStopId) {
     document.getElementById('addWaypointForm').reset();
 
-    // Populate previous location dropdown
+    // Populate previous location dropdown with all stops (excluding trip-end)
     const previousLocationSelect = document.getElementById('waypointPreviousLocation');
     previousLocationSelect.innerHTML = `<option value="">${t('waypoints.noPreviousLocation') || 'None (start of route)'}</option>`;
 
-    // Add the stop after which we're inserting the waypoint
+    // Add all stops except trip-end as options
+    const availableStops = stops.filter(s => s.type !== 'trip-end');
+    availableStops.forEach(stop => {
+        const option = document.createElement('option');
+        option.value = stop.guid;
+        option.textContent = stop.name;
+        previousLocationSelect.appendChild(option);
+    });
+
+    // Auto-select the stop above where "Add Waypoint" was clicked
     const afterStop = stops.find(s => s.id === afterStopId);
     if (afterStop) {
-        const option = document.createElement('option');
-        option.value = afterStop.guid;
-        option.textContent = afterStop.name;
-        previousLocationSelect.appendChild(option);
-        previousLocationSelect.value = afterStop.guid; // Auto-select
+        previousLocationSelect.value = afterStop.guid;
     }
 
     openModal('addWaypointModal');
