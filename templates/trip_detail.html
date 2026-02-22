@@ -7,6 +7,7 @@
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/js/theme.js"></script>
+    <script src="/static/js/auth.js"></script>
     <!-- i18next scripts -->
     <script src="https://unpkg.com/i18next@23.7.6/i18next.min.js"></script>
     <script src="https://unpkg.com/i18next-http-backend@2.4.2/i18nextHttpBackend.min.js"></script>
@@ -46,6 +47,15 @@
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
                 </button>
+                {% if user_name %}
+                <div class="user-info">
+                    {% if user_picture %}
+                    <img src="{{ user_picture }}" alt="" class="user-avatar" referrerpolicy="no-referrer">
+                    {% endif %}
+                    <span class="user-name">{{ user_name }}</span>
+                    <a href="/logout" class="btn btn-secondary btn-sm" style="text-decoration:none;">Logout</a>
+                </div>
+                {% endif %}
             </div>
         </header>
 

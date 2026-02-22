@@ -1,5 +1,6 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
+from authlib.integrations.flask_client import OAuth
 from datetime import datetime
 from config import Config
 from models import Trip, Stop, Activity, Waypoint, Location, init_db, get_db
@@ -17,13 +18,114 @@ ADMIN_MODELS = {
 
 app = Flask(__name__)
 app.config.from_object(Config)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Validate configuration
 Config.validate()
 
 # Initialize database
 init_db()
+
+# ============================================================================
+# Google OAuth Setup
+# ============================================================================
+
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=Config.GOOGLE_CLIENT_ID,
+    client_secret=Config.GOOGLE_CLIENT_SECRET,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
+
+
+@app.context_processor
+def inject_user():
+    """Make user session data available in all templates"""
+    return {
+        'user_email': session.get('user_email'),
+        'user_name': session.get('user_name'),
+        'user_picture': session.get('user_picture')
+    }
+
+
+@app.before_request
+def require_login():
+    """Require authentication for all routes except auth-related ones"""
+    allowed_prefixes = ('/login', '/auth/', '/logout', '/favicon.ico', '/static/')
+    if any(request.path.startswith(p) for p in allowed_prefixes):
+        return
+    if not session.get('user_email'):
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Authentication required'}), 401
+        return redirect('/login')
+
+
+# ============================================================================
+# Auth Routes
+# ============================================================================
+
+@app.route('/login')
+def login():
+    """Show login page"""
+    if session.get('user_email'):
+        return redirect('/')
+    return render_template('login.html')
+
+
+@app.route('/auth/google')
+def auth_google():
+    """Initiate Google OAuth flow"""
+    redirect_uri = url_for('auth_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle Google OAuth callback"""
+    token = google.authorize_access_token()
+    user_info = token.get('userinfo')
+
+    if not user_info:
+        user_info = google.get('https://openidconnect.googleapis.com/v1/userinfo').json()
+
+    email = user_info.get('email', '').lower()
+
+    # Check against allowlist
+    if email not in Config.ALLOWED_EMAILS:
+        return render_template('login.html',
+            error=f'Access denied. The email {email} is not authorized to use this application.')
+
+    # Store user info in session
+    session['user_email'] = email
+    session['user_name'] = user_info.get('name', email)
+    session['user_picture'] = user_info.get('picture', '')
+    session.permanent = True
+
+    return redirect('/')
+
+
+@app.route('/logout')
+def logout():
+    """Clear session and redirect to login"""
+    session.clear()
+    return redirect('/login')
+
+
+@app.route('/api/auth/status')
+def auth_status():
+    """Return current auth status"""
+    if session.get('user_email'):
+        return jsonify({
+            'authenticated': True,
+            'email': session['user_email'],
+            'name': session.get('user_name', ''),
+            'picture': session.get('user_picture', '')
+        })
+    return jsonify({'authenticated': False}), 401
 
 
 # ============================================================================

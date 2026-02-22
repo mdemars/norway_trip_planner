@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/admin.css">
     <script src="/static/js/theme.js"></script>
+    <script src="/static/js/auth.js"></script>
 </head>
 <body>
     <div class="container">
@@ -26,6 +27,15 @@
                         </svg>
                         Back to Trips
                     </a>
+                    {% if user_name %}
+                    <div class="user-info">
+                        {% if user_picture %}
+                        <img src="{{ user_picture }}" alt="" class="user-avatar" referrerpolicy="no-referrer">
+                        {% endif %}
+                        <span class="user-name">{{ user_name }}</span>
+                        <a href="/logout" class="btn btn-secondary btn-sm" style="text-decoration:none;">Logout</a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </header>
