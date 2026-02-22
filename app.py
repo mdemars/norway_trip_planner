@@ -6,6 +6,7 @@ from config import Config
 from models import Trip, Stop, Activity, Waypoint, Location, init_db, get_db
 from services import geocoding_service, route_service
 from sqlalchemy import inspect as sa_inspect
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import uuid
 
@@ -18,6 +19,7 @@ ADMIN_MODELS = {
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 CORS(app, supports_credentials=True)
 
 # Validate configuration
@@ -31,7 +33,6 @@ init_db()
 # ============================================================================
 
 oauth = OAuth(app)
-print(f"Google OAuth Client ID: {Config.GOOGLE_CLIENT_ID}")
 google = oauth.register(
     name='google',
     client_id=Config.GOOGLE_CLIENT_ID,
