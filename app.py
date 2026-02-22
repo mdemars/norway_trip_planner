@@ -29,7 +29,7 @@ Config.validate()
 init_db()
 
 # ============================================================================
-# Google OAuth Setup
+# OAuth Setup
 # ============================================================================
 
 oauth = OAuth(app)
@@ -38,6 +38,16 @@ google = oauth.register(
     client_id=Config.GOOGLE_CLIENT_ID,
     client_secret=Config.GOOGLE_CLIENT_SECRET,
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
+
+microsoft = oauth.register(
+    name='microsoft',
+    client_id=Config.MICROSOFT_CLIENT_ID,
+    client_secret=Config.MICROSOFT_CLIENT_SECRET,
+    server_metadata_url='https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile'
     }
@@ -93,6 +103,38 @@ def auth_callback():
 
     if not user_info:
         user_info = google.get('https://openidconnect.googleapis.com/v1/userinfo').json()
+
+    email = user_info.get('email', '').lower()
+
+    # Check against allowlist
+    if email not in Config.ALLOWED_EMAILS:
+        return render_template('login.html',
+            error=f'Access denied. The email {email} is not authorized to use this application.')
+
+    # Store user info in session
+    session['user_email'] = email
+    session['user_name'] = user_info.get('name', email)
+    session['user_picture'] = user_info.get('picture', '')
+    session.permanent = True
+
+    return redirect('/')
+
+
+@app.route('/auth/microsoft')
+def auth_microsoft():
+    """Initiate Microsoft OAuth flow"""
+    redirect_uri = url_for('auth_microsoft_callback', _external=True)
+    return microsoft.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/microsoft/callback')
+def auth_microsoft_callback():
+    """Handle Microsoft OAuth callback"""
+    token = microsoft.authorize_access_token()
+    user_info = token.get('userinfo')
+
+    if not user_info:
+        user_info = microsoft.get('https://graph.microsoft.com/oidc/userinfo').json()
 
     email = user_info.get('email', '').lower()
 

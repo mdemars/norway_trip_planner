@@ -27,6 +27,10 @@ class Config:
     GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
 
+    # Microsoft OAuth 2.0
+    MICROSOFT_CLIENT_ID = os.getenv('MICROSOFT_CLIENT_ID', '')
+    MICROSOFT_CLIENT_SECRET = os.getenv('MICROSOFT_CLIENT_SECRET', '')
+
     # Allowed email addresses (comma-separated in env)
     ALLOWED_EMAILS = [
         e.strip().lower()
