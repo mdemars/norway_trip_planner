@@ -31,6 +31,7 @@ init_db()
 # ============================================================================
 
 oauth = OAuth(app)
+print(f"Google OAuth Client ID: {Config.GOOGLE_CLIENT_ID}")
 google = oauth.register(
     name='google',
     client_id=Config.GOOGLE_CLIENT_ID,
