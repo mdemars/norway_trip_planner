@@ -10,6 +10,8 @@
 * when adding a waypoint, it only lists the start DONE
 * when adding a stop after an existing one, it should be on the prev end-date, not end-date +1 
 * when creating a trip, ask for the start and end addresses DONE
+
+* when adding a waypoint, it does not appear on the list of stops DONE
+* clicking on a stop does not center it on the map DONE
+
 * when adding a 2nd stop, calculating the route does not take it into account
-* when adding a waypoint, it does not appear on the list of stops
-* clicking on a stop does not center it on the map

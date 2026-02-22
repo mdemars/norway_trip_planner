@@ -6,6 +6,7 @@ from models import Trip, Stop, Activity, Waypoint, Location, init_db, get_db
 from services import geocoding_service, route_service
 from sqlalchemy import inspect as sa_inspect
 import os
+import uuid
 
 # Model registry for admin CRUD
 ADMIN_MODELS = {
@@ -79,6 +80,7 @@ def create_trip():
         start_address = data.get('start_location_address', '').strip()
         if start_address:
             trip.start_location_address = start_address
+            trip.start_location_guid = str(uuid.uuid4())
             coords = geocoding_service.geocode_address(start_address)
             if coords:
                 trip.start_location_latitude, trip.start_location_longitude = round(coords[0], 4), round(coords[1], 4)
@@ -87,6 +89,7 @@ def create_trip():
         end_address = data.get('end_location_address', '').strip()
         if end_address:
             trip.end_location_address = end_address
+            trip.end_location_guid = str(uuid.uuid4())
             coords = geocoding_service.geocode_address(end_address)
             if coords:
                 trip.end_location_latitude, trip.end_location_longitude = round(coords[0], 4), round(coords[1], 4)
@@ -131,6 +134,9 @@ def update_trip(trip_id):
         if 'start_location_address' in data:
             trip.start_location_address = data['start_location_address']
             if data['start_location_address']:
+                # Generate GUID if not already set
+                if not trip.start_location_guid:
+                    trip.start_location_guid = str(uuid.uuid4())
                 # Geocode the address
                 coords = geocoding_service.geocode_address(data['start_location_address'])
                 if coords:
@@ -139,11 +145,15 @@ def update_trip(trip_id):
                 # Clear location if address is empty
                 trip.start_location_latitude = None
                 trip.start_location_longitude = None
+                trip.start_location_guid = None
 
         # Handle end location
         if 'end_location_address' in data:
             trip.end_location_address = data['end_location_address']
             if data['end_location_address']:
+                # Generate GUID if not already set
+                if not trip.end_location_guid:
+                    trip.end_location_guid = str(uuid.uuid4())
                 # Geocode the address
                 coords = geocoding_service.geocode_address(data['end_location_address'])
                 if coords:
@@ -152,6 +162,7 @@ def update_trip(trip_id):
                 # Clear location if address is empty
                 trip.end_location_latitude = None
                 trip.end_location_longitude = None
+                trip.end_location_guid = None
 
         db.commit()
         db.refresh(trip)
@@ -673,6 +684,93 @@ def get_trip_route(trip_id):
         route_info = route_service.calculate_route(all_points)
 
         return jsonify(route_info)
+    finally:
+        db.close()
+
+
+@app.route('/api/trips/<int:trip_id>/debug/route-points', methods=['GET'])
+def get_debug_route_points(trip_id):
+    """Debug endpoint: Get all route points in order (start, stops, waypoints, end)"""
+    db = get_db()
+    try:
+        # Get trip
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+
+        # Get all locations for the trip
+        all_locations = db.query(Location).filter(Location.trip_id == trip_id).all()
+
+        all_points = []
+
+        # Add trip start location at the beginning if it exists
+        if trip.start_location_latitude and trip.start_location_longitude:
+            all_points.append({
+                'order': 0,
+                'type': 'start',
+                'name': 'Trip Start',
+                'address': trip.start_location_address,
+                'latitude': trip.start_location_latitude,
+                'longitude': trip.start_location_longitude,
+            })
+
+        if all_locations:
+            # Create a map of GUIDs to locations for quick lookup
+            location_map = {loc.guid: loc for loc in all_locations}
+
+            # Find the end location (one that no other location points to)
+            guids_referenced = {loc.previous_location_guid for loc in all_locations if loc.previous_location_guid}
+            end_location = None
+            for loc in all_locations:
+                if loc.guid not in guids_referenced:
+                    end_location = loc
+                    break
+
+            # Traverse backwards from end to start
+            location_chain = []
+            current = end_location
+
+            while current:
+                loc_type = 'stop' if isinstance(current, Stop) else 'waypoint'
+                location_chain.append({
+                    'type': loc_type,
+                    'name': current.name,
+                    'address': current.address,
+                    'latitude': current.latitude,
+                    'longitude': current.longitude,
+                    'guid': current.guid,
+                    'previous_location_guid': current.previous_location_guid,
+                })
+
+                # Get the previous location
+                if current.previous_location_guid:
+                    current = location_map.get(current.previous_location_guid)
+                else:
+                    current = None
+
+            # Reverse to get start-to-end order and add order numbers
+            location_chain.reverse()
+            for i, loc in enumerate(location_chain):
+                loc['order'] = len(all_points) + i
+                all_points.append(loc)
+
+        # Add trip end location at the end if it exists
+        if trip.end_location_latitude and trip.end_location_longitude:
+            all_points.append({
+                'order': len(all_points),
+                'type': 'end',
+                'name': 'Trip End',
+                'address': trip.end_location_address,
+                'latitude': trip.end_location_latitude,
+                'longitude': trip.end_location_longitude,
+            })
+
+        return jsonify({
+            'trip_id': trip_id,
+            'trip_name': trip.name,
+            'total_points': len(all_points),
+            'points': all_points
+        })
     finally:
         db.close()
 

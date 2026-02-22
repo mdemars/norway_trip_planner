@@ -1829,6 +1829,59 @@ async function handleCalculateRoute() {
     }
 }
 
+async function handleDebugRoute() {
+    const contentEl = document.getElementById('debugRouteContent');
+    contentEl.innerHTML = '<div class="loading">Loading...</div>';
+    openModal('debugRouteModal');
+
+    try {
+        const response = await fetch(`/api/trips/${tripId}/debug/route-points`);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch route points');
+        }
+
+        const data = await response.json();
+
+        if (!data.points || data.points.length === 0) {
+            contentEl.innerHTML = '<p style="color: #6c757d;">No route points found.</p>';
+            return;
+        }
+
+        let html = `<p style="margin-bottom: 12px;"><strong>Total points: ${data.total_points}</strong></p>`;
+        html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+        html += '<thead><tr style="background: var(--bg-secondary, #f8f9fa); border-bottom: 2px solid var(--border-color, #dee2e6);">';
+        html += '<th style="padding: 8px; text-align: left;">#</th>';
+        html += '<th style="padding: 8px; text-align: left;">Type</th>';
+        html += '<th style="padding: 8px; text-align: left;">Name</th>';
+        html += '<th style="padding: 8px; text-align: left;">Address</th>';
+        html += '<th style="padding: 8px; text-align: left;">Coords</th>';
+        html += '</tr></thead><tbody>';
+
+        data.points.forEach((point, index) => {
+            const typeColor = point.type === 'start' ? '#34A853' :
+                              point.type === 'end' ? '#EA4335' :
+                              point.type === 'waypoint' ? '#9334E6' : '#4285F4';
+            const coords = point.latitude && point.longitude ?
+                `${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)}` : 'N/A';
+
+            html += `<tr style="border-bottom: 1px solid var(--border-color, #dee2e6);">`;
+            html += `<td style="padding: 8px;">${point.order !== undefined ? point.order : index}</td>`;
+            html += `<td style="padding: 8px;"><span style="background: ${typeColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">${point.type}</span></td>`;
+            html += `<td style="padding: 8px;">${escapeHtml(point.name || '-')}</td>`;
+            html += `<td style="padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(point.address || '')}">${escapeHtml(point.address || '-')}</td>`;
+            html += `<td style="padding: 8px; font-family: monospace; font-size: 0.85em;">${coords}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        contentEl.innerHTML = html;
+    } catch (error) {
+        console.error('Error fetching debug route points:', error);
+        contentEl.innerHTML = `<p style="color: #dc3545;">Error: ${escapeHtml(error.message)}</p>`;
+    }
+}
+
 function displayRouteInfo(routeData) {
     const container = document.getElementById('routeInfo');
 
@@ -1984,6 +2037,7 @@ async function loadStops() {
     if (currentTrip && currentTrip.start_location && currentTrip.start_location.address) {
         allStops.push({
             id: 'trip-start',
+            guid: currentTrip.start_location.guid,
             name: currentTrip.start_location.address,
             address: currentTrip.start_location.address,
             latitude: currentTrip.start_location.latitude,
@@ -1993,14 +2047,15 @@ async function loadStops() {
             activities: []
         });
     }
-    
+
     // Add regular stops
     allStops = allStops.concat(stopsData);
-    
+
     // Add end location if it exists
     if (currentTrip && currentTrip.end_location && currentTrip.end_location.address) {
         allStops.push({
             id: 'trip-end',
+            guid: currentTrip.end_location.guid,
             name: currentTrip.end_location.address,
             address: currentTrip.end_location.address,
             latitude: currentTrip.end_location.latitude,
@@ -2215,6 +2270,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Delete trip button
     document.getElementById('deleteTripBtn').addEventListener('click', handleDeleteTrip);
+
+    // Debug route button
+    document.getElementById('debugRouteBtn').addEventListener('click', handleDebugRoute);
 
     // Calculate route button
     document.getElementById('calculateRouteBtn').addEventListener('click', handleCalculateRoute);

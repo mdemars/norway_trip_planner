@@ -28,6 +28,12 @@
             <div class="header-actions">
                 <div id="languageSelectorContainer"></div>
                 <div id="themeToggleContainer"></div>
+                <button id="debugRouteBtn" class="icon-btn" title="Debug Route Points">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                </button>
                 <button id="editTripBtn" class="icon-btn" data-i18n-title="trips.editName" title="Edit Name">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -419,6 +425,24 @@
                     <button type="submit" class="btn btn-primary" data-i18n="buttons.save">Save Locations</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Debug Route Points Modal -->
+    <div id="debugRouteModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Debug: Route Points</h2>
+                <button class="close-btn" onclick="closeModal('debugRouteModal')">&times;</button>
+            </div>
+            <div style="padding: 0 24px 24px 24px;">
+                <p style="margin-bottom: 16px; color: #6c757d;">
+                    All route points in order (as passed to the route calculation):
+                </p>
+                <div id="debugRouteContent" style="max-height: 400px; overflow-y: auto;">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
         </div>
     </div>
 

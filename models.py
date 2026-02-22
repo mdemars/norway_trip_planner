@@ -18,11 +18,13 @@ class Trip(Base):
     start_location_address = Column(String(500))
     start_location_latitude = Column(Float)
     start_location_longitude = Column(Float)
+    start_location_guid = Column(String(36))
 
     # End location
     end_location_address = Column(String(500))
     end_location_latitude = Column(Float)
     end_location_longitude = Column(Float)
+    end_location_guid = Column(String(36))
 
     # Relationships
     stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Location.start_date')
@@ -36,12 +38,14 @@ class Trip(Base):
             'start_location': {
                 'address': self.start_location_address,
                 'latitude': self.start_location_latitude,
-                'longitude': self.start_location_longitude
+                'longitude': self.start_location_longitude,
+                'guid': self.start_location_guid
             } if self.start_location_address else None,
             'end_location': {
                 'address': self.end_location_address,
                 'latitude': self.end_location_latitude,
-                'longitude': self.end_location_longitude
+                'longitude': self.end_location_longitude,
+                'guid': self.end_location_guid
             } if self.end_location_address else None
         }
         if include_stops:
@@ -203,9 +207,50 @@ def _migrate_to_single_table(engine):
     print("Migration complete.")
 
 
+def _migrate_add_trip_location_guids(engine):
+    """Add GUID columns to trip start/end locations for waypoint linking."""
+    insp = inspect(engine)
+    existing_tables = insp.get_table_names()
+
+    if 'trips' not in existing_tables:
+        return
+
+    trip_cols = [c['name'] for c in insp.get_columns('trips')]
+    if 'start_location_guid' in trip_cols:
+        return  # Already migrated
+
+    print("Adding GUID columns to trip locations...")
+    with engine.connect() as conn:
+        # Add new columns
+        conn.execute(text("ALTER TABLE trips ADD COLUMN start_location_guid VARCHAR(36)"))
+        conn.execute(text("ALTER TABLE trips ADD COLUMN end_location_guid VARCHAR(36)"))
+        conn.commit()
+
+        # Generate GUIDs for existing trips with locations
+        from sqlalchemy import select
+        result = conn.execute(text("SELECT id, start_location_address, end_location_address FROM trips"))
+        for row in result:
+            trip_id = row[0]
+            start_addr = row[1]
+            end_addr = row[2]
+
+            if start_addr:
+                start_guid = str(uuid.uuid4())
+                conn.execute(text("UPDATE trips SET start_location_guid = :guid WHERE id = :id"),
+                           {"guid": start_guid, "id": trip_id})
+            if end_addr:
+                end_guid = str(uuid.uuid4())
+                conn.execute(text("UPDATE trips SET end_location_guid = :guid WHERE id = :id"),
+                           {"guid": end_guid, "id": trip_id})
+        conn.commit()
+
+    print("Trip location GUIDs migration complete.")
+
+
 def init_db():
     """Initialize the database"""
     _migrate_to_single_table(engine)
+    _migrate_add_trip_location_guids(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 
