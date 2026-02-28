@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Duration change modal buttons
     document.getElementById('shiftAllStopsBtn').addEventListener('click', handleShiftAllStops);
     document.getElementById('adjustNextStopBtn').addEventListener('click', handleAdjustNextStop);
+    document.getElementById('justUpdateStopBtn').addEventListener('click', handleJustUpdateStop);
 
     // Waypoint form
     document.getElementById('addWaypointForm').addEventListener('submit', handleAddWaypointSubmit);

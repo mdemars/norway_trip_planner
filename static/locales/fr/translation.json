@@ -154,7 +154,9 @@
     "shiftAllStops": "Decaler toutes les etapes suivantes",
     "shiftAllDescription": "Deplacer toutes les etapes suivantes du meme montant",
     "adjustNextOnly": "Ajuster uniquement l'etape suivante",
-    "adjustNextDescription": "Raccourcir l'etape immediatement suivante"
+    "adjustNextDescription": "Raccourcir l'etape immediatement suivante",
+    "justUpdateThisStop": "Mettre a jour uniquement cette etape",
+    "justUpdateDescription": "Ne pas ajuster les autres etapes - je les mettrai a jour manuellement"
   },
   "buttons": {
     "cancel": "Annuler",

@@ -154,7 +154,9 @@
     "shiftAllStops": "Shift All Following Stops",
     "shiftAllDescription": "Move all subsequent stops forward by the same amount",
     "adjustNextOnly": "Adjust Next Stop Only",
-    "adjustNextDescription": "Shorten the immediately following stop"
+    "adjustNextDescription": "Shorten the immediately following stop",
+    "justUpdateThisStop": "Just Update This Stop",
+    "justUpdateDescription": "Don't adjust other stops - I'll update them manually"
   },
   "buttons": {
     "cancel": "Cancel",

@@ -58,8 +58,6 @@ function calculateStopDates() {
 
         if (selectedStop && selectedStop.end_date) {
             startDate = new Date(selectedStop.end_date);
-            // Add one day to start the day after the previous stop ends
-            startDate.setDate(startDate.getDate() + 1);
         } else {
             startDate = new Date();
         }
@@ -392,6 +390,24 @@ async function handleAdjustNextStop() {
 
         closeModal('durationChangeModal');
         showSuccess(t('notifications.nextStopAdjusted'));
+        await loadStops();
+        App.pendingStopUpdate = null;
+    } catch (error) {
+        showError(t('errors.failedToUpdateStops'));
+        App.pendingStopUpdate = null;
+    }
+}
+
+async function handleJustUpdateStop() {
+    if (!App.pendingStopUpdate) return;
+
+    const { stopId, stopData } = App.pendingStopUpdate;
+
+    try {
+        // Just update the current stop without adjusting any following stops
+        await updateStop(stopId, stopData);
+        closeModal('durationChangeModal');
+        showSuccess(t('notifications.stopUpdated'));
         await loadStops();
         App.pendingStopUpdate = null;
     } catch (error) {
@@ -914,6 +930,7 @@ window.handleDeleteStop = handleDeleteStop;
 window.openEditStopModal = openEditStopModal;
 window.handleShiftAllStops = handleShiftAllStops;
 window.handleAdjustNextStop = handleAdjustNextStop;
+window.handleJustUpdateStop = handleJustUpdateStop;
 window.openEditTripLocationModal = openEditTripLocationModal;
 window.handleDeleteTripLocation = handleDeleteTripLocation;
 window.openAddActivityModal = openAddActivityModal;

@@ -154,7 +154,9 @@
     "shiftAllStops": "Alle folgenden Stopps verschieben",
     "shiftAllDescription": "Alle nachfolgenden Stopps um den gleichen Betrag verschieben",
     "adjustNextOnly": "Nur nachsten Stopp anpassen",
-    "adjustNextDescription": "Den unmittelbar folgenden Stopp verkurzen"
+    "adjustNextDescription": "Den unmittelbar folgenden Stopp verkurzen",
+    "justUpdateThisStop": "Nur diesen Stopp aktualisieren",
+    "justUpdateDescription": "Andere Stopps nicht anpassen - ich aktualisiere sie manuell"
   },
   "buttons": {
     "cancel": "Abbrechen",
