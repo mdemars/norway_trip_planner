@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app.pageTitle">Backups - Camping Trip Planner</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <!-- i18next scripts -->
+    <script src="https://unpkg.com/i18next@23.7.6/i18next.min.js"></script>
+    <script src="https://unpkg.com/i18next-http-backend@2.4.2/i18nextHttpBackend.min.js"></script>
+    <script src="/static/js/i18n.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-text">
+                    <h1 data-i18n="app.title">Camping Trip Planner</h1>
+                    <p class="subtitle" data-i18n="app.subtitle">Plan your perfect camping adventure</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="languageSelectorContainer"></div>
+                    <div id="themeToggleContainer"></div>
+                    <a href="/admin" class="btn btn-secondary btn-sm" style="text-decoration:none;">Admin</a>
+                    {% if user_name %}
+                    <div class="user-info">
+                        {% if user_picture %}
+                        <img src="{{ user_picture }}" alt="" class="user-avatar" referrerpolicy="no-referrer">
+                        {% endif %}
+                        <span class="user-name">{{ user_name }}</span>
+                        <a href="/logout" class="btn btn-secondary btn-sm" style="text-decoration:none;">Logout</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+                <a href="/" class="btn btn-secondary" style="text-decoration:none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Back</span>
+                </a>
+                <h2>Database Backups</h2>
+            </div>
+
+            <div class="backups-container">
+                <!-- Create Backup Section -->
+                <div class="backup-card">
+                    <h3>Create New Backup</h3>
+                    <p style="color: #666; margin-bottom: 16px;">Create a snapshot of your current database</p>
+                    <button id="createBackupBtn" class="btn btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Create Backup Now
+                    </button>
+                </div>
+
+                <!-- Backups List Section -->
+                <div class="backup-card">
+                    <h3>Available Backups</h3>
+                    <div id="backupsList" class="backups-list">
+                        <div class="loading">Loading backups...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="confirmTitle">Confirm Action</h2>
+                <button class="close-btn" onclick="closeModal('confirmModal')">&times;</button>
+            </div>
+            <p id="confirmMessage"></p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
+                <button id="confirmBtn" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="notificationTitle">Notification</h2>
+                <button class="close-btn" onclick="closeModal('notificationModal')">&times;</button>
+            </div>
+            <p id="notificationMessage"></p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                <button class="btn btn-primary" onclick="closeModal('notificationModal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .backups-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            max-width: 900px;
+        }
+
+        .backup-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .backup-card h3 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+        }
+
+        .backups-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .backup-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        .backup-item-info {
+            flex: 1;
+        }
+
+        .backup-filename {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .backup-date {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .backup-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .backup-item-actions button {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 24px;
+            color: #666;
+        }
+
+        .empty-state-small {
+            text-align: center;
+            padding: 32px;
+            color: #666;
+        }
+
+        .empty-state-small svg {
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+    </style>
+
+    <script src="/static/js/backups.js"></script>
+</body>
+</html>

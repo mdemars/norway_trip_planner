@@ -17,6 +17,12 @@ def trip_detail(trip_id):
     return render_template('trip_detail.html', trip_id=trip_id, config=Config)
 
 
+@web_bp.route('/backups')
+def backups():
+    """Backups management page"""
+    return render_template('backups.html')
+
+
 @web_bp.route('/favicon.ico')
 def favicon():
     """Serve favicon"""
