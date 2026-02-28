@@ -4,7 +4,7 @@ A Flask web application for planning road trips through Norway (or anywhere). Us
 
 ## Tech Stack
 
-- **Backend:** Python / Flask, SQLAlchemy ORM, SQLite
+- **Backend:** Python / Flask (Blueprints), SQLAlchemy ORM, SQLite
 - **Frontend:** Vanilla JavaScript, Google Maps API, i18next
 - **Auth:** OAuth 2.0 (Google & Microsoft) via Authlib
 - **Geocoding:** geopy (Nominatim) for address validation, Google Maps for route calculation
@@ -12,15 +12,28 @@ A Flask web application for planning road trips through Norway (or anywhere). Us
 ## Project Structure
 
 ```
-├── app.py                  # Flask app — all routes and API endpoints
+├── app.py                  # Application factory (create_app), middleware, blueprint registration
 ├── models.py               # SQLAlchemy data models
 ├── config.py               # Configuration from environment variables
 ├── services.py             # GeocodingService and RouteService
+├── helpers.py              # Shared utilities (geocoding, chain traversal, date parsing)
+├── backup_db.py            # Database backup/restore logic
 ├── trip_io.py              # Trip JSON import/export
 ├── init_db.py              # Database initialization script
 ├── requirements.txt        # Python dependencies
 ├── .env                    # Environment variables (secrets, API keys)
 ├── database.db             # SQLite database file
+├── routes/
+│   ├── __init__.py
+│   ├── auth.py             # auth_bp — login, OAuth flows, logout, auth status
+│   ├── web.py              # web_bp — index page, trip detail page, favicon
+│   ├── trips.py            # trips_bp — /api/trips CRUD
+│   ├── stops.py            # stops_bp — /api/stops CRUD
+│   ├── activities.py       # activities_bp — /api/activities CRUD
+│   ├── waypoints.py        # waypoints_bp — /api/waypoints CRUD
+│   ├── routing.py          # routing_bp — route calc, debug, locations, address validation
+│   ├── admin.py            # admin_bp — admin page + entity API
+│   └── backups.py          # backups_bp — database backup/restore
 ├── templates/
 │   ├── index.html          # Home page — trip list
 │   ├── trip_detail.html    # Trip detail page — stops, map, calendar
@@ -33,11 +46,19 @@ A Flask web application for planning road trips through Norway (or anywhere). Us
 │   │   └── admin.css       # Admin panel styles
 │   ├── js/
 │   │   ├── main.js         # Home page logic (trip CRUD, address validation)
-│   │   ├── trip_detail.js  # Trip detail page (stops, map, routes, calendar)
 │   │   ├── i18n.js         # i18next setup and translation helpers
 │   │   ├── theme.js        # Dark mode toggle with localStorage persistence
 │   │   ├── auth.js         # Fetch wrapper — redirects to /login on 401
-│   │   └── admin.js        # Admin panel entity browser
+│   │   ├── admin.js        # Admin panel entity browser
+│   │   └── trip/           # Trip detail page modules
+│   │       ├── state.js    # TripApp namespace + global state + constants
+│   │       ├── ui.js       # Modals, notifications, escapeHtml, formatDateForInput
+│   │       ├── api.js      # All fetch/create/update/delete API calls
+│   │       ├── render.js   # renderStops, createStopCard, createActivityItem, createWaypointCard
+│   │       ├── map.js      # initMap, updateMap, drawRoute, showStopOnMap
+│   │       ├── calendar.js # renderCalendar, renderMonth, getStopsForDay
+│   │       ├── handlers.js # All form submit + CRUD handlers
+│   │       └── init.js     # DOMContentLoaded event wiring, data loading
 │   ├── locales/
 │   │   ├── en/translation.json
 │   │   ├── fr/translation.json
@@ -113,61 +134,38 @@ Something to do at a stop.
 | description | String | Details (optional) |
 | url | String | Reference URL (optional) |
 
-## Python Services
+## Python Backend
 
-### app.py — Routes & API
+### app.py — Application Factory
 
-**Authentication** (OAuth 2.0):
-- `GET /login` — Login page with Google/Microsoft buttons
-- `GET /auth/google`, `GET /auth/callback` — Google OAuth flow
-- `GET /auth/microsoft`, `GET /auth/microsoft/callback` — Microsoft OAuth flow
-- `GET /logout` — Clear session
-- `GET /api/auth/status` — Current user info
-- `@before_request` middleware enforces auth on all routes except `/login`, `/auth/`, `/static/`, `/favicon.ico`
-- Access restricted to emails in the `ALLOWED_EMAILS` config list
+`create_app()` initializes Flask, configures CORS/ProxyFix, sets up OAuth (Google & Microsoft), registers all 9 blueprints, and defines app-wide middleware:
+- `@before_request` — enforces authentication on all routes except `/login`, `/auth/`, `/static/`, `/favicon.ico`
+- `@context_processor` — injects user session data into all templates
 
-**Pages:**
-- `GET /` — Home page (trip list)
-- `GET /trip/<id>` — Trip detail page
-- `GET /admin` — Admin panel
+OAuth clients are stored on `app.extensions['google_oauth']` and `app.extensions['microsoft_oauth']` for blueprint access via `current_app`.
 
-**Trip API:**
-- `GET /api/trips` — List all trips with stops
-- `POST /api/trips` — Create trip (geocodes start/end addresses)
-- `GET /api/trips/<id>` — Get trip with stops
-- `PUT /api/trips/<id>` — Update trip name and addresses
-- `DELETE /api/trips/<id>` — Delete trip (cascades)
+### helpers.py — Shared Utilities
 
-**Stop API:**
-- `GET /api/trips/<trip_id>/stops` — List stops ordered by start_date
-- `POST /api/trips/<trip_id>/stops` — Create stop with date validation and geocoding
-- `GET /api/stops/<id>` — Get stop with activities
-- `PUT /api/stops/<id>` — Update stop
-- `DELETE /api/stops/<id>` — Delete stop (cascades activities)
+| Function | Purpose |
+|----------|---------|
+| `geocode_trip_location(address)` | Geocode a trip start/end address → `(lat, lng)` rounded to 4 decimals |
+| `geocode_location_fields(data)` | Resolve lat/lng/address from request data (handles GPS and address types) |
+| `get_ordered_locations(db, trip_id)` | Walk the location chain → ordered list of Location objects |
+| `parse_iso_date(date_string)` | Parse ISO date string with Z suffix handling |
 
-**Activity API:**
-- `POST /api/stops/<stop_id>/activities` — Create activity
-- `PUT /api/activities/<id>` — Update activity
-- `DELETE /api/activities/<id>` — Delete activity
+### Route Blueprints
 
-**Waypoint API:**
-- `GET /api/trips/<trip_id>/waypoints` — List waypoints
-- `POST /api/trips/<trip_id>/waypoints` — Create waypoint (auto-places in chain)
-- `PUT /api/waypoints/<id>` — Update waypoint
-- `DELETE /api/waypoints/<id>` — Delete waypoint (relinks chain)
-
-**Route API:**
-- `GET /api/trips/<trip_id>/route` — Calculate full route via Google Maps (returns segments with distance, duration, polyline)
-- `GET /api/trips/<trip_id>/debug/route-points` — Debug: show ordered route points
-
-**Utility:**
-- `GET /api/trips/<trip_id>/locations` — List all locations in chain order
-- `POST /api/validate-address` — Geocode and validate an address
-
-**Admin API:**
-- `GET /api/admin/entities` — List entity types
-- `GET /api/admin/<type>` — List all entities of a type
-- `DELETE /api/admin/<type>/<id>` — Delete entity
+| Blueprint | File | URL prefix | Routes |
+|-----------|------|-----------|--------|
+| `auth_bp` | `routes/auth.py` | _(none)_ | `/login`, `/auth/google`, `/auth/callback`, `/auth/microsoft`, `/auth/microsoft/callback`, `/logout`, `/api/auth/status` |
+| `web_bp` | `routes/web.py` | _(none)_ | `/`, `/trip/<id>`, `/favicon.ico` |
+| `trips_bp` | `routes/trips.py` | `/api` | `/trips` GET/POST, `/trips/<id>` GET/PUT/DELETE |
+| `stops_bp` | `routes/stops.py` | `/api` | `/trips/<id>/stops` GET/POST, `/stops/<id>` GET/PUT/DELETE, `/stops/reorder` POST |
+| `activities_bp` | `routes/activities.py` | `/api` | `/stops/<id>/activities` POST, `/activities/<id>` PUT/DELETE |
+| `waypoints_bp` | `routes/waypoints.py` | `/api` | `/trips/<id>/waypoints` GET/POST, `/waypoints/<id>` PUT/DELETE |
+| `routing_bp` | `routes/routing.py` | `/api` | `/trips/<id>/route`, `/trips/<id>/debug/route-points`, `/trips/<id>/locations`, `/validate-address` POST |
+| `admin_bp` | `routes/admin.py` | _(none)_ | `/admin`, `/api/admin/entities`, `/api/admin/<type>` GET, `/api/admin/<type>/<id>` DELETE |
+| `backups_bp` | `routes/backups.py` | `/api` | `/backups` GET, `/backup` POST, `/restore` POST |
 
 ### services.py
 
@@ -184,65 +182,57 @@ Something to do at a stop.
 - `export_trip(trip_id)` → JSON dict of full trip data (stops, activities, waypoints)
 - `import_trip(data)` → creates a new trip from JSON with all nested entities
 
+### backup_db.py
+
+- `create_backup(db_path, backup_dir, filename_pattern, max_backups)` → creates timestamped SQLite backup
+- `restore_backup(backup_path)` → restores database from backup file
+- `list_backups()` → returns list of available backup files
+
 ### config.py
 
 Loads from `.env`: Flask settings, database URI, Google/Microsoft OAuth credentials, Google Maps API key, allowed emails whitelist.
 
-## JavaScript Components
+## JavaScript Frontend
 
-### main.js — Home Page
+### Shared State (trip detail page)
 
-- **Trip list:** Fetches and renders trip cards in a responsive grid. Each card shows name, date range, stop count, and a delete button.
-- **Create trip modal:** Form with trip name, optional start/end addresses with real-time geocoding validation (500ms debounce).
-- **Address validation:** `setupAddressValidation()` attaches live validation to address inputs, showing validating/valid/invalid states.
+The trip detail page uses a `window.TripApp` namespace for shared state across modules:
+- `currentTrip`, `stops[]`, `waypoints[]` — data
+- `map`, `markers[]`, `infoWindows[]`, `routePath` — Google Maps objects
+- `pendingStopUpdate` — temporary state for duration change handling
+- `STOP_COLORS` — 8 distinct colors for stop markers
 
-### trip_detail.js — Trip Detail Page
+Each module aliases `const App = window.TripApp;` and attaches functions to it. Functions called from HTML `onclick` attributes are also exposed on `window`.
 
-The largest JS file (~91KB), managing the full trip detail experience:
+### Trip Detail Modules (`static/js/trip/`)
 
-- **State:** `currentTrip`, `stops[]`, `waypoints[]`, `map`, `markers[]`, `infoWindows[]`, `routePath`
-- **Stop management:** CRUD operations via modals. Supports address and GPS coordinate input, date ranges, description, URL. Dates auto-calculate based on number of nights.
-- **Activity management:** Add/edit/delete activities within each stop card.
-- **Waypoint management:** Add waypoints between stops via insert buttons.
-- **Map (Google Maps):**
-  - Markers for each stop (8 distinct colors) and waypoint
-  - Info windows with stop details
-  - Route polylines from calculated route data
-  - Click-to-center on any stop
-- **Route calculation:** Calls the route API and renders segments with distance and duration.
-- **Calendar view:** Visual grid showing stops by date with color coding.
-- **Rendering:** `renderStops()` builds the combined stop/waypoint list with insert-waypoint buttons between each pair.
+| File | Purpose |
+|------|---------|
+| `state.js` | Initializes `window.TripApp` namespace with state variables and constants |
+| `ui.js` | `openModal`, `closeModal`, `showNotification`, `showError`, `showSuccess`, `escapeHtml`, `formatDateForInput` |
+| `api.js` | All API calls: `fetchTrip`, `updateTrip`, `deleteTrip`, `fetchStops`, `createStop`, `updateStop`, `deleteStopApi`, `createActivity`, `deleteActivity`, `calculateRoute`, `fetchWaypoints`, `createWaypoint`, `deleteWaypoint` |
+| `render.js` | `renderStops` (builds combined stop/waypoint list), `createStopCard`, `createActivityItem`, `createWaypointCard` |
+| `map.js` | `initMap` (Google Maps init), `updateMap` (rebuild all markers), `drawRoute` (polyline), `showStopOnMap` |
+| `calendar.js` | `renderCalendar`, `renderMonth`, `getStopsForDay`, `handleCalendarStopClick` |
+| `handlers.js` | All form/CRUD handlers for stops, activities, waypoints, trips, route calculation, duration changes |
+| `init.js` | `loadTrip`, `loadStops`, `DOMContentLoaded` event wiring, language change handler, CSS animations |
 
-### i18n.js — Internationalization
+Script loading order in `trip_detail.html`: state → ui → api → render → map → calendar → handlers → init.
 
-- Configures i18next with HTTP backend loading from `/static/locales/{lng}/translation.json`
-- Three languages: English, French, German (with flag emojis)
-- Persists language choice in `localStorage`
-- Falls back to browser language detection
-- Helpers: `t(key)`, `formatDate()`, `formatDateRange()`, `createLanguageSelector()`, `changeLanguage()`, `updateAllTranslations()`
-- HTML uses `data-i18n`, `data-i18n-placeholder`, `data-i18n-title` attributes for automatic translation
+### Other JS Files
 
-### theme.js — Dark Mode
-
-- IIFE that runs immediately to prevent flash of wrong theme
-- Checks `localStorage`, falls back to `prefers-color-scheme` media query
-- Sets `data-theme` attribute on `<html>` element
-- Toggle button with sun/moon icon, saves preference
-
-### auth.js — Auth Guard
-
-- Wraps `window.fetch()` to intercept 401 responses
-- Redirects to `/login` on authentication failure
-
-### admin.js — Admin Panel
-
-- Entity type selector (Trip, Location, Activity)
-- Dynamic table rendering with all columns
-- Row deletion with confirmation
+| File | Purpose |
+|------|---------|
+| `main.js` | Home page: trip list rendering, create trip modal, address validation |
+| `i18n.js` | i18next config, `t()`, `formatDate()`, `formatDateRange()`, `createLanguageSelector()`, language persistence |
+| `theme.js` | Dark mode toggle with `localStorage` and `prefers-color-scheme` fallback |
+| `auth.js` | Wraps `window.fetch()` to redirect to `/login` on 401 |
+| `admin.js` | Admin panel: entity selector, dynamic table, row deletion |
 
 ## Key Design Decisions
 
 - **Location ordering via linked list:** Stops and waypoints are ordered through `previous_location_guid` chain rather than a simple integer `order` column. This makes insertions and reordering cleaner but requires chain traversal to build the full order.
 - **Single-table inheritance:** Stops and waypoints share the `locations` table with a `type` discriminator. This simplifies the chain linking since both types participate in the same ordered sequence.
-- **No frontend framework:** Pure vanilla JS with i18next for translations. The `trip_detail.js` file is large (~91KB) as a consequence.
+- **Flask Blueprints:** Routes are organized into 9 blueprints by domain (auth, trips, stops, activities, waypoints, routing, admin, backups, web pages). Shared logic is extracted into `helpers.py`.
+- **JS namespace pattern:** The trip detail page uses `window.TripApp` as a shared namespace across 8 module files. No build tool — plain `<script>` tags loaded in dependency order.
 - **Server-side rendering + JSON API:** Pages are rendered by Flask/Jinja2, then hydrated with data from the JSON API via fetch calls.

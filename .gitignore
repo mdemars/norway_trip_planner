@@ -6,3 +6,5 @@ venv/
 json_dump/
 backups/
 *.pre_restore_*.db
+routes/__pycache__/*.pyc
+/.claude/worktrees/
