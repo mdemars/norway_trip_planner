@@ -70,7 +70,11 @@
     "tripEnd": "Fin du voyage",
     "startingLocation": "Lieu de depart",
     "endingLocation": "Lieu d'arrivee",
-    "noAddress": "Pas d'adresse"
+    "noAddress": "Pas d'adresse",
+    "description": "Description (Optionnel)",
+    "descriptionPlaceholder": "Details sur ce lieu...",
+    "url": "URL (Optionnel)",
+    "viewLink": "Voir le lien"
   },
   "activities": {
     "title": "Activites",

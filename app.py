@@ -415,6 +415,8 @@ def create_stop(trip_id):
             latitude=latitude,
             longitude=longitude,
             address=address,
+            description=data.get('description', ''),
+            url=data.get('url', ''),
             previous_location_guid=previous_location_guid
         )
         
@@ -454,17 +456,21 @@ def update_stop(stop_id):
         # Update fields
         if 'name' in data:
             stop.name = data['name']
-        
+        if 'description' in data:
+            stop.description = data['description']
+        if 'url' in data:
+            stop.url = data['url']
+
         if 'start_date' in data:
             stop.start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
-        
+
         if 'end_date' in data:
             stop.end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
-        
+
         # Validate dates
         if stop.end_date < stop.start_date:
             return jsonify({'error': 'End date must be after start date'}), 400
-        
+
         # Update location if provided
         if 'location_type' in data:
             stop.location_type = data['location_type']
@@ -665,6 +671,8 @@ def create_waypoint(trip_id):
             latitude=latitude,
             longitude=longitude,
             address=address,
+            description=data.get('description', ''),
+            url=data.get('url', ''),
             previous_location_guid=previous_location_guid
         )
 
@@ -692,6 +700,10 @@ def update_waypoint(waypoint_id):
         # Update fields
         if 'name' in data:
             waypoint.name = data['name']
+        if 'description' in data:
+            waypoint.description = data['description']
+        if 'url' in data:
+            waypoint.url = data['url']
 
         # Update location if provided
         if 'location_type' in data:

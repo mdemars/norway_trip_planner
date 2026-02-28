@@ -15,3 +15,8 @@
 * clicking on a stop does not center it on the map DONE
 
 * when adding a 2nd stop, calculating the route does not take it into account
+
+* Add URL and description to each stop DONE
+* Add backup routine so I can extract to file and restore in case of DB issues
+* Make Claude.md file to help comprehension
+* restructure Javascript into smaller files

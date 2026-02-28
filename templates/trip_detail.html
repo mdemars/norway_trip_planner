@@ -189,6 +189,15 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label for="stopDescription" data-i18n="locations.description">Description (Optional)</label>
+                    <textarea id="stopDescription" name="stopDescription" rows="3" data-i18n-placeholder="locations.descriptionPlaceholder" placeholder="Details about this location..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="stopUrl" data-i18n="locations.url">URL (Optional)</label>
+                    <input type="url" id="stopUrl" name="stopUrl" placeholder="https://...">
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('addStopModal')" data-i18n="buttons.cancel">Cancel</button>
                     <button type="submit" class="btn btn-primary" data-i18n="stops.addStop">Add Stop</button>
@@ -253,6 +262,15 @@
                         <label for="editLongitude" data-i18n="locations.longitude">Longitude</label>
                         <input type="number" id="editLongitude" name="longitude" step="0.0001" placeholder="10.7522">
                     </div>
+                </div>
+
+                <div class="form-group" id="editDescriptionGroup">
+                    <label for="editStopDescription" data-i18n="locations.description">Description (Optional)</label>
+                    <textarea id="editStopDescription" name="stopDescription" rows="3" data-i18n-placeholder="locations.descriptionPlaceholder" placeholder="Details about this location..."></textarea>
+                </div>
+                <div class="form-group" id="editUrlGroup">
+                    <label for="editStopUrl" data-i18n="locations.url">URL (Optional)</label>
+                    <input type="url" id="editStopUrl" name="stopUrl" placeholder="https://...">
                 </div>
 
                 <div class="form-actions">
@@ -376,6 +394,15 @@
                         <label for="waypointLongitude" data-i18n="locations.longitude">Longitude</label>
                         <input type="number" id="waypointLongitude" name="waypointLongitude" step="0.000001" placeholder="7.3139">
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="waypointDescription" data-i18n="locations.description">Description (Optional)</label>
+                    <textarea id="waypointDescription" name="waypointDescription" rows="3" data-i18n-placeholder="locations.descriptionPlaceholder" placeholder="Details about this location..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="waypointUrl" data-i18n="locations.url">URL (Optional)</label>
+                    <input type="url" id="waypointUrl" name="waypointUrl" placeholder="https://...">
                 </div>
 
                 <div class="form-actions">

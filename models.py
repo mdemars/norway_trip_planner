@@ -68,6 +68,10 @@ class Location(Base):
     previous_location_guid = Column(String(36), ForeignKey('locations.guid'), nullable=True)
     type = Column(String(20))  # 'stop' or 'waypoint' - for polymorphism
 
+    # Common optional fields
+    description = Column(Text, nullable=True)
+    url = Column(String(500), nullable=True)
+
     # Stop-specific fields (nullable, only used when type='stop')
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
@@ -110,6 +114,8 @@ class Stop(Location):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'address': self.address,
+            'description': self.description,
+            'url': self.url,
             'previous_location_guid': self.previous_location_guid,
             'type': 'stop'
         }
@@ -160,6 +166,8 @@ class Waypoint(Location):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'address': self.address,
+            'description': self.description,
+            'url': self.url,
             'previous_location_guid': self.previous_location_guid,
             'type': 'waypoint'
         }
@@ -247,10 +255,32 @@ def _migrate_add_trip_location_guids(engine):
     print("Trip location GUIDs migration complete.")
 
 
+def _migrate_add_location_description_url(engine):
+    """Add description and url columns to locations table."""
+    insp = inspect(engine)
+    existing_tables = insp.get_table_names()
+
+    if 'locations' not in existing_tables:
+        return
+
+    location_cols = [c['name'] for c in insp.get_columns('locations')]
+    if 'description' in location_cols:
+        return  # Already migrated
+
+    print("Adding description and url columns to locations...")
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE locations ADD COLUMN description TEXT"))
+        conn.execute(text("ALTER TABLE locations ADD COLUMN url VARCHAR(500)"))
+        conn.commit()
+
+    print("Location description/url migration complete.")
+
+
 def init_db():
     """Initialize the database"""
     _migrate_to_single_table(engine)
     _migrate_add_trip_location_guids(engine)
+    _migrate_add_location_description_url(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 

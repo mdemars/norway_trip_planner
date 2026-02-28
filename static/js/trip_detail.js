@@ -471,6 +471,8 @@ function createStopCard(stop, index) {
                         </svg>
                         ${escapeHtml(stop.address)}
                     </div>` : ''}
+                    ${stop.description ? `<div class="stop-description" style="font-size: 0.85em; color: var(--text-muted, #6c757d); margin-top: 6px;">${escapeHtml(stop.description)}</div>` : ''}
+                    ${stop.url ? `<div class="stop-url" style="font-size: 0.8em; margin-top: 4px;"><a href="${escapeHtml(stop.url)}" target="_blank" onclick="event.stopPropagation()" style="color: var(--primary-color, #4285F4); text-decoration: none;">${t('locations.viewLink')}</a></div>` : ''}
                 </div>
                 ${activitiesHtml}
             </div>
@@ -531,6 +533,8 @@ function createWaypointCard(waypoint) {
                     </svg>
                     ${escapeHtml(waypoint.address)}
                 </div>` : `<div style="font-size: 0.85em; color: #6c757d;">${t('locations.noAddress')}</div>`}
+                ${waypoint.description ? `<div style="font-size: 0.85em; color: #6c757d; margin-top: 6px;">${escapeHtml(waypoint.description)}</div>` : ''}
+                ${waypoint.url ? `<div style="font-size: 0.8em; margin-top: 4px;"><a href="${escapeHtml(waypoint.url)}" target="_blank" onclick="event.stopPropagation()" style="color: var(--primary-color, #4285F4); text-decoration: none;">${t('locations.viewLink')}</a></div>` : ''}
             </div>
         </div>
     `;
@@ -1137,7 +1141,9 @@ async function handleAddStopSubmit(e) {
         name: form.stopName.value.trim(),
         start_date: form.startDate.value + 'T00:00:00',
         end_date: form.endDate.value + 'T00:00:00',
-        location_type: locationType
+        location_type: locationType,
+        description: form.stopDescription.value.trim(),
+        url: form.stopUrl.value.trim()
     };
 
     if (locationType === 'address') {
@@ -1235,7 +1241,9 @@ async function handleEditStopSubmit(e) {
         name: form.stopName.value.trim(),
         start_date: form.startDate.value + 'T00:00:00',
         end_date: form.endDate.value + 'T00:00:00',
-        location_type: locationType
+        location_type: locationType,
+        description: document.getElementById('editStopDescription').value.trim(),
+        url: document.getElementById('editStopUrl').value.trim()
     };
 
     if (locationType === 'address') {
@@ -1319,12 +1327,18 @@ function openEditStopModal(stopId) {
     startDateInput.value = formatDateForInput(stop.start_date);
     endDateInput.value = formatDateForInput(stop.end_date);
 
+    // Show description/url fields for regular stops
+    document.getElementById('editDescriptionGroup').style.display = 'block';
+    document.getElementById('editUrlGroup').style.display = 'block';
+
     // Set location type and values
     const locationType = stop.location_type || 'address';
     document.querySelector(`input[name="editLocationType"][value="${locationType}"]`).checked = true;
 
     // Populate fields
     document.getElementById('editAddress').value = stop.address || '';
+    document.getElementById('editStopDescription').value = stop.description || '';
+    document.getElementById('editStopUrl').value = stop.url || '';
     // Round coordinates to 4 decimal places for display
     document.getElementById('editLatitude').value = stop.latitude ? parseFloat(stop.latitude).toFixed(4) : '';
     document.getElementById('editLongitude').value = stop.longitude ? parseFloat(stop.longitude).toFixed(4) : '';
@@ -1470,6 +1484,10 @@ function openEditTripLocationModal(locationId, locationType) {
     startDateInput.required = false;
     endDateInput.required = false;
 
+    // Hide description/url fields (not applicable to trip locations)
+    document.getElementById('editDescriptionGroup').style.display = 'none';
+    document.getElementById('editUrlGroup').style.display = 'none';
+
     // Store that this is a trip location for the save handler
     document.getElementById('editStopForm').dataset.tripLocationType = locationType;
 
@@ -1592,7 +1610,9 @@ async function handleAddWaypointSubmit(e) {
     const waypointData = {
         name: form.waypointName.value.trim(),
         location_type: locationType,
-        previous_location_guid: previousLocationGuid
+        previous_location_guid: previousLocationGuid,
+        description: document.getElementById('waypointDescription').value.trim(),
+        url: document.getElementById('waypointUrl').value.trim()
     };
 
     if (locationType === 'address') {

@@ -36,7 +36,9 @@ def load_trip(filepath):
             "location_type": stop.get("location_type", "address"),
             "address": stop.get("address"),
             "latitude": stop.get("latitude"),
-            "longitude": stop.get("longitude")
+            "longitude": stop.get("longitude"),
+            "description": stop.get("description", ""),
+            "url": stop.get("url", "")
         }).json()
         if 'error' in s:
             print('Error creating stop:', s['error'])
@@ -53,7 +55,9 @@ def load_trip(filepath):
             "location_type": wp.get("location_type", "address"),
             "address": wp.get("address"),
             "latitude": wp.get("latitude"),
-            "longitude": wp.get("longitude")
+            "longitude": wp.get("longitude"),
+            "description": wp.get("description", ""),
+            "url": wp.get("url", "")
         })
 
     return trip_id
