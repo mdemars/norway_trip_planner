@@ -65,6 +65,27 @@
                     </button>
                 </div>
 
+                <!-- Upload Backup Section -->
+                <div class="backup-card">
+                    <h3>Upload & Restore Backup</h3>
+                    <p style="color: #666; margin-bottom: 16px;">Upload a backup file from your local machine</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button id="uploadBackupBtn" class="btn btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Upload Backup
+                        </button>
+                        <label style="display: flex; align-items: center; font-size: 14px; color: #666;">
+                            <input type="checkbox" id="restoreAfterUpload" style="margin-right: 8px;">
+                            Restore immediately after upload
+                        </label>
+                    </div>
+                    <input type="file" id="backupFileInput" accept=".db" style="display: none;">
+                </div>
+
                 <!-- Backups List Section -->
                 <div class="backup-card">
                     <h3>Available Backups</h3>

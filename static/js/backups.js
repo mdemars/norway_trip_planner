@@ -82,6 +82,14 @@ function renderBackupsList() {
                     <div class="backup-date">Created: ${dateStr} • Size: ${sizeStr}</div>
                 </div>
                 <div class="backup-item-actions">
+                    <button class="btn btn-primary btn-sm" onclick="downloadBackup('${escapeHtml(backup.filename)}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download
+                    </button>
                     <button class="btn btn-primary btn-sm" onclick="restoreBackup('${escapeHtml(backup.path)}', '${escapeHtml(backup.filename)}')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="23 4 23 10 17 10"></polyline>
@@ -163,6 +171,94 @@ function restoreBackup(backupPath, filename) {
     );
 }
 
+async function downloadBackup(filename) {
+    try {
+        const response = await fetch(`/api/backup/download/${encodeURIComponent(filename)}`);
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to download backup');
+        }
+
+        // Create a blob from the response
+        const blob = await response.blob();
+
+        // Create a temporary URL for the blob
+        const url = window.URL.createObjectURL(blob);
+
+        // Create a temporary link element and click it
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up the URL
+        window.URL.revokeObjectURL(url);
+
+        showNotification('Success', `Backup '${filename}' downloaded successfully`);
+    } catch (error) {
+        console.error('Error downloading backup:', error);
+        showNotification('Error', `Failed to download backup: ${error.message}`);
+    }
+}
+
+function uploadBackup() {
+    const fileInput = document.getElementById('backupFileInput');
+    fileInput.click();
+}
+
+async function handleBackupFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const restoreAfterUpload = document.getElementById('restoreAfterUpload').checked;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (restoreAfterUpload) {
+        formData.append('restore', 'true');
+    }
+
+    const uploadBtn = document.getElementById('uploadBackupBtn');
+    const originalText = uploadBtn.innerHTML;
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<span>Uploading...</span>';
+
+    try {
+        const response = await fetch('/api/backup/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to upload backup');
+        }
+
+        showNotification('Success', data.message);
+
+        // Reload the page if restored
+        if (data.restored) {
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        } else {
+            // Reload backups list if just uploaded
+            await loadBackups();
+        }
+    } catch (error) {
+        console.error('Error uploading backup:', error);
+        showNotification('Error', `Failed to upload backup: ${error.message}`);
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = originalText;
+        // Reset the file input
+        document.getElementById('backupFileInput').value = '';
+    }
+}
+
 function escapeHtml(text) {
     const map = {
         '&': '&amp;',
@@ -197,6 +293,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set up event listeners
     document.getElementById('createBackupBtn').addEventListener('click', createBackup);
+    document.getElementById('uploadBackupBtn').addEventListener('click', uploadBackup);
+    document.getElementById('backupFileInput').addEventListener('change', handleBackupFileSelected);
 
     // Close modals when clicking outside
     document.getElementById('confirmModal').addEventListener('click', function(event) {
