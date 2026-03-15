@@ -1,14 +1,18 @@
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect, event
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from config import Config
 import uuid
 
 Base = declarative_base()
 
+# Schema name for all trip-related objects
+TRIPS_SCHEMA = 'trips'
+
 class Trip(Base):
     """Trip model representing a complete journey"""
     __tablename__ = 'trips'
+    __table_args__ = {'schema': TRIPS_SCHEMA}
 
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
@@ -56,16 +60,17 @@ class Trip(Base):
 class Location(Base):
     """Base class for Stop and Waypoint - represents a location in a trip"""
     __tablename__ = 'locations'
+    __table_args__ = {'schema': TRIPS_SCHEMA}
 
     id = Column(Integer, primary_key=True)
     guid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
-    trip_id = Column(Integer, ForeignKey('trips.id'), nullable=False)
+    trip_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.trips.id'), nullable=False)
     name = Column(String(200), nullable=False)
     location_type = Column(String(20), nullable=False)  # 'gps' or 'address'
     latitude = Column(Float)
     longitude = Column(Float)
     address = Column(String(500))
-    previous_location_guid = Column(String(36), ForeignKey('locations.guid'), nullable=True)
+    previous_location_guid = Column(String(36), ForeignKey(f'{TRIPS_SCHEMA}.locations.guid'), nullable=True)
     type = Column(String(20))  # 'stop' or 'waypoint' - for polymorphism
 
     # Common optional fields
@@ -127,9 +132,10 @@ class Stop(Location):
 class Activity(Base):
     """Activity model representing things to do at a stop"""
     __tablename__ = 'activities'
+    __table_args__ = {'schema': TRIPS_SCHEMA}
 
     id = Column(Integer, primary_key=True)
-    stop_id = Column(Integer, ForeignKey('locations.id'), nullable=False)
+    stop_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.locations.id'), nullable=False)
     name = Column(String(200), nullable=False)
     description = Column(Text)
     url = Column(String(500))
@@ -178,10 +184,35 @@ engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
 SessionLocal = sessionmaker(bind=engine)
 
 
+def _ensure_schema_exists(engine):
+    """Create the trips schema if it doesn't exist (PostgreSQL only)."""
+    # Check if this is a PostgreSQL database
+    if 'postgresql' not in str(engine.url):
+        return  # SQLite doesn't support schemas
+    
+    with engine.connect() as conn:
+        # Check if schema exists
+        result = conn.execute(text(
+            f"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = '{TRIPS_SCHEMA}')"
+        ))
+        schema_exists = result.scalar()
+        
+        if not schema_exists:
+            print(f"Creating schema '{TRIPS_SCHEMA}'...")
+            conn.execute(text(f"CREATE SCHEMA {TRIPS_SCHEMA}"))
+            conn.commit()
+            print(f"Schema '{TRIPS_SCHEMA}' created successfully!")
+        else:
+            print(f"Schema '{TRIPS_SCHEMA}' already exists.")
+
+
 def _migrate_to_single_table(engine):
     """One-time migration: merge stops/waypoints tables into locations."""
     insp = inspect(engine)
-    existing_tables = insp.get_table_names()
+    
+    # Get schema to search in (for PostgreSQL)
+    schema = TRIPS_SCHEMA if 'postgresql' in str(engine.url) else None
+    existing_tables = insp.get_table_names(schema=schema)
 
     # Only run if old 'stops' table still exists
     if 'stops' not in existing_tables:
@@ -189,27 +220,30 @@ def _migrate_to_single_table(engine):
 
     print("Migrating from joined-table to single-table inheritance...")
     with engine.connect() as conn:
+        # Determine schema prefix for SQL queries
+        schema_prefix = f"{TRIPS_SCHEMA}." if 'postgresql' in str(engine.url) else ""
+        
         # Add start_date and end_date columns to locations if missing
-        location_cols = [c['name'] for c in insp.get_columns('locations')]
+        location_cols = [c['name'] for c in insp.get_columns('locations', schema=schema)]
         if 'start_date' not in location_cols:
-            conn.execute(text("ALTER TABLE locations ADD COLUMN start_date DATETIME"))
+            conn.execute(text(f"ALTER TABLE {schema_prefix}locations ADD COLUMN start_date DATETIME"))
         if 'end_date' not in location_cols:
-            conn.execute(text("ALTER TABLE locations ADD COLUMN end_date DATETIME"))
+            conn.execute(text(f"ALTER TABLE {schema_prefix}locations ADD COLUMN end_date DATETIME"))
 
         # Copy dates from stops into locations
-        conn.execute(text("""
-            UPDATE locations
-            SET start_date = (SELECT s.start_date FROM stops s WHERE s.id = locations.id),
-                end_date = (SELECT s.end_date FROM stops s WHERE s.id = locations.id)
-            WHERE locations.id IN (SELECT s.id FROM stops s)
+        conn.execute(text(f"""
+            UPDATE {schema_prefix}locations
+            SET start_date = (SELECT s.start_date FROM {schema_prefix}stops s WHERE s.id = {schema_prefix}locations.id),
+                end_date = (SELECT s.end_date FROM {schema_prefix}stops s WHERE s.id = {schema_prefix}locations.id)
+            WHERE {schema_prefix}locations.id IN (SELECT s.id FROM {schema_prefix}stops s)
         """))
 
         # Update activities FK: the IDs are the same, just pointing at a different table
         # SQLite doesn't enforce FK constraints by default so just leave the data as-is
 
         # Drop old child tables
-        conn.execute(text("DROP TABLE IF EXISTS stops"))
-        conn.execute(text("DROP TABLE IF EXISTS waypoints"))
+        conn.execute(text(f"DROP TABLE IF EXISTS {schema_prefix}stops"))
+        conn.execute(text(f"DROP TABLE IF EXISTS {schema_prefix}waypoints"))
         conn.commit()
 
     print("Migration complete.")
@@ -218,25 +252,27 @@ def _migrate_to_single_table(engine):
 def _migrate_add_trip_location_guids(engine):
     """Add GUID columns to trip start/end locations for waypoint linking."""
     insp = inspect(engine)
-    existing_tables = insp.get_table_names()
+    schema = TRIPS_SCHEMA if 'postgresql' in str(engine.url) else None
+    existing_tables = insp.get_table_names(schema=schema)
 
     if 'trips' not in existing_tables:
         return
 
-    trip_cols = [c['name'] for c in insp.get_columns('trips')]
+    trip_cols = [c['name'] for c in insp.get_columns('trips', schema=schema)]
     if 'start_location_guid' in trip_cols:
         return  # Already migrated
 
+    schema_prefix = f"{TRIPS_SCHEMA}." if 'postgresql' in str(engine.url) else ""
     print("Adding GUID columns to trip locations...")
     with engine.connect() as conn:
         # Add new columns
-        conn.execute(text("ALTER TABLE trips ADD COLUMN start_location_guid VARCHAR(36)"))
-        conn.execute(text("ALTER TABLE trips ADD COLUMN end_location_guid VARCHAR(36)"))
+        conn.execute(text(f"ALTER TABLE {schema_prefix}trips ADD COLUMN start_location_guid VARCHAR(36)"))
+        conn.execute(text(f"ALTER TABLE {schema_prefix}trips ADD COLUMN end_location_guid VARCHAR(36)"))
         conn.commit()
 
         # Generate GUIDs for existing trips with locations
         from sqlalchemy import select
-        result = conn.execute(text("SELECT id, start_location_address, end_location_address FROM trips"))
+        result = conn.execute(text(f"SELECT id, start_location_address, end_location_address FROM {schema_prefix}trips"))
         for row in result:
             trip_id = row[0]
             start_addr = row[1]
@@ -244,11 +280,11 @@ def _migrate_add_trip_location_guids(engine):
 
             if start_addr:
                 start_guid = str(uuid.uuid4())
-                conn.execute(text("UPDATE trips SET start_location_guid = :guid WHERE id = :id"),
+                conn.execute(text(f"UPDATE {schema_prefix}trips SET start_location_guid = :guid WHERE id = :id"),
                            {"guid": start_guid, "id": trip_id})
             if end_addr:
                 end_guid = str(uuid.uuid4())
-                conn.execute(text("UPDATE trips SET end_location_guid = :guid WHERE id = :id"),
+                conn.execute(text(f"UPDATE {schema_prefix}trips SET end_location_guid = :guid WHERE id = :id"),
                            {"guid": end_guid, "id": trip_id})
         conn.commit()
 
@@ -258,19 +294,21 @@ def _migrate_add_trip_location_guids(engine):
 def _migrate_add_location_description_url(engine):
     """Add description and url columns to locations table."""
     insp = inspect(engine)
-    existing_tables = insp.get_table_names()
+    schema = TRIPS_SCHEMA if 'postgresql' in str(engine.url) else None
+    existing_tables = insp.get_table_names(schema=schema)
 
     if 'locations' not in existing_tables:
         return
 
-    location_cols = [c['name'] for c in insp.get_columns('locations')]
+    location_cols = [c['name'] for c in insp.get_columns('locations', schema=schema)]
     if 'description' in location_cols:
         return  # Already migrated
 
+    schema_prefix = f"{TRIPS_SCHEMA}." if 'postgresql' in str(engine.url) else ""
     print("Adding description and url columns to locations...")
     with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE locations ADD COLUMN description TEXT"))
-        conn.execute(text("ALTER TABLE locations ADD COLUMN url VARCHAR(500)"))
+        conn.execute(text(f"ALTER TABLE {schema_prefix}locations ADD COLUMN description TEXT"))
+        conn.execute(text(f"ALTER TABLE {schema_prefix}locations ADD COLUMN url VARCHAR(500)"))
         conn.commit()
 
     print("Location description/url migration complete.")
@@ -278,6 +316,7 @@ def _migrate_add_location_description_url(engine):
 
 def init_db():
     """Initialize the database"""
+    _ensure_schema_exists(engine)
     _migrate_to_single_table(engine)
     _migrate_add_trip_location_guids(engine)
     _migrate_add_location_description_url(engine)
