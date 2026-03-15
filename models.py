@@ -7,7 +7,7 @@ import uuid
 Base = declarative_base()
 
 # Schema name for all trip-related objects
-TRIPS_SCHEMA = 'trips'
+TRIPS_SCHEMA = 'public'
 
 class Trip(Base):
     """Trip model representing a complete journey"""
