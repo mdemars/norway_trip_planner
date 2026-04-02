@@ -203,6 +203,37 @@ async function downloadBackup(filename) {
     }
 }
 
+async function downloadJsonExport() {
+    const btn = document.getElementById('exportJsonBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>Preparing...</span>';
+
+    try {
+        const response = await fetch('/api/export/json');
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to export data');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = response.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/)?.[1] || 'trips_export.zip';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        showNotification('Error', `Failed to export data: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
 function uploadBackup() {
     const fileInput = document.getElementById('backupFileInput');
     fileInput.click();

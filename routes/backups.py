@@ -1,7 +1,12 @@
 from flask import Blueprint, request, jsonify, send_file
 from pathlib import Path
 from backup_db import create_backup, restore_backup, list_backups, DEFAULT_BACKUP_DIR, DEFAULT_DB_PATH
+import io
+import json
 import os
+import zipfile
+from datetime import datetime, timezone
+from models import Trip, Waypoint, get_db
 from werkzeug.utils import secure_filename
 
 backups_bp = Blueprint('backups', __name__, url_prefix='/api')
@@ -139,3 +144,38 @@ def upload_backup():
         if uploaded_path.exists():
             uploaded_path.unlink()
         return jsonify({'error': str(e)}), 500
+
+
+@backups_bp.route('/export/json', methods=['GET'])
+def export_json():
+    """
+    Export all trips as a ZIP file containing one JSON file per trip.
+    Each JSON includes the trip's stops (with activities) and waypoints.
+    """
+    db = get_db()
+    try:
+        trips = db.query(Trip).all()
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for trip in trips:
+                trip_data = trip.to_dict(include_stops=True)
+                waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip.id).all()
+                trip_data['waypoints'] = [wp.to_dict() for wp in waypoints]
+
+                safe_name = ''.join(c if c.isalnum() or c in ' -_' else '_' for c in trip.name)[:50].strip()
+                filename = f"trip_{trip.id}_{safe_name}.json"
+                zf.writestr(filename, json.dumps(trip_data, indent=2))
+
+        zip_buffer.seek(0)
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name=f"trips_export_{timestamp}.zip",
+            mimetype='application/zip'
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()

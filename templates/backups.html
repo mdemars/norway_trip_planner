@@ -86,6 +86,20 @@
                     <input type="file" id="backupFileInput" accept=".db" style="display: none;">
                 </div>
 
+                <!-- Export JSON Section -->
+                <div class="backup-card">
+                    <h3>Export All Data as JSON</h3>
+                    <p style="color: #666; margin-bottom: 16px;">Download all trips, stops, activities and waypoints as a ZIP of JSON files</p>
+                    <button id="exportJsonBtn" class="btn btn-secondary" onclick="downloadJsonExport()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download JSON Export
+                    </button>
+                </div>
+
                 <!-- Backups List Section -->
                 <div class="backup-card">
                     <h3>Available Backups</h3>

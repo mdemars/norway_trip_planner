@@ -15,16 +15,23 @@ App.renderStops = function renderStops(stopsData, waypointsData) {
         return;
     }
 
+    // Build a lookup so we can walk the chain: previous_guid → waypoint
+    const waypointByPrev = {};
+    App.waypoints.forEach(w => { waypointByPrev[w.previous_location_guid] = w; });
+
     // Build combined list with stops and waypoints
     let html = '';
     App.stops.forEach((stop, index) => {
         html += App.createStopCard(stop, index + 1);
 
-        // Render any waypoints that come after this stop
-        const stopWaypoints = App.waypoints.filter(w => w.previous_location_guid === stop.guid);
-        stopWaypoints.forEach(wp => {
+        // Walk the chain from this stop, rendering all consecutive waypoints
+        // (including waypoints that follow other waypoints, not just the stop directly)
+        let nextGuid = stop.guid;
+        while (waypointByPrev[nextGuid]) {
+            const wp = waypointByPrev[nextGuid];
             html += App.createWaypointCard(wp);
-        });
+            nextGuid = wp.guid;
+        }
 
         // Add buttons to insert stop/waypoint after this stop (except after the last stop)
         if (index < App.stops.length - 1) {

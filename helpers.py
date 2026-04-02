@@ -45,7 +45,12 @@ def geocode_location_fields(data):
 
 
 def get_ordered_locations(db, trip_id):
-    """Walk the location chain for a trip.
+    """Return locations for a trip ordered by stop date, waypoints preserved in segment.
+
+    Stops are sorted by start_date. Waypoints have no date, so they keep their
+    relative position within the segment they occupied in the chain: a waypoint
+    that followed stop N still follows stop N after the stops are re-sorted.
+    Waypoints that precede the first stop are placed at the head of the result.
 
     Returns a list of Location objects in order from first to last.
     Returns an empty list if no locations exist.
@@ -56,26 +61,44 @@ def get_ordered_locations(db, trip_id):
 
     location_map = {loc.guid: loc for loc in all_locations}
 
-    # Find the end location (the one whose guid is not referenced by any other)
+    # Find the end of the chain (guid not referenced as anyone's previous)
     guids_referenced = {loc.previous_location_guid for loc in all_locations if loc.previous_location_guid}
-    end_location = None
-    for loc in all_locations:
-        if loc.guid not in guids_referenced:
-            end_location = loc
-            break
-
+    end_location = next((loc for loc in all_locations if loc.guid not in guids_referenced), None)
     if not end_location:
         return []
 
-    # Traverse backwards from end to start
+    # Build chain in creation order (walk backwards, then reverse)
     chain = []
     current = end_location
     while current:
         chain.append(current)
-        if current.previous_location_guid:
-            current = location_map.get(current.previous_location_guid)
-        else:
-            current = None
-
+        current = location_map.get(current.previous_location_guid)
     chain.reverse()
-    return chain
+
+    # Split the chain into stops and gaps (waypoints between consecutive stops).
+    # gaps[i] holds waypoints that appear between stops[i-1] and stops[i];
+    # gaps[0] is before the first stop, gaps[len(stops)] is after the last.
+    stops_in_chain: list = []
+    gaps: list = []
+    current_gap: list = []
+
+    for loc in chain:
+        if isinstance(loc, Stop):
+            gaps.append(current_gap)
+            stops_in_chain.append(loc)
+            current_gap = []
+        else:
+            current_gap.append(loc)
+    gaps.append(current_gap)  # trailing waypoints after the last stop
+
+    if not stops_in_chain:
+        return chain  # only waypoints — return chain order unchanged
+
+    # Sort stops by start_date; gaps keep their positional slot.
+    stops_in_chain.sort(key=lambda s: s.start_date or datetime.min)
+
+    result: list = list(gaps[0])
+    for i, stop in enumerate(stops_in_chain):
+        result.append(stop)
+        result.extend(gaps[i + 1])
+    return result
