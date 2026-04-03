@@ -305,6 +305,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    // Right-panel toggle (map + calendar)
+    const tripDetailContent = document.querySelector('.trip-detail-content');
+    const toggleBtn = document.getElementById('toggleRightPanelBtn');
+    const toggleIcon = document.getElementById('toggleRightPanelIcon');
+
+    // SVG paths for the two states
+    const iconExpanded  = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>';   // panel visible → clicking will hide
+    const iconCollapsed = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>';     // panel hidden  → clicking will show
+
+    function applyPanelState(collapsed) {
+        if (collapsed) {
+            tripDetailContent.classList.add('right-collapsed');
+            toggleIcon.innerHTML = iconCollapsed;
+            toggleBtn.title = 'Show map & calendar';
+        } else {
+            tripDetailContent.classList.remove('right-collapsed');
+            toggleIcon.innerHTML = iconExpanded;
+            toggleBtn.title = 'Hide map & calendar';
+        }
+    }
+
+    // Restore persisted state
+    const panelCollapsed = localStorage.getItem('rightPanelCollapsed') === 'true';
+    applyPanelState(panelCollapsed);
+
+    toggleBtn.addEventListener('click', () => {
+        const nowCollapsed = !tripDetailContent.classList.contains('right-collapsed');
+        localStorage.setItem('rightPanelCollapsed', nowCollapsed);
+        applyPanelState(nowCollapsed);
+    });
+
     // DMS coordinate parsing for all GPS field pairs
     App.attachDMSParsing('latitude', 'longitude');
     App.attachDMSParsing('editLatitude', 'editLongitude');

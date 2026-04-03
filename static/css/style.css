@@ -28,6 +28,16 @@
     --bg-hover: #e9ecef;
 }
 
+/* Local-dev indicator */
+body.local-dev {
+    --bg-body: #b53f3f;
+}
+
+[data-theme="dark"] body.local-dev,
+body.local-dev[data-theme="dark"] {
+    --bg-body: #0d2e12;
+}
+
 /* Dark mode overrides */
 [data-theme="dark"] {
     --primary-color: #4d94ff;
@@ -352,6 +362,15 @@ header .subtitle {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
+    transition: grid-template-columns 0.25s ease;
+}
+
+.trip-detail-content.right-collapsed {
+    grid-template-columns: 1fr 0;
+}
+
+.trip-detail-content.right-collapsed .right-panel {
+    display: none;
 }
 
 .left-panel,

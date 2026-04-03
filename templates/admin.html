@@ -10,7 +10,7 @@
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/auth.js"></script>
 </head>
-<body>
+<body{% if local_dev %} class="local-dev"{% endif %}>
     <div class="container">
         <header>
             <div class="header-content">

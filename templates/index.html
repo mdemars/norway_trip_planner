@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/i18next-http-backend@2.4.2/i18nextHttpBackend.min.js"></script>
     <script src="/static/js/i18n.js"></script>
 </head>
-<body>
+<body{% if local_dev %} class="local-dev"{% endif %}>
     <div class="container">
         <header>
             <div class="header-content">

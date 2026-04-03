@@ -39,7 +39,8 @@ def create_app():
         return {
             'user_email': session.get('user_email'),
             'user_name': session.get('user_name'),
-            'user_picture': session.get('user_picture')
+            'user_picture': session.get('user_picture'),
+            'local_dev': Config.SKIP_AUTH,
         }
 
     @app.before_request
