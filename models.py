@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect, event
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
@@ -183,6 +184,17 @@ class Waypoint(Location):
 engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
 SessionLocal = sessionmaker(bind=engine)
 
+# SQLite doesn't have native schema support, but SQLAlchemy's schema= parameter
+# works via ATTACH DATABASE.  Attach a sibling public.db file as the "public"
+# schema on every connection so that table references like public.trips resolve.
+if 'sqlite' in str(engine.url):
+    _main_db = engine.url.database or 'database.db'
+    _public_db = os.path.join(os.path.dirname(os.path.abspath(_main_db)), 'public.db')
+
+    @event.listens_for(engine, 'connect')
+    def _attach_public_schema(dbapi_conn, _record):
+        dbapi_conn.execute(f"ATTACH DATABASE '{_public_db}' AS \"{TRIPS_SCHEMA}\"")
+
 
 def _ensure_schema_exists(engine):
     """Create the trips schema if it doesn't exist (PostgreSQL only)."""
@@ -209,9 +221,7 @@ def _ensure_schema_exists(engine):
 def _migrate_to_single_table(engine):
     """One-time migration: merge stops/waypoints tables into locations."""
     insp = inspect(engine)
-    
-    # Get schema to search in (for PostgreSQL)
-    schema = TRIPS_SCHEMA if 'postgresql' in str(engine.url) else None
+    schema = TRIPS_SCHEMA
     existing_tables = insp.get_table_names(schema=schema)
 
     # Only run if old 'stops' table still exists
@@ -220,8 +230,7 @@ def _migrate_to_single_table(engine):
 
     print("Migrating from joined-table to single-table inheritance...")
     with engine.connect() as conn:
-        # Determine schema prefix for SQL queries
-        schema_prefix = f"{TRIPS_SCHEMA}." if 'postgresql' in str(engine.url) else ""
+        schema_prefix = f"{TRIPS_SCHEMA}."
         
         # Add start_date and end_date columns to locations if missing
         location_cols = [c['name'] for c in insp.get_columns('locations', schema=schema)]
@@ -252,7 +261,7 @@ def _migrate_to_single_table(engine):
 def _migrate_add_trip_location_guids(engine):
     """Add GUID columns to trip start/end locations for waypoint linking."""
     insp = inspect(engine)
-    schema = TRIPS_SCHEMA if 'postgresql' in str(engine.url) else None
+    schema = TRIPS_SCHEMA
     existing_tables = insp.get_table_names(schema=schema)
 
     if 'trips' not in existing_tables:
@@ -262,7 +271,7 @@ def _migrate_add_trip_location_guids(engine):
     if 'start_location_guid' in trip_cols:
         return  # Already migrated
 
-    schema_prefix = f"{TRIPS_SCHEMA}." if 'postgresql' in str(engine.url) else ""
+    schema_prefix = f"{TRIPS_SCHEMA}."
     print("Adding GUID columns to trip locations...")
     with engine.connect() as conn:
         # Add new columns
@@ -294,7 +303,7 @@ def _migrate_add_trip_location_guids(engine):
 def _migrate_add_location_description_url(engine):
     """Add description and url columns to locations table."""
     insp = inspect(engine)
-    schema = TRIPS_SCHEMA if 'postgresql' in str(engine.url) else None
+    schema = TRIPS_SCHEMA
     existing_tables = insp.get_table_names(schema=schema)
 
     if 'locations' not in existing_tables:
@@ -304,7 +313,7 @@ def _migrate_add_location_description_url(engine):
     if 'description' in location_cols:
         return  # Already migrated
 
-    schema_prefix = f"{TRIPS_SCHEMA}." if 'postgresql' in str(engine.url) else ""
+    schema_prefix = f"{TRIPS_SCHEMA}."
     print("Adding description and url columns to locations...")
     with engine.connect() as conn:
         conn.execute(text(f"ALTER TABLE {schema_prefix}locations ADD COLUMN description TEXT"))

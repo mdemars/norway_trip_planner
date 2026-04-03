@@ -4,7 +4,8 @@
       "Bash(dir \"c:\\\\Users\\\\mdema\\\\OneDrive\\\\tools\\\\norway_trip_planner\"\" /a:-d 2>nul | findstr \".py \")",
       "Bash(ls:*)",
       "Bash(dir /b \"c:\\\\Users\\\\mdema\\\\OneDrive\\\\tools\\\\norway_trip_planner\")",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(python -c \":*)"
     ]
   }
 }

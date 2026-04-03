@@ -6,7 +6,9 @@ import json
 import os
 import zipfile
 from datetime import datetime, timezone
-from models import Trip, Waypoint, get_db
+import uuid as uuid_module
+from models import Trip, Stop, Waypoint, Activity, get_db
+from helpers import parse_iso_date
 from werkzeug.utils import secure_filename
 
 backups_bp = Blueprint('backups', __name__, url_prefix='/api')
@@ -176,6 +178,134 @@ def export_json():
             mimetype='application/zip'
         )
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+
+@backups_bp.route('/import/trip', methods=['POST'])
+def import_trip():
+    """
+    Import a trip from a JSON file produced by /api/export/json.
+
+    All database IDs are regenerated so nothing conflicts with existing data.
+    GUIDs are also regenerated (they have a unique constraint) but the
+    previous_location_guid chain structure is preserved via a guid mapping.
+    """
+    data = request.json
+    if not data or 'name' not in data:
+        return jsonify({'error': 'Invalid trip JSON: missing name field'}), 400
+
+    stops_data = data.get('stops', [])
+    waypoints_data = data.get('waypoints', [])
+    all_locations_data = [l for l in stops_data + waypoints_data if l.get('guid')]
+
+    # Build old_guid → new_guid mapping for every location up front
+    guid_map = {loc['guid']: str(uuid_module.uuid4()) for loc in all_locations_data}
+
+    db = get_db()
+    try:
+        # ── Create the trip ───────────────────────────────────────────────────
+        new_trip = Trip(name=data['name'])
+
+        start_loc = data.get('start_location') or {}
+        if start_loc.get('address'):
+            new_trip.start_location_address = start_loc['address']
+            new_trip.start_location_latitude = start_loc.get('latitude')
+            new_trip.start_location_longitude = start_loc.get('longitude')
+            new_trip.start_location_guid = str(uuid_module.uuid4())
+
+        end_loc = data.get('end_location') or {}
+        if end_loc.get('address'):
+            new_trip.end_location_address = end_loc['address']
+            new_trip.end_location_latitude = end_loc.get('latitude')
+            new_trip.end_location_longitude = end_loc.get('longitude')
+            new_trip.end_location_guid = str(uuid_module.uuid4())
+
+        db.add(new_trip)
+        db.flush()  # assigns new_trip.id
+
+        # ── Topological sort so parents are inserted before children ──────────
+        loc_by_old_guid = {loc['guid']: loc for loc in all_locations_data}
+        created_old_guids = set()
+        ordered = []
+        remaining = list(all_locations_data)
+
+        while remaining:
+            made_progress = False
+            still_remaining = []
+            for loc in remaining:
+                prev = loc.get('previous_location_guid')
+                # Ready if it has no parent, or its parent is outside this
+                # import set (e.g. references a deleted stop), or already done.
+                if prev is None or prev not in loc_by_old_guid or prev in created_old_guids:
+                    ordered.append(loc)
+                    created_old_guids.add(loc['guid'])
+                    made_progress = True
+                else:
+                    still_remaining.append(loc)
+            remaining = still_remaining
+            if not made_progress:
+                # Cycle or unresolvable chain — append as-is to avoid infinite loop
+                ordered.extend(remaining)
+                break
+
+        # ── Insert locations ──────────────────────────────────────────────────
+        old_id_to_new_stop: dict[int, Stop] = {}
+
+        for loc in ordered:
+            old_guid = loc['guid']
+            new_guid = guid_map[old_guid]
+            old_prev = loc.get('previous_location_guid')
+            new_prev = guid_map.get(old_prev)  # None if parent not in this file
+
+            common = dict(
+                trip_id=new_trip.id,
+                guid=new_guid,
+                name=loc['name'],
+                location_type=loc.get('location_type', 'gps'),
+                latitude=loc.get('latitude'),
+                longitude=loc.get('longitude'),
+                address=loc.get('address'),
+                description=loc.get('description', ''),
+                url=loc.get('url', ''),
+                previous_location_guid=new_prev,
+            )
+
+            if loc.get('type') == 'stop':
+                new_stop = Stop(
+                    **common,
+                    start_date=parse_iso_date(loc['start_date']) if loc.get('start_date') else None,
+                    end_date=parse_iso_date(loc['end_date']) if loc.get('end_date') else None,
+                )
+                db.add(new_stop)
+                db.flush()
+                old_id_to_new_stop[loc['id']] = new_stop
+            else:
+                db.add(Waypoint(**common))
+
+        # ── Insert activities linked to new stop IDs ──────────────────────────
+        for stop_data in stops_data:
+            new_stop = old_id_to_new_stop.get(stop_data.get('id'))
+            if not new_stop:
+                continue
+            for act in stop_data.get('activities', []):
+                db.add(Activity(
+                    stop_id=new_stop.id,
+                    name=act['name'],
+                    description=act.get('description', ''),
+                    url=act.get('url', ''),
+                ))
+
+        db.commit()
+        return jsonify({
+            'message': f'Trip "{new_trip.name}" imported successfully',
+            'trip_id': new_trip.id,
+            'trip_name': new_trip.name,
+        }), 201
+
+    except Exception as e:
+        db.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
         db.close()

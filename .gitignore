@@ -8,3 +8,4 @@ backups/
 *.pre_restore_*.db
 **/__pycache__/*.pyc
 /.claude/worktrees/
+public.db

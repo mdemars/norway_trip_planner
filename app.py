@@ -48,6 +48,11 @@ def create_app():
         allowed_prefixes = ('/login', '/auth/', '/logout', '/favicon.ico', '/static/')
         if any(request.path.startswith(p) for p in allowed_prefixes):
             return
+        if Config.SKIP_AUTH:
+            if not session.get('user_email'):
+                session['user_email'] = 'local@localhost'
+                session['user_name'] = 'Local User'
+            return
         if not session.get('user_email'):
             if request.path.startswith('/api/'):
                 return jsonify({'error': 'Authentication required'}), 401

@@ -61,19 +61,25 @@ def get_ordered_locations(db, trip_id):
 
     location_map = {loc.guid: loc for loc in all_locations}
 
-    # Find the end of the chain (guid not referenced as anyone's previous)
+    # A location is a tail if nothing references its guid as a previous.
+    # There may be multiple tails when the chain is broken into disconnected
+    # segments (e.g. a stop was added with previous_location_guid=None midway).
     guids_referenced = {loc.previous_location_guid for loc in all_locations if loc.previous_location_guid}
-    end_location = next((loc for loc in all_locations if loc.guid not in guids_referenced), None)
-    if not end_location:
-        return []
+    tails = [loc for loc in all_locations if loc.guid not in guids_referenced]
 
-    # Build chain in creation order (walk backwards, then reverse)
+    # Walk backwards from every tail and concatenate the segments into one chain.
+    # Stops will be re-sorted by date below, so segment order doesn't matter.
     chain = []
-    current = end_location
-    while current:
-        chain.append(current)
-        current = location_map.get(current.previous_location_guid)
-    chain.reverse()
+    visited = set()
+    for tail in tails:
+        segment = []
+        current = tail
+        while current and current.guid not in visited:
+            segment.append(current)
+            visited.add(current.guid)
+            current = location_map.get(current.previous_location_guid)
+        segment.reverse()
+        chain.extend(segment)
 
     # Split the chain into stops and gaps (waypoints between consecutive stops).
     # gaps[i] holds waypoints that appear between stops[i-1] and stops[i];

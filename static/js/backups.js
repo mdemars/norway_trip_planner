@@ -203,6 +203,51 @@ async function downloadBackup(filename) {
     }
 }
 
+function importTripJson() {
+    document.getElementById('importTripFileInput').click();
+}
+
+async function handleImportTripFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('importTripBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>Importing...</span>';
+
+    try {
+        const text = await file.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            showNotification('Error', 'Invalid JSON file — could not parse.');
+            return;
+        }
+
+        const response = await fetch('/api/import/trip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Import failed');
+        }
+
+        showNotification('Success', `${result.message} (ID ${result.trip_id})`);
+    } catch (error) {
+        console.error('Error importing trip:', error);
+        showNotification('Error', `Failed to import trip: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        document.getElementById('importTripFileInput').value = '';
+    }
+}
+
 async function downloadJsonExport() {
     const btn = document.getElementById('exportJsonBtn');
     const originalText = btn.innerHTML;
@@ -326,6 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('createBackupBtn').addEventListener('click', createBackup);
     document.getElementById('uploadBackupBtn').addEventListener('click', uploadBackup);
     document.getElementById('backupFileInput').addEventListener('change', handleBackupFileSelected);
+    document.getElementById('importTripFileInput').addEventListener('change', handleImportTripFileSelected);
 
     // Close modals when clicking outside
     document.getElementById('confirmModal').addEventListener('click', function(event) {

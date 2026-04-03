@@ -17,6 +17,9 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     PERMANENT_SESSION_LIFETIME = 604800  # 7 days
 
+    # Skip OAuth login — set SKIP_AUTH=true for local development
+    SKIP_AUTH = os.getenv('SKIP_AUTH', 'false').lower() == 'true'
+
     # Database configuration
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///database.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
