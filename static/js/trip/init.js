@@ -112,12 +112,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (e.target.value === 'address') {
                 addressInput.style.display = 'block';
                 gpsInput.style.display = 'none';
+                document.getElementById('gpsHint').style.display = 'none';
                 document.getElementById('address').required = true;
                 document.getElementById('latitude').required = false;
                 document.getElementById('longitude').required = false;
             } else {
                 addressInput.style.display = 'none';
                 gpsInput.style.display = 'flex';
+                document.getElementById('gpsHint').style.display = 'block';
                 document.getElementById('address').required = false;
                 document.getElementById('latitude').required = true;
                 document.getElementById('longitude').required = true;
@@ -288,18 +290,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (e.target.value === 'address') {
                 addressInput.style.display = 'block';
                 gpsInput.style.display = 'none';
+                document.getElementById('waypointGpsHint').style.display = 'none';
                 document.getElementById('waypointAddress').required = true;
                 document.getElementById('waypointLatitude').required = false;
                 document.getElementById('waypointLongitude').required = false;
             } else {
                 addressInput.style.display = 'none';
                 gpsInput.style.display = 'flex';
+                document.getElementById('waypointGpsHint').style.display = 'block';
                 document.getElementById('waypointAddress').required = false;
                 document.getElementById('waypointLatitude').required = true;
                 document.getElementById('waypointLongitude').required = true;
             }
         });
     });
+
+    // DMS coordinate parsing for all GPS field pairs
+    App.attachDMSParsing('latitude', 'longitude');
+    App.attachDMSParsing('editLatitude', 'editLongitude');
+    App.attachDMSParsing('waypointLatitude', 'waypointLongitude');
 
     // Render calendar on page load
     renderCalendar();

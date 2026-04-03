@@ -181,13 +181,16 @@
                 <div id="gpsInput" class="form-row" style="display: none;">
                     <div class="form-group">
                         <label for="latitude" data-i18n="locations.latitude">Latitude</label>
-                        <input type="number" id="latitude" name="latitude" step="0.000001" placeholder="59.9139">
+                        <input type="text" id="latitude" name="latitude" placeholder="59.9139 or 59°54′50″N">
                     </div>
                     <div class="form-group">
                         <label for="longitude" data-i18n="locations.longitude">Longitude</label>
-                        <input type="number" id="longitude" name="longitude" step="0.000001" placeholder="10.7522">
+                        <input type="text" id="longitude" name="longitude" placeholder="10.7522 or 10°45′8″E">
                     </div>
                 </div>
+                <p id="gpsHint" style="display:none; font-size:0.8em; color:#6c757d; margin-top:-8px;">
+                    Paste a full DMS string (e.g. <em>63°32′29.6″N 10°48′45.7″E</em>) into the latitude field and both will be filled automatically.
+                </p>
 
                 <div class="form-group">
                     <label for="stopDescription" data-i18n="locations.description">Description (Optional)</label>
@@ -256,13 +259,16 @@
                 <div id="editGpsInput" class="form-row">
                     <div class="form-group">
                         <label for="editLatitude" data-i18n="locations.latitude">Latitude</label>
-                        <input type="number" id="editLatitude" name="latitude" step="0.0001" placeholder="59.9139">
+                        <input type="text" id="editLatitude" name="latitude" placeholder="59.9139 or 59°54′50″N">
                     </div>
                     <div class="form-group">
                         <label for="editLongitude" data-i18n="locations.longitude">Longitude</label>
-                        <input type="number" id="editLongitude" name="longitude" step="0.0001" placeholder="10.7522">
+                        <input type="text" id="editLongitude" name="longitude" placeholder="10.7522 or 10°45′8″E">
                     </div>
                 </div>
+                <p id="editGpsHint" style="font-size:0.8em; color:#6c757d; margin-top:-8px;">
+                    Paste a full DMS string (e.g. <em>63°32′29.6″N 10°48′45.7″E</em>) into the latitude field and both will be filled automatically.
+                </p>
 
                 <div class="form-group" id="editDescriptionGroup">
                     <label for="editStopDescription" data-i18n="locations.description">Description (Optional)</label>
@@ -394,13 +400,16 @@
                 <div id="waypointGpsInput" class="form-row" style="display: none;">
                     <div class="form-group">
                         <label for="waypointLatitude" data-i18n="locations.latitude">Latitude</label>
-                        <input type="number" id="waypointLatitude" name="waypointLatitude" step="0.000001" placeholder="60.8795">
+                        <input type="text" id="waypointLatitude" name="waypointLatitude" placeholder="60.8795 or 60°52′46″N">
                     </div>
                     <div class="form-group">
                         <label for="waypointLongitude" data-i18n="locations.longitude">Longitude</label>
-                        <input type="number" id="waypointLongitude" name="waypointLongitude" step="0.000001" placeholder="7.3139">
+                        <input type="text" id="waypointLongitude" name="waypointLongitude" placeholder="7.3139 or 7°18′50″E">
                     </div>
                 </div>
+                <p id="waypointGpsHint" style="display:none; font-size:0.8em; color:#6c757d; margin-top:-8px;">
+                    Paste a full DMS string (e.g. <em>63°32′29.6″N 10°48′45.7″E</em>) into the latitude field and both will be filled automatically.
+                </p>
 
                 <div class="form-group">
                     <label for="waypointDescription" data-i18n="locations.description">Description (Optional)</label>

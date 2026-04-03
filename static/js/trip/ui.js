@@ -99,6 +99,84 @@ App.showSuccess = function(message) {
 };
 
 // ============================================================================
+// DMS Coordinate Parsing
+// ============================================================================
+
+// Parse a single DMS string like "63°32'29.6″N" → decimal degrees.
+// Also accepts plain decimals like "63.5412" or "-10.8127".
+// Returns null if the string cannot be recognised.
+App.parseDMS = function(str) {
+    str = str.trim();
+    if (!str) return null;
+
+    // Already a plain decimal number
+    if (/^-?\d+(\.\d+)?$/.test(str)) return parseFloat(str);
+
+    // DMS: require the ° symbol so we don't misparse arbitrary text.
+    // Handles  63°32'29.6″N  63° 32' 29.6" N  63°32′29.6‴N  etc.
+    const m = str.match(
+        /(\d+(?:\.\d+)?)\s*°\s*(\d+(?:\.\d+)?)\s*['\u2032]\s*(\d+(?:\.\d+)?)\s*[″"\u2033]?\s*([NSEWnsew])/
+    );
+    if (!m) return null;
+
+    let dec = parseFloat(m[1]) + parseFloat(m[2]) / 60 + parseFloat(m[3]) / 3600;
+    if (/[SWsw]/.test(m[4])) dec = -dec;
+    return Math.round(dec * 1e6) / 1e6;
+};
+
+// Try to extract a lat+lng pair from a single pasted string like
+// "63°32'29.6″N 10°48'45.7″E". Returns { lat, lng } or null.
+App.parseDMSPair = function(str) {
+    const coordRe = /(\d+(?:\.\d+)?)\s*°\s*(\d+(?:\.\d+)?)\s*['\u2032]\s*(\d+(?:\.\d+)?)\s*[″"\u2033]?\s*([NSEWnsew])/g;
+    const matches = [...str.matchAll(coordRe)];
+
+    const toDecimal = (m) => {
+        let dec = parseFloat(m[1]) + parseFloat(m[2]) / 60 + parseFloat(m[3]) / 3600;
+        if (/[SWsw]/.test(m[4])) dec = -dec;
+        return Math.round(dec * 1e6) / 1e6;
+    };
+
+    let lat = null, lng = null;
+    for (const m of matches) {
+        if (lat === null && /[NSns]/.test(m[4])) lat = toDecimal(m);
+        if (lng === null && /[EWew]/.test(m[4])) lng = toDecimal(m);
+    }
+    return (lat !== null && lng !== null) ? { lat, lng } : null;
+};
+
+// Attach blur-time DMS parsing to a latitude/longitude input pair.
+// Pasting a full "lat lng" DMS string into the latitude field fills both.
+App.attachDMSParsing = function(latId, lngId) {
+    const latInput = document.getElementById(latId);
+    const lngInput = document.getElementById(lngId);
+    if (!latInput || !lngInput) return;
+
+    latInput.addEventListener('blur', () => {
+        const val = latInput.value.trim();
+        if (!val) return;
+
+        // Full pair pasted into lat field?
+        const pair = App.parseDMSPair(val);
+        if (pair) {
+            latInput.value = pair.lat;
+            lngInput.value = pair.lng;
+            return;
+        }
+
+        // Single coordinate
+        const dec = App.parseDMS(val);
+        if (dec !== null) latInput.value = dec;
+    });
+
+    lngInput.addEventListener('blur', () => {
+        const val = lngInput.value.trim();
+        if (!val) return;
+        const dec = App.parseDMS(val);
+        if (dec !== null) lngInput.value = dec;
+    });
+};
+
+// ============================================================================
 // Expose on window for global access
 // ============================================================================
 
