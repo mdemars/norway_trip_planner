@@ -545,17 +545,30 @@ async function handleDeleteActivity(activityId, activityName) {
 function openAddWaypointModal(afterStopId, beforeStopId) {
     document.getElementById('addWaypointForm').reset();
 
-    // Populate previous location dropdown with all stops (excluding trip-end)
+    // Populate previous location dropdown with all stops and waypoints in route order
     const previousLocationSelect = document.getElementById('waypointPreviousLocation');
     previousLocationSelect.innerHTML = `<option value="">${t('waypoints.noPreviousLocation') || 'None (start of route)'}</option>`;
 
-    // Add all stops except trip-end as options
-    const availableStops = App.stops.filter(s => s.type !== 'trip-end');
-    availableStops.forEach(stop => {
-        const option = document.createElement('option');
-        option.value = stop.guid;
-        option.textContent = stop.name;
-        previousLocationSelect.appendChild(option);
+    // Build ordered list: stops (excl. trip-end) interleaved with their following waypoints
+    const waypointByPrev = {};
+    App.waypoints.forEach(w => { waypointByPrev[w.previous_location_guid] = w; });
+
+    App.stops.filter(s => s.type !== 'trip-end').forEach(stop => {
+        const stopOpt = document.createElement('option');
+        stopOpt.value = stop.guid;
+        stopOpt.textContent = stop.name;
+        previousLocationSelect.appendChild(stopOpt);
+
+        // Walk waypoints chained after this stop
+        let nextGuid = stop.guid;
+        while (waypointByPrev[nextGuid]) {
+            const wp = waypointByPrev[nextGuid];
+            const wpOpt = document.createElement('option');
+            wpOpt.value = wp.guid;
+            wpOpt.textContent = `\u00a0\u00a0↳ ${wp.name}`;
+            previousLocationSelect.appendChild(wpOpt);
+            nextGuid = wp.guid;
+        }
     });
 
     // Auto-select the stop above where "Add Waypoint" was clicked

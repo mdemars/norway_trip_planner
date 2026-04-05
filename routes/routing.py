@@ -1,7 +1,14 @@
-from flask import Blueprint, request, jsonify
-from models import Trip, Stop, Location, get_db
+import io
+import json
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+
+from flask import Blueprint, request, jsonify, send_file
+from models import Trip, Stop, Location, RouteCache, get_db
 from services import geocoding_service, route_service
 from helpers import get_ordered_locations
+from config import Config
 
 routing_bp = Blueprint('routing', __name__, url_prefix='/api')
 
@@ -55,9 +62,59 @@ def get_trip_route(trip_id):
             })
 
         route_info = route_service.calculate_route(all_points)
+        _upsert_route_cache(db, trip_id, all_points, route_info)
         return jsonify(route_info)
     finally:
         db.close()
+
+
+def _fetch_static_map_image(all_points, route_info):
+    """Fetch a static map PNG from Google Maps Static API."""
+    api_key = Config.GOOGLE_MAPS_API_KEY
+    if not api_key or not all_points:
+        return None
+
+    params = [
+        ('size', '800x500'),
+        ('maptype', 'roadmap'),
+        ('key', api_key),
+    ]
+
+    for pt in all_points:
+        pt_type = pt.get('type', 'stop')
+        color = 'green' if pt_type == 'start' else ('blue' if pt_type == 'end' else 'red')
+        params.append(('markers', f'color:{color}|{pt["latitude"]},{pt["longitude"]}'))
+
+    if route_info and route_info.get('segments'):
+        for seg in route_info['segments']:
+            if seg.get('polyline'):
+                params.append(('path', f'enc:{seg["polyline"]}'))
+
+    url = 'https://maps.googleapis.com/maps/api/staticmap?' + urllib.parse.urlencode(params)
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            if resp.status == 200:
+                return resp.read()
+    except Exception:
+        pass
+    return None
+
+
+def _upsert_route_cache(db, trip_id, all_points, route_info):
+    """Save route points + static map image to RouteCache, replacing any existing entry."""
+    route_json = json.dumps({'points': all_points, 'route': route_info})
+    route_image = _fetch_static_map_image(all_points, route_info)
+    now = datetime.now(timezone.utc)
+
+    existing = db.query(RouteCache).filter(RouteCache.trip_id == trip_id).first()
+    if existing:
+        existing.route_json = route_json
+        existing.route_image = route_image
+        existing.calculated_at = now
+    else:
+        db.add(RouteCache(trip_id=trip_id, route_json=route_json,
+                          route_image=route_image, calculated_at=now))
+    db.commit()
 
 
 @routing_bp.route('/trips/<int:trip_id>/debug/route-points', methods=['GET'])
@@ -141,6 +198,19 @@ def get_trip_locations(trip_id):
         return jsonify(locations)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+
+@routing_bp.route('/trips/<int:trip_id>/route/image', methods=['GET'])
+def get_trip_route_image(trip_id):
+    """Serve the cached static map PNG for a trip's most recent route calculation."""
+    db = get_db()
+    try:
+        cache = db.query(RouteCache).filter(RouteCache.trip_id == trip_id).first()
+        if not cache or not cache.route_image:
+            return jsonify({'error': 'No route image available. Calculate the route first.'}), 404
+        return send_file(io.BytesIO(cache.route_image), mimetype='image/png')
     finally:
         db.close()
 

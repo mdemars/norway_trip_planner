@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect, event
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, LargeBinary, text, inspect, event
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from config import Config
 import uuid
@@ -153,6 +153,20 @@ class Activity(Base):
             'description': self.description,
             'url': self.url
         }
+
+
+class RouteCache(Base):
+    """Stores the most recently calculated route for a trip (JSON + static map PNG)."""
+    __tablename__ = 'route_cache'
+    __table_args__ = {'schema': TRIPS_SCHEMA}
+
+    id = Column(Integer, primary_key=True)
+    trip_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.trips.id'), unique=True, nullable=False)
+    route_json = Column(Text, nullable=True)
+    route_image = Column(LargeBinary, nullable=True)
+    calculated_at = Column(DateTime, nullable=False)
+
+    trip = relationship('Trip', backref='route_cache')
 
 
 class Waypoint(Location):

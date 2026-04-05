@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime
-from models import Trip, Location, Activity, get_db
+from models import Trip, Location, Activity, RouteCache, get_db
 from sqlalchemy import inspect as sa_inspect
 
 admin_bp = Blueprint('admin', __name__)
@@ -9,6 +9,7 @@ ADMIN_MODELS = {
     'trip': Trip,
     'location': Location,
     'activity': Activity,
+    'route_cache': RouteCache,
 }
 
 
@@ -48,6 +49,8 @@ def get_all_entities(entity_type):
                 val = getattr(item, col, None)
                 if isinstance(val, datetime):
                     val = val.isoformat()
+                elif isinstance(val, (bytes, bytearray)):
+                    val = f'<binary: {len(val):,} bytes>'
                 row[col] = val
             result.append(row)
         return jsonify({'columns': columns, 'rows': result})
