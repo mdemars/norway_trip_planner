@@ -1290,23 +1290,22 @@ header .subtitle {
 
     .detail-header {
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
         align-items: flex-start;
     }
 
     .header-left {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
         width: 100%;
+        gap: 12px;
     }
 
+    /* Keep actions as a wrapping row, not a vertical column */
     .header-actions {
         width: 100%;
-        flex-direction: column;
-    }
-
-    .header-actions button {
-        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
 
     .form-row {
@@ -1322,19 +1321,234 @@ header .subtitle {
     .header-text {
         text-align: center;
     }
+
+    .map-container {
+        height: 350px;
+    }
 }
 
+/* ============================================================================
+   Mobile (phones ≤ 600px) — touch-friendly layout
+   ============================================================================ */
+
 @media (max-width: 600px) {
+
+    /* Prevent iOS font-size zoom when tapping inputs */
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        font-size: 16px;
+    }
+
+    /* Compact header — reclaim vertical space */
+    header {
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        border-radius: 0;
+    }
+
     header h1 {
-        font-size: 2em;
+        font-size: 1.5em;
+        margin-bottom: 2px;
+    }
+
+    header .subtitle {
+        font-size: 0.9em;
+    }
+
+    .container {
+        padding: 12px;
+    }
+
+    /* Touch targets: minimum 44×44px (Apple HIG / Material guidelines) */
+    .icon-btn {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 10px;
+    }
+
+    .collapse-toggle {
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    .btn-sm {
+        padding: 10px 14px;
+        font-size: 0.9em;
+    }
+
+    .close-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.5em;
+    }
+
+    /* Stop cards: slightly more compact */
+    .stop-card {
+        padding: 12px;
+    }
+
+    .stop-info h3 {
+        font-size: 1.05em;
+    }
+
+    .waypoint-card {
+        margin-left: 10px;
+        padding: 10px 12px;
+    }
+
+    /* Keep header actions horizontal on phones */
+    .detail-header {
+        padding: 12px;
+    }
+
+    .header-left {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .header-actions {
+        gap: 6px;
+    }
+
+    /* Let the calculate route button be full-width on phones */
+    #calculateRouteBtn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Bottom-sheet modals — native feel on iOS and Android */
+    .modal.active {
+        align-items: flex-end;
     }
 
     .modal-content {
-        width: 95%;
-        padding: 20px;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        max-height: 92vh;
+        padding: 20px 16px;
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+        animation: slideUpSheet 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    @keyframes slideUpSheet {
+        from { transform: translateY(100%); opacity: 0.6; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* Visual drag handle on bottom sheets */
+    .modal-content::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 2px;
+        margin: -8px auto 16px;
+    }
+
+    .modal-header {
+        margin-bottom: 16px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.2em;
+    }
+
+    /* Trip cards: no hover lift on touch devices */
+    .trip-card:hover {
+        transform: none;
     }
 
     .trip-card .actions {
         flex-direction: column;
+    }
+
+    /* Map: shorter on phones */
+    .map-container {
+        height: 260px;
+    }
+
+    /* Shorter calendar on phones */
+    .calendar-container {
+        max-height: 420px;
+    }
+
+    .calendar-day {
+        min-height: 48px;
+        padding: 4px;
+    }
+
+    .calendar-day-number {
+        font-size: 0.8em;
+    }
+
+    /* Form: full-width submit buttons */
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .section {
+        padding: 14px;
+    }
+
+    .section-header {
+        margin-bottom: 14px;
+    }
+}
+
+/* ============================================================================
+   Mobile polish — applies to all mobile/tablet
+   ============================================================================ */
+
+@media (max-width: 968px) {
+    /* Remove hover transforms on touch devices (they "stick" after tap) */
+    .btn:hover {
+        transform: none;
+    }
+
+    .back-btn:hover {
+        transform: none;
+    }
+
+    /* Smooth momentum scrolling for iOS */
+    .stops-list,
+    .calendar-container,
+    .modal-content {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    /* Remove grey tap flash on Android */
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Buttons feel more native with active press state */
+    .btn:active {
+        opacity: 0.75;
+        transform: scale(0.98);
+    }
+
+    .icon-btn:active {
+        opacity: 0.65;
+    }
+}
+
+/* Safe area insets for notch / home indicator (iPhone X+) */
+@supports (padding: env(safe-area-inset-top)) {
+    .container {
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
+    }
+
+    header {
+        padding-top: max(14px, env(safe-area-inset-top));
     }
 }
