@@ -61,6 +61,12 @@ body.local-dev[data-theme="dark"] {
     --waypoint-hover: #4a3c18;
 }
 
+/* Prevent any element from causing horizontal page overflow */
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--text-color);
@@ -378,6 +384,7 @@ header .subtitle {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    min-width: 0; /* allow grid columns to shrink below content width */
 }
 
 .section {
@@ -438,6 +445,7 @@ header .subtitle {
     background: var(--light-gray);
     border-radius: 8px;
     padding: 16px;
+    overflow: hidden; /* clip content that exceeds card width */
     border-left: 5px solid var(--primary-color);
     transition: all 0.2s;
 }
@@ -458,6 +466,7 @@ header .subtitle {
     font-size: 1.2em;
     margin-bottom: 4px;
     color: var(--text-color);
+    word-break: break-word;
 }
 
 .stop-info .stop-dates {
@@ -566,6 +575,13 @@ header .subtitle {
     align-items: center;
     gap: 8px;
     flex: 1;
+    min-width: 0; /* allow flex item to shrink below content width */
+}
+
+.stop-title-row h3 {
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .collapse-toggle {
@@ -1230,6 +1246,15 @@ header .subtitle {
     text-align: left;
 }
 
+/* Right-side controls in the gradient header (language, theme, logout, etc.) */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 /* Detail header language selector (different styling for white background) */
 .detail-header .language-selector .language-btn {
     background: var(--light-gray);
@@ -1276,6 +1301,63 @@ header .subtitle {
 }
 
 /* ============================================================================
+   Calendar Stay List (mobile view)
+   ============================================================================ */
+
+.calendar-stay-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.calendar-stay-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.calendar-stay-item:hover,
+.calendar-stay-item:active {
+    background: var(--bg-hover);
+}
+
+.calendar-stay-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.calendar-stay-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.calendar-stay-name {
+    font-weight: 600;
+    font-size: 0.95em;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.calendar-stay-dates {
+    font-size: 0.82em;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.calendar-stay-chevron {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* ============================================================================
    Responsive
    ============================================================================ */
 
@@ -1315,7 +1397,7 @@ header .subtitle {
     .header-content {
         flex-direction: column;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
     }
 
     .header-text {
@@ -1326,6 +1408,7 @@ header .subtitle {
         height: 350px;
     }
 }
+
 
 /* ============================================================================
    Mobile (phones ≤ 600px) — touch-friendly layout
@@ -1500,6 +1583,24 @@ header .subtitle {
 
     .section-header {
         margin-bottom: 14px;
+    }
+
+    /* Header controls: wrap onto a second line, centred */
+    .header-controls {
+        justify-content: center;
+        width: 100%;
+        gap: 6px;
+    }
+
+    /* Hide the user's display name — keep only avatar + logout button */
+    .header-controls .user-name,
+    .header-actions .user-name {
+        display: none;
+    }
+
+    /* Hide secondary nav links (Admin, Backups) from the header on phones */
+    .header-controls .btn-secondary:not([href="/logout"]) {
+        display: none;
     }
 }
 

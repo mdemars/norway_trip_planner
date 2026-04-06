@@ -9,18 +9,26 @@ function renderCalendar() {
     // Filter to only stops with dates (exclude trip start/end locations)
     const stopsWithDates = App.stops.filter(stop => stop.start_date && stop.end_date);
 
+    const placeholder = `
+        <div class="calendar-placeholder">
+            <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <p>${t('calendar.addStopsToSee')}</p>
+        </div>
+    `;
+
     if (!stopsWithDates || stopsWithDates.length === 0) {
-        document.getElementById('calendar').innerHTML = `
-            <div class="calendar-placeholder">
-                <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                <p>${t('calendar.addStopsToSee')}</p>
-            </div>
-        `;
+        document.getElementById('calendar').innerHTML = placeholder;
+        return;
+    }
+
+    // Use list view on narrow screens, grid calendar on wider screens
+    if (window.matchMedia('(max-width: 600px)').matches) {
+        document.getElementById('calendar').innerHTML = renderCalendarList(stopsWithDates);
         return;
     }
 
@@ -62,6 +70,39 @@ function renderCalendar() {
     calendarHTML += '</div>';
 
     document.getElementById('calendar').innerHTML = calendarHTML;
+}
+
+function renderCalendarList(stopsWithDates) {
+    // Sort stops by start date
+    const sorted = [...stopsWithDates].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+    let html = '<div class="calendar-stay-list">';
+
+    sorted.forEach((stop, i) => {
+        const originalIndex = App.stops.filter(s => s.start_date && s.end_date).indexOf(stop);
+        const color = App.STOP_COLORS[originalIndex % App.STOP_COLORS.length];
+        const start = new Date(stop.start_date);
+        const end = new Date(stop.end_date);
+        const nights = Math.round((end - start) / (1000 * 60 * 60 * 24));
+        const nightsText = t('stops.night', { count: nights });
+        const dateRange = formatDateRange(stop.start_date, stop.end_date);
+
+        html += `
+            <div class="calendar-stay-item" onclick="handleCalendarStopClick(${stop.id})">
+                <div class="calendar-stay-color" style="background: ${color};"></div>
+                <div class="calendar-stay-info">
+                    <div class="calendar-stay-name">${escapeHtml(stop.name)}</div>
+                    <div class="calendar-stay-dates">${dateRange} &middot; ${nightsText}</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="calendar-stay-chevron">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    return html;
 }
 
 function renderMonth(monthDate) {
@@ -200,9 +241,19 @@ function handleCalendarStopClick(stopId) {
     }
 }
 
+// Re-render calendar on orientation change / window resize (switches between list and grid)
+let _calendarResizeTimer = null;
+window.addEventListener('resize', function() {
+    clearTimeout(_calendarResizeTimer);
+    _calendarResizeTimer = setTimeout(function() {
+        if (App.stops && App.stops.length > 0) renderCalendar();
+    }, 200);
+});
+
 // Expose on App namespace
 App.renderCalendar = renderCalendar;
 App.renderMonth = renderMonth;
+App.renderCalendarList = renderCalendarList;
 App.getStopsForDay = getStopsForDay;
 App.handleCalendarStopClick = handleCalendarStopClick;
 
