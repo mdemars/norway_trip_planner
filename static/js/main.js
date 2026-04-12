@@ -96,18 +96,14 @@ function createTripCard(trip) {
     // Get trip summary info from stops
     const stops = trip.stops || [];
     const numStops = stops.length;
+    const datedStops = stops.filter(s => s.start_date && s.end_date);
+    const stopsText = t('stops.stop', { count: numStops });
 
     let tripDatesHtml = '';
-    if (numStops > 0) {
-        // Find earliest start date and latest end date
-        const startDates = stops.map(s => new Date(s.start_date));
-        const endDates = stops.map(s => new Date(s.end_date));
-
-        const earliestStart = new Date(Math.min(...startDates));
-        const latestEnd = new Date(Math.max(...endDates));
-
-        const dateRangeStr = formatDateRange(earliestStart, latestEnd);
-        const stopsText = t('stops.stop', { count: numStops });
+    if (datedStops.length > 0) {
+        const startDates = datedStops.map(s => new Date(s.start_date));
+        const endDates = datedStops.map(s => new Date(s.end_date));
+        const dateRangeStr = formatDateRange(new Date(Math.min(...startDates)), new Date(Math.max(...endDates)));
 
         tripDatesHtml = `
             <span class="date">
@@ -125,6 +121,16 @@ function createTripCard(trip) {
                     <circle cx="12" cy="10" r="3"></circle>
                 </svg>
                 ${stopsText}
+            </span>
+        `;
+    } else if (numStops > 0) {
+        tripDatesHtml = `
+            <span class="date" style="color: var(--text-muted);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                ${stopsText} · No dates set
             </span>
         `;
     } else {
@@ -416,7 +422,143 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Address validation on trip creation modal
     setupAddressValidation('tripStartAddress', 'tripStartAddressStatus');
     setupAddressValidation('tripEndAddress', 'tripEndAddressStatus');
+
+    // Quick trip wizard button
+    document.getElementById('quickTripBtn').addEventListener('click', openQuickTripWizard);
 });
+
+// ============================================================================
+// Quick Trip Wizard
+// ============================================================================
+
+function openQuickTripWizard() {
+    document.getElementById('quickTripName').value = '';
+    document.getElementById('wizardStopsList').innerHTML = '';
+    // Start with 2 blank rows
+    addWizardRow();
+    addWizardRow();
+    openModal('quickTripModal');
+    // Focus the trip name
+    setTimeout(() => document.getElementById('quickTripName').focus(), 50);
+}
+
+function addWizardRow() {
+    const list = document.getElementById('wizardStopsList');
+    const row = document.createElement('div');
+    row.className = 'wizard-stop-row';
+    row.innerHTML = `
+        <span class="wizard-badge"></span>
+        <input class="wizard-name" type="text" placeholder="Stop name" autocomplete="off">
+        <input class="wizard-address" type="text" placeholder="Address (optional)" autocomplete="off">
+        <button type="button" class="icon-btn wizard-remove" onclick="removeWizardRow(this)" title="Remove stop">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    `;
+    list.appendChild(row);
+    updateWizardBadges();
+    // Tab from address → add new row (fast keyboard entry)
+    row.querySelector('.wizard-address').addEventListener('keydown', (e) => {
+        if (e.key === 'Tab' && !e.shiftKey) {
+            const rows = document.querySelectorAll('#wizardStopsList .wizard-stop-row');
+            if (row === rows[rows.length - 1]) {
+                e.preventDefault();
+                addWizardRow();
+            }
+        }
+    });
+    // Focus the new name input if the list already had rows (not initial setup)
+    if (list.children.length > 2) {
+        row.querySelector('.wizard-name').focus();
+    }
+}
+
+function removeWizardRow(btn) {
+    const list = document.getElementById('wizardStopsList');
+    if (list.children.length <= 2) return; // always keep at least 2
+    btn.closest('.wizard-stop-row').remove();
+    updateWizardBadges();
+}
+
+function updateWizardBadges() {
+    const rows = document.querySelectorAll('#wizardStopsList .wizard-stop-row');
+    rows.forEach((row, i) => {
+        const badge = row.querySelector('.wizard-badge');
+        const removeBtn = row.querySelector('.wizard-remove');
+        if (i === 0) {
+            badge.textContent = 'START';
+            badge.className = 'wizard-badge wizard-badge-start';
+        } else if (i === rows.length - 1) {
+            badge.textContent = 'END';
+            badge.className = 'wizard-badge wizard-badge-end';
+        } else {
+            badge.textContent = '';
+            badge.className = 'wizard-badge wizard-badge-mid';
+        }
+        // Hide remove button when only 2 rows remain
+        removeBtn.style.visibility = rows.length > 2 ? 'visible' : 'hidden';
+    });
+}
+
+async function handleQuickTripSubmit() {
+    const name = document.getElementById('quickTripName').value.trim();
+    if (!name) {
+        document.getElementById('quickTripName').focus();
+        showError('Trip name is required');
+        return;
+    }
+
+    const rows = document.querySelectorAll('#wizardStopsList .wizard-stop-row');
+    const stops = [];
+    let hasError = false;
+
+    rows.forEach(row => {
+        const nameInput = row.querySelector('.wizard-name');
+        const stopName = nameInput.value.trim();
+        const address = row.querySelector('.wizard-address').value.trim();
+        if (!stopName) {
+            nameInput.classList.add('input-error');
+            nameInput.addEventListener('input', () => nameInput.classList.remove('input-error'), { once: true });
+            hasError = true;
+            return;
+        }
+        stops.push({ name: stopName, address });
+    });
+
+    if (hasError) {
+        showError('Each stop must have a name');
+        return;
+    }
+
+    const submitBtn = document.getElementById('quickTripSubmitBtn');
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch('/api/trips/quick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, stops })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to create trip');
+        }
+
+        const trip = await response.json();
+        closeModal('quickTripModal');
+        window.location.href = `/trip/${trip.id}`;
+    } catch (error) {
+        showError(error.message);
+        submitBtn.disabled = false;
+    }
+}
+
+window.addWizardRow = addWizardRow;
+window.removeWizardRow = removeWizardRow;
+window.handleQuickTripSubmit = handleQuickTripSubmit;
 
 // Listen for language changes to re-render dynamic content
 document.addEventListener('languageChanged', () => {

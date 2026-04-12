@@ -125,21 +125,18 @@ App.createStopCard = function createStopCard(stop, index) {
     }
 
     // Regular stop card
-    const startDate = formatDate(stop.start_date);
-    const endDate = formatDate(stop.end_date);
+    const hasDates = stop.start_date && stop.end_date;
 
-    // Calculate number of nights (days difference, excluding last day)
-    const start = new Date(stop.start_date);
-    const end = new Date(stop.end_date);
-    const daysDifference = Math.round((end - start) / (1000 * 60 * 60 * 24));
-    const nights = daysDifference;
-    const nightsText = t('stops.night', { count: nights });
-
-    // Format dates as dd/MMM for summary (explicitly exclude year)
-    const shortDateOptions = { day: '2-digit', month: 'short', year: undefined };
-    const startDateShort = formatDate(stop.start_date, shortDateOptions);
-    const endDateShort = formatDate(stop.end_date, shortDateOptions);
-    const dateRangeText = `${startDateShort} - ${endDateShort}`;
+    let dateRangeText = '';
+    let nightsText = '';
+    if (hasDates) {
+        const shortDateOptions = { day: '2-digit', month: 'short', year: undefined };
+        const startDateShort = formatDate(stop.start_date, shortDateOptions);
+        const endDateShort = formatDate(stop.end_date, shortDateOptions);
+        dateRangeText = `${startDateShort} - ${endDateShort}`;
+        const nights = Math.round((new Date(stop.end_date) - new Date(stop.start_date)) / (1000 * 60 * 60 * 24));
+        nightsText = t('stops.night', { count: nights });
+    }
 
     const activities = stop.activities || [];
     const activitiesHtml = activities.length > 0 ? `
@@ -170,9 +167,16 @@ App.createStopCard = function createStopCard(stop, index) {
     const color = App.STOP_COLORS[(index - 1) % App.STOP_COLORS.length];
 
     return `
-        <div class="stop-card collapsed" data-stop-id="${stop.id}" style="border-left-color: ${color};">
+        <div class="stop-card collapsed" data-stop-id="${stop.id}" draggable="true" style="border-left-color: ${color};">
             <div class="stop-header" onclick="toggleStopCollapse(${stop.id})">
                 <div class="stop-title-row">
+                    <span class="drag-handle" title="Drag to reorder" onclick="event.stopPropagation()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </span>
                     <button class="collapse-toggle" onclick="event.stopPropagation(); toggleStopCollapse(${stop.id})">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron">
                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -181,7 +185,10 @@ App.createStopCard = function createStopCard(stop, index) {
                     <h3>
                         <span style="color: #6c757d; font-weight: normal; margin-right: 8px;">${index}.</span>
                         ${escapeHtml(stop.name)}
-                        <span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${dateRangeText}, ${nightsText})</span>
+                        ${hasDates
+                            ? `<span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${dateRangeText}, ${nightsText})</span>`
+                            : `<span class="undated-badge">No dates</span>`
+                        }
                     </h3>
                 </div>
                 <div class="stop-actions" onclick="event.stopPropagation()">
@@ -207,13 +214,23 @@ App.createStopCard = function createStopCard(stop, index) {
             </div>
             <div class="stop-details">
                 <div class="stop-info-section">
+                    ${hasDates ? `
                     <div class="stop-dates">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
                             <circle cx="12" cy="12" r="10"></circle>
                             <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
-                        ${startDate} → ${endDate}
-                    </div>
+                        ${formatDate(stop.start_date)} → ${formatDate(stop.end_date)}
+                    </div>` : `
+                    <button class="btn btn-primary btn-sm set-dates-btn" onclick="event.stopPropagation(); openEditStopModal(${stop.id})">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Set dates &amp; details…
+                    </button>`}
                     ${stop.address ? `<div class="stop-address">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -224,7 +241,7 @@ App.createStopCard = function createStopCard(stop, index) {
                     ${stop.description ? `<div class="stop-description" style="font-size: 0.85em; color: var(--text-muted, #6c757d); margin-top: 6px;">${escapeHtml(stop.description)}</div>` : ''}
                     ${stop.url ? `<div class="stop-url" style="font-size: 0.8em; margin-top: 4px;"><a href="${escapeHtml(stop.url)}" target="_blank" onclick="event.stopPropagation()" style="color: var(--primary-color, #4285F4); text-decoration: none;">${t('locations.viewLink')}</a></div>` : ''}
                 </div>
-                ${activitiesHtml}
+                ${hasDates ? activitiesHtml : ''}
             </div>
         </div>
     `;

@@ -1,16 +1,17 @@
 from flask import Blueprint, request, jsonify
 from models import Trip, Stop, Location, get_db
-from helpers import parse_iso_date, geocode_location_fields
+from helpers import parse_iso_date, geocode_location_fields, get_ordered_locations
 
 stops_bp = Blueprint('stops', __name__, url_prefix='/api')
 
 
 @stops_bp.route('/trips/<int:trip_id>/stops', methods=['GET'])
 def get_stops(trip_id):
-    """Get all stops for a trip"""
+    """Get all stops for a trip in chain order"""
     db = get_db()
     try:
-        stops = db.query(Stop).filter(Stop.trip_id == trip_id).order_by(Stop.start_date).all()
+        ordered = get_ordered_locations(db, trip_id)
+        stops = [loc for loc in ordered if isinstance(loc, Stop)]
         return jsonify([stop.to_dict(include_activities=True) for stop in stops])
     finally:
         db.close()
@@ -111,7 +112,7 @@ def update_stop(stop_id):
         if 'end_date' in data:
             stop.end_date = parse_iso_date(data['end_date'])
 
-        if stop.end_date < stop.start_date:
+        if stop.end_date is not None and stop.start_date is not None and stop.end_date < stop.start_date:
             return jsonify({'error': 'End date must be after start date'}), 400
 
         # Update location if provided
@@ -153,7 +154,70 @@ def delete_stop(stop_id):
         db.close()
 
 
+@stops_bp.route('/trips/<int:trip_id>/reorder', methods=['POST'])
+def reorder_trip_stops(trip_id):
+    """Reorder stops by rebuilding the previous_location_guid chain.
+
+    Accepts { stop_ids: [id1, id2, ...] } in the desired new order.
+    Waypoints stay attached to their stop: each stop's previous_location_guid
+    is updated to point to the tail of the previous stop's waypoint segment.
+    """
+    data = request.json
+    stop_ids = data.get('stop_ids', [])
+
+    if not stop_ids:
+        return jsonify({'error': 'stop_ids is required'}), 400
+
+    db = get_db()
+    try:
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+
+        # Fetch stops in the requested order, validating they belong to this trip
+        stops = []
+        for sid in stop_ids:
+            stop = db.query(Stop).filter(Stop.id == sid, Stop.trip_id == trip_id).first()
+            if not stop:
+                return jsonify({'error': f'Stop {sid} not found in trip'}), 404
+            stops.append(stop)
+
+        # Build a forward map across all locations so we can walk waypoint tails
+        all_locs = db.query(Location).filter(Location.trip_id == trip_id).all()
+        guids_in_trip = {loc.guid for loc in all_locs}
+        next_map = {}
+        for loc in all_locs:
+            prev = loc.previous_location_guid
+            if prev and prev in guids_in_trip and prev not in next_map:
+                next_map[prev] = loc
+
+        def get_segment_tail_guid(stop):
+            """Walk forward through waypoints after this stop; return guid of last node."""
+            current_guid = stop.guid
+            while current_guid in next_map:
+                nxt = next_map[current_guid]
+                if isinstance(nxt, Stop):
+                    break  # Don't cross into the next stop
+                current_guid = nxt.guid
+            return current_guid
+
+        # Rebuild the stop chain in the new order
+        for i, stop in enumerate(stops):
+            if i == 0:
+                stop.previous_location_guid = None
+            else:
+                stop.previous_location_guid = get_segment_tail_guid(stops[i - 1])
+
+        db.commit()
+        return jsonify({'message': 'Stops reordered successfully'})
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+
 @stops_bp.route('/stops/reorder', methods=['POST'])
 def reorder_stops():
-    """Reorder stops using location chain"""
-    return jsonify({'message': 'Reordering is handled via location chain'})
+    """Legacy stub — use /api/trips/<id>/reorder instead"""
+    return jsonify({'message': 'Use /api/trips/<id>/reorder'})

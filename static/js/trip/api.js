@@ -236,6 +236,70 @@ async function deleteWaypoint(waypointId) {
     }
 }
 
+async function fetchBookmarks(tripId) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/bookmarks`);
+        if (!response.ok) throw new Error('Failed to fetch bookmarks');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching bookmarks:', error);
+        return [];
+    }
+}
+
+async function createBookmark(tripId, bookmarkData) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/bookmarks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookmarkData)
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to create bookmark');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating bookmark:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
+async function deleteBookmark(bookmarkId) {
+    try {
+        const response = await fetch(`/api/bookmarks/${bookmarkId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete bookmark');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting bookmark:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
+async function reorderStops(tripId, stopIds) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stop_ids: stopIds })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to reorder stops');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error reordering stops:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
 // Attach all API functions to window.TripApp
 App.fetchTrip = fetchTrip;
 App.updateTrip = updateTrip;
@@ -250,6 +314,10 @@ App.calculateRoute = calculateRoute;
 App.fetchWaypoints = fetchWaypoints;
 App.createWaypoint = createWaypoint;
 App.deleteWaypoint = deleteWaypoint;
+App.fetchBookmarks = fetchBookmarks;
+App.createBookmark = createBookmark;
+App.deleteBookmark = deleteBookmark;
+App.reorderStops = reorderStops;
 
 // Expose API functions globally for use by other modules
 window.fetchTrip = fetchTrip;
@@ -265,4 +333,8 @@ window.calculateRoute = calculateRoute;
 window.fetchWaypoints = fetchWaypoints;
 window.createWaypoint = createWaypoint;
 window.deleteWaypoint = deleteWaypoint;
+window.reorderStops = reorderStops;
+window.fetchBookmarks = fetchBookmarks;
+window.createBookmark = createBookmark;
+window.deleteBookmark = deleteBookmark;
 })();

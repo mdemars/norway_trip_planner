@@ -265,8 +265,8 @@ function openEditStopModal(stopId) {
     endDateInput.parentElement.style.display = 'block';
     startDateInput.required = true;
     endDateInput.required = true;
-    startDateInput.value = formatDateForInput(stop.start_date);
-    endDateInput.value = formatDateForInput(stop.end_date);
+    startDateInput.value = stop.start_date ? formatDateForInput(stop.start_date) : '';
+    endDateInput.value = stop.end_date ? formatDateForInput(stop.end_date) : '';
 
     // Show description/url fields for regular stops
     document.getElementById('editDescriptionGroup').style.display = 'block';
@@ -931,6 +931,190 @@ function displayRouteInfo(routeData) {
 }
 
 // ============================================================================
+// Drag-and-Drop Stop Reorder Handlers
+// ============================================================================
+
+// DnD state
+App.dnd = {
+    draggedStopId: null,
+    dropTargetStopId: null
+};
+
+function handleDragStart(e) {
+    const card = e.target.closest('.stop-card[draggable="true"]');
+    if (!card) return;
+    const stopId = parseInt(card.dataset.stopId);
+    if (isNaN(stopId)) return;
+
+    App.dnd.draggedStopId = stopId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', stopId);
+    // Slight delay so the browser snapshot doesn't show the drag-state style
+    requestAnimationFrame(() => card.classList.add('dragging'));
+}
+
+function handleDragEnd(e) {
+    const card = e.target.closest('.stop-card');
+    if (card) card.classList.remove('dragging');
+    // Clear all drop-target indicators
+    document.querySelectorAll('.stop-card.drop-target').forEach(el => el.classList.remove('drop-target'));
+    App.dnd.draggedStopId = null;
+    App.dnd.dropTargetStopId = null;
+}
+
+function handleDragOver(e) {
+    const card = e.target.closest('.stop-card[draggable="true"]');
+    if (!card) return;
+    const targetId = parseInt(card.dataset.stopId);
+    if (isNaN(targetId) || targetId === App.dnd.draggedStopId) return;
+
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    if (App.dnd.dropTargetStopId !== targetId) {
+        document.querySelectorAll('.stop-card.drop-target').forEach(el => el.classList.remove('drop-target'));
+        card.classList.add('drop-target');
+        App.dnd.dropTargetStopId = targetId;
+    }
+}
+
+function handleDragLeave(e) {
+    const card = e.target.closest('.stop-card');
+    if (!card) return;
+    // Only clear if we're actually leaving the card (not entering a child element)
+    if (!card.contains(e.relatedTarget)) {
+        card.classList.remove('drop-target');
+        if (App.dnd.dropTargetStopId === parseInt(card.dataset.stopId)) {
+            App.dnd.dropTargetStopId = null;
+        }
+    }
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+    const card = e.target.closest('.stop-card[draggable="true"]');
+    if (!card) return;
+
+    const targetId = parseInt(card.dataset.stopId);
+    const draggedId = App.dnd.draggedStopId;
+
+    // Clean up visual state
+    document.querySelectorAll('.stop-card.drop-target, .stop-card.dragging')
+        .forEach(el => { el.classList.remove('drop-target'); el.classList.remove('dragging'); });
+    App.dnd.draggedStopId = null;
+    App.dnd.dropTargetStopId = null;
+
+    if (!draggedId || isNaN(targetId) || draggedId === targetId) return;
+
+    // Build new order by moving dragged stop to just before the drop target
+    const realStops = App.stops.filter(s => !s.is_trip_location);
+    const draggedIdx = realStops.findIndex(s => s.id === draggedId);
+    const targetIdx = realStops.findIndex(s => s.id === targetId);
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const newOrder = realStops.filter(s => s.id !== draggedId);
+    const insertAt = newOrder.findIndex(s => s.id === targetId);
+    newOrder.splice(insertAt, 0, realStops[draggedIdx]);
+
+    try {
+        await reorderStops(tripId, newOrder.map(s => s.id));
+        await loadStops();
+    } catch (_) {
+        // Error already shown by reorderStops
+    }
+}
+
+// Wire DnD listeners onto the stops container (event delegation)
+App.initDragAndDrop = function() {
+    const container = document.getElementById('stopsContainer');
+    if (!container) return;
+
+    container.addEventListener('dragstart', handleDragStart);
+    container.addEventListener('dragend', handleDragEnd);
+    container.addEventListener('dragover', handleDragOver);
+    container.addEventListener('dragleave', handleDragLeave);
+    container.addEventListener('drop', handleDrop);
+};
+
+// ============================================================================
+// ============================================================================
+// Bookmark Handlers
+// ============================================================================
+
+function getFaviconUrl(url) {
+    try {
+        const domain = new URL(url).hostname;
+        return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`;
+    } catch {
+        return null;
+    }
+}
+
+function renderBookmarks(bookmarks) {
+    const table = document.getElementById('bookmarksTable');
+    const tbody = document.getElementById('bookmarksTbody');
+    const empty = document.getElementById('bookmarksEmpty');
+
+    if (!bookmarks || bookmarks.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+    }
+
+    table.style.display = 'table';
+    empty.style.display = 'none';
+
+    tbody.innerHTML = bookmarks.map(b => {
+        const faviconUrl = getFaviconUrl(b.url);
+        const faviconImg = faviconUrl
+            ? `<img src="${escapeHtml(faviconUrl)}" alt="" class="bookmark-favicon" onerror="this.style.display='none'">`
+            : '';
+        const desc = b.description ? `<span class="bookmark-desc">${escapeHtml(b.description)}</span>` : '';
+        let displayUrl;
+        try { displayUrl = new URL(b.url).hostname; } catch { displayUrl = b.url; }
+        return `<tr>
+            <td class="bookmark-favicon-cell">${faviconImg}</td>
+            <td class="bookmark-url-cell">
+                <a href="${escapeHtml(b.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayUrl)}</a>
+                ${desc}
+            </td>
+            <td class="bookmark-actions-cell">
+                <button class="icon-btn danger" onclick="handleDeleteBookmark(${b.id})" title="Delete">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function handleAddBookmarkSubmit(e) {
+    e.preventDefault();
+    const url = document.getElementById('bookmarkUrl').value.trim();
+    const description = document.getElementById('bookmarkDescription').value.trim();
+    if (!url) return;
+    try {
+        await createBookmark(tripId, { url, description });
+        e.target.reset();
+        const bookmarks = await fetchBookmarks(tripId);
+        renderBookmarks(bookmarks);
+    } catch {
+        // Error already shown
+    }
+}
+
+async function handleDeleteBookmark(bookmarkId) {
+    try {
+        await deleteBookmark(bookmarkId);
+        const bookmarks = await fetchBookmarks(tripId);
+        renderBookmarks(bookmarks);
+    } catch {
+        // Error already shown
+    }
+}
+
 // Expose all handler functions on window for HTML onclick attributes
 // ============================================================================
 
@@ -961,4 +1145,7 @@ window.handleDeleteTrip = handleDeleteTrip;
 window.handleCalculateRoute = handleCalculateRoute;
 window.handleDebugRoute = handleDebugRoute;
 window.displayRouteInfo = displayRouteInfo;
+window.renderBookmarks = renderBookmarks;
+window.handleAddBookmarkSubmit = handleAddBookmarkSubmit;
+window.handleDeleteBookmark = handleDeleteBookmark;
 })();

@@ -69,6 +69,7 @@ def create_app():
     from routes.routing import routing_bp
     from routes.admin import admin_bp
     from routes.backups import backups_bp
+    from routes.bookmarks import bookmarks_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(web_bp)
@@ -79,6 +80,7 @@ def create_app():
     app.register_blueprint(routing_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(backups_bp)
+    app.register_blueprint(bookmarks_bp)
 
     # Error handlers
     @app.errorhandler(404)

@@ -8,15 +8,58 @@
     white-space: nowrap;
 }
 
+/* ── Tabs ───────────────────────────────────────────────────────────────────── */
+
+.admin-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.admin-tab {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.admin-tab:hover {
+    color: var(--text-color);
+}
+
+.admin-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.admin-tab-panel {
+    display: none;
+}
+
+.admin-tab-panel.active {
+    display: block;
+}
+
+/* ── Entity Browser ─────────────────────────────────────────────────────────── */
+
 .admin-controls {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
-    padding: 16px;
+    margin-bottom: 12px;
+    padding: 14px 16px;
     background: var(--bg-surface, white);
     border-radius: 8px;
     box-shadow: var(--shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
+    flex-wrap: wrap;
 }
 
 .admin-controls label {
@@ -40,6 +83,8 @@
     font-size: 14px;
     margin-left: auto;
 }
+
+/* ── Shared table container ─────────────────────────────────────────────────── */
 
 .admin-table-container {
     background: var(--bg-surface, white);
@@ -98,4 +143,51 @@
     text-align: center;
     color: var(--text-muted, #6c757d);
     padding: 40px 20px;
+}
+
+/* ── Backup section ─────────────────────────────────────────────────────────── */
+
+.backup-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.backup-status {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.875em;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.backup-status-ok {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+[data-theme="dark"] .backup-status-ok {
+    background: #064e3b;
+    color: #6ee7b7;
+    border-color: #065f46;
+}
+
+.backup-status-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+[data-theme="dark"] .backup-status-error {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border-color: #991b1b;
+}
+
+.backup-action-cell {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
 }

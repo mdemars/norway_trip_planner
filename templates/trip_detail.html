@@ -83,6 +83,14 @@
                             </button>
                         </div>
                     </div>
+                    <div id="chainWarningBanner" class="chain-warning-banner" style="display:none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>Chain integrity issue: <strong class="chain-warning-count">?</strong> stops have no link to a predecessor. Drag-and-drop to reorder and fix the chain.</span>
+                    </div>
                     <div id="stopsContainer" class="stops-list">
                         <div class="loading" data-i18n="stops.loadingStops">Loading stops...</div>
                     </div>
@@ -95,6 +103,23 @@
                     </div>
                     <div id="routeInfo" class="route-info">
                         <p class="info-text" data-i18n="route.addStopsToCalculate">Add stops to calculate route</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Bookmarks</h2>
+                    </div>
+                    <form id="addBookmarkForm" class="bookmark-add-form">
+                        <input type="url" id="bookmarkUrl" placeholder="https://..." required class="bookmark-url-input">
+                        <input type="text" id="bookmarkDescription" placeholder="Description (optional)" class="bookmark-desc-input">
+                        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                    </form>
+                    <div id="bookmarksContainer">
+                        <table class="bookmarks-table" id="bookmarksTable" style="display:none;">
+                            <tbody id="bookmarksTbody"></tbody>
+                        </table>
+                        <p class="info-text" id="bookmarksEmpty">No bookmarks yet.</p>
                     </div>
                 </div>
             </div>

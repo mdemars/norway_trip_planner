@@ -261,6 +261,7 @@ header .subtitle {
 .toolbar {
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
     margin-bottom: 20px;
 }
 
@@ -1301,6 +1302,104 @@ header .subtitle {
 }
 
 /* ============================================================================
+   Quick Trip Wizard
+   ============================================================================ */
+
+.wizard-stops-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wizard-stop-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wizard-badge {
+    flex-shrink: 0;
+    width: 46px;
+    font-size: 0.7em;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-align: center;
+    padding: 3px 6px;
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+.wizard-badge-start {
+    background: var(--success-color);
+    color: white;
+}
+
+.wizard-badge-end {
+    background: var(--danger-color);
+    color: white;
+}
+
+.wizard-badge-mid {
+    background: transparent; /* invisible spacer keeps column width */
+}
+
+.wizard-name {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95em;
+    background: var(--bg-surface);
+    color: var(--text-color);
+}
+
+.wizard-address {
+    flex: 2;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95em;
+    background: var(--bg-surface);
+    color: var(--text-color);
+}
+
+.wizard-name:focus,
+.wizard-address:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.wizard-name.input-error,
+.wizard-address.input-error {
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+/* ============================================================================
+   Undated stop badge
+   ============================================================================ */
+
+.undated-badge {
+    display: inline-block;
+    background: var(--warning-color);
+    color: #333;
+    font-size: 0.7em;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+}
+
+.set-dates-btn {
+    margin-top: 4px;
+}
+
+/* ============================================================================
    Calendar Stay List (mobile view)
    ============================================================================ */
 
@@ -1475,6 +1574,19 @@ header .subtitle {
         font-size: 1.05em;
     }
 
+    /* Stack action buttons vertically to maximise title/description width */
+    .stop-actions {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .stop-actions .icon-btn {
+        min-width: 36px;
+        min-height: 36px;
+        width: 36px;
+        padding: 8px;
+    }
+
     .waypoint-card {
         margin-left: 10px;
         padding: 10px 12px;
@@ -1640,6 +1752,153 @@ header .subtitle {
     .icon-btn:active {
         opacity: 0.65;
     }
+}
+
+/* ============================================================================
+   Drag-and-Drop Stop Reorder
+   ============================================================================ */
+
+.drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    cursor: grab;
+    color: var(--text-muted, #6c757d);
+    opacity: 0.4;
+    flex-shrink: 0;
+    border-radius: 4px;
+    transition: opacity 0.15s;
+    margin-right: 2px;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+    background: var(--bg-secondary, #f8f9fa);
+}
+
+.stop-card[draggable="true"] {
+    cursor: default;
+}
+
+.stop-card.dragging {
+    opacity: 0.4;
+    box-shadow: none;
+}
+
+.stop-card.drop-target {
+    border-top: 3px solid var(--primary-color, #4285F4);
+    margin-top: -1px;
+}
+
+/* Chain warning banner */
+.chain-warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 0.875em;
+}
+
+.chain-warning-banner svg {
+    flex-shrink: 0;
+    color: #ffc107;
+}
+
+/* ============================================================================
+   Bookmarks
+   ============================================================================ */
+
+.bookmark-add-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.bookmark-url-input {
+    flex: 2 1 180px;
+    min-width: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.875em;
+    background: var(--bg-surface);
+    color: var(--text-color);
+}
+
+.bookmark-desc-input {
+    flex: 1 1 120px;
+    min-width: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.875em;
+    background: var(--bg-surface);
+    color: var(--text-color);
+}
+
+.bookmarks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875em;
+}
+
+.bookmarks-table tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bookmarks-table tr:last-child {
+    border-bottom: none;
+}
+
+.bookmark-favicon-cell {
+    width: 24px;
+    padding: 6px 4px 6px 0;
+    vertical-align: middle;
+}
+
+.bookmark-favicon {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.bookmark-url-cell {
+    padding: 6px 8px;
+    vertical-align: middle;
+    word-break: break-all;
+}
+
+.bookmark-url-cell a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.bookmark-url-cell a:hover {
+    text-decoration: underline;
+}
+
+.bookmark-desc {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
+.bookmark-actions-cell {
+    width: 32px;
+    padding: 6px 0 6px 4px;
+    vertical-align: middle;
+    text-align: right;
 }
 
 /* Safe area insets for notch / home indicator (iPhone X+) */

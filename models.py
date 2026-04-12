@@ -155,6 +155,27 @@ class Activity(Base):
         }
 
 
+class TripBookmark(Base):
+    """A URL bookmark associated with a trip"""
+    __tablename__ = 'trip_bookmarks'
+    __table_args__ = {'schema': TRIPS_SCHEMA}
+
+    id = Column(Integer, primary_key=True)
+    trip_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.trips.id'), nullable=False)
+    url = Column(String(2000), nullable=False)
+    description = Column(String(500), nullable=True)
+
+    trip = relationship('Trip', backref='bookmarks')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'trip_id': self.trip_id,
+            'url': self.url,
+            'description': self.description,
+        }
+
+
 class RouteCache(Base):
     """Stores the most recently calculated route for a trip (JSON + static map PNG)."""
     __tablename__ = 'route_cache'
@@ -337,12 +358,23 @@ def _migrate_add_location_description_url(engine):
     print("Location description/url migration complete.")
 
 
+def _migrate_add_trip_bookmarks(engine):
+    """Create trip_bookmarks table if it doesn't exist (for existing databases)."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+    if 'trip_bookmarks' not in existing_tables:
+        # Let create_all handle it; nothing to do here
+        pass
+
+
 def init_db():
     """Initialize the database"""
     _ensure_schema_exists(engine)
     _migrate_to_single_table(engine)
     _migrate_add_trip_location_guids(engine)
     _migrate_add_location_description_url(engine)
+    _migrate_add_trip_bookmarks(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 

@@ -41,17 +41,55 @@
         </header>
 
         <div class="main-content">
-            <div class="admin-controls">
-                <label for="entitySelect">Entity type:</label>
-                <select id="entitySelect">
-                    <option value="">-- Select an entity --</option>
-                </select>
-                <span id="rowCount" class="row-count"></span>
+
+            <!-- Tab bar -->
+            <div class="admin-tabs" role="tablist">
+                <button class="admin-tab active" data-tab="entities" role="tab">Entity Browser</button>
+                <button class="admin-tab" data-tab="backup" role="tab">Database Backup</button>
+                <button class="admin-tab" data-tab="stopfix" role="tab">Stop-Link Fix</button>
             </div>
 
-            <div id="tableContainer" class="admin-table-container">
-                <p class="admin-placeholder">Select an entity type to view its records.</p>
+            <!-- Tab: Entity Browser -->
+            <div id="tab-entities" class="admin-tab-panel active">
+                <div class="admin-controls">
+                    <label for="entitySelect">Entity type:</label>
+                    <select id="entitySelect">
+                        <option value="">-- Select an entity --</option>
+                    </select>
+                    <span id="rowCount" class="row-count"></span>
+                </div>
+                <div id="tableContainer" class="admin-table-container">
+                    <p class="admin-placeholder">Select an entity type to view its records.</p>
+                </div>
             </div>
+
+            <!-- Tab: Database Backup -->
+            <div id="tab-backup" class="admin-tab-panel">
+                <div class="backup-actions">
+                    <button id="createBackupBtn" class="btn btn-primary">Create Backup</button>
+                    <button id="exportJsonBtn" class="btn btn-secondary">Export all trips (JSON)</button>
+                    <label class="btn btn-secondary" style="cursor:pointer;">
+                        Upload &amp; Restore backup
+                        <input type="file" id="uploadBackupInput" accept=".db" style="display:none;">
+                    </label>
+                    <label class="btn btn-secondary" style="cursor:pointer;">
+                        Import trip from JSON
+                        <input type="file" id="importTripInput" accept=".json" style="display:none;">
+                    </label>
+                </div>
+                <div id="backupStatus" class="backup-status" style="display:none;"></div>
+                <div id="backupsListContainer" class="admin-table-container" style="margin-top:12px;">
+                    <p class="admin-placeholder">Loading backups&hellip;</p>
+                </div>
+            </div>
+
+            <!-- Tab: Stop-Link Fix -->
+            <div id="tab-stopfix" class="admin-tab-panel">
+                <div class="admin-table-container">
+                    <p class="admin-placeholder" style="font-style:italic;">Coming soon &mdash; describe the feature to enable it.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 

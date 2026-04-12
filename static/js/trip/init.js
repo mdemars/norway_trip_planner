@@ -18,9 +18,26 @@ App.loadTrip = async function() {
     }
 };
 
+function checkChainIntegrity(stopsData) {
+    // A broken chain = multiple stops with previous_location_guid that is null
+    // (i.e. multiple chain heads among the real stops).
+    const heads = stopsData.filter(s => !s.previous_location_guid);
+    const banner = document.getElementById('chainWarningBanner');
+    if (!banner) return;
+    if (heads.length > 1) {
+        banner.style.display = 'flex';
+        banner.querySelector('.chain-warning-count').textContent = heads.length;
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
 App.loadStops = async function() {
     const stopsData = await window.fetchStops(tripId);
     const waypointsData = await window.fetchWaypoints(tripId);
+
+    // Check for broken chain and show warning if needed
+    checkChainIntegrity(stopsData);
 
     // Add trip start and end as pseudo-stops
     let allStops = [];
@@ -86,6 +103,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load data
     await App.loadTrip();
     await App.loadStops();
+
+    // Load bookmarks
+    const bookmarks = await fetchBookmarks(tripId);
+    renderBookmarks(bookmarks);
 
     // Map will be initialized via callback from Google Maps script
     // The callback=initMap parameter in the script URL will call initMap() when ready
@@ -277,6 +298,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('adjustNextStopBtn').addEventListener('click', handleAdjustNextStop);
     document.getElementById('justUpdateStopBtn').addEventListener('click', handleJustUpdateStop);
 
+    // Bookmark form
+    document.getElementById('addBookmarkForm').addEventListener('submit', handleAddBookmarkSubmit);
+
     // Waypoint form
     document.getElementById('addWaypointForm').addEventListener('submit', handleAddWaypointSubmit);
 
@@ -340,6 +364,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     App.attachDMSParsing('latitude', 'longitude');
     App.attachDMSParsing('editLatitude', 'editLongitude');
     App.attachDMSParsing('waypointLatitude', 'waypointLongitude');
+
+    // Initialize drag-and-drop on the stops container
+    App.initDragAndDrop();
 
     // Render calendar on page load
     renderCalendar();

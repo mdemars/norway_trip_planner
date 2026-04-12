@@ -1,6 +1,6 @@
 from datetime import datetime
 from services import geocoding_service
-from models import Location, Stop
+from models import Location
 
 
 def parse_iso_date(date_string):
@@ -45,105 +45,43 @@ def geocode_location_fields(data):
 
 
 def get_ordered_locations(db, trip_id):
-    """Return locations for a trip ordered by stop date, waypoints preserved between stops.
+    """Return locations for a trip in chain order (via previous_location_guid).
 
-    Stops are sorted by start_date. Waypoints have no date, so they are placed
-    in the gap between the two stops they sit between in the chain. This is
-    determined per connected segment, so disconnected chain fragments don't
-    scramble each other's waypoints.
+    Walks the linked-list chain defined by previous_location_guid. Each
+    location points back to its predecessor; we build a forward map and walk
+    from each head (locations with no predecessor in this trip).
 
-    For a gap between stop A and stop B: the waypoints are inserted immediately
-    after whichever of A or B sorts earlier by date. This keeps them between
-    the two surrounding stops even when dates are swapped.
+    If multiple disconnected chain segments exist (broken chain), each segment
+    is appended in the order it is found. Callers can detect this by counting
+    how many stops have previous_location_guid == None.
 
     Returns a list of Location objects in order from first to last.
-    Returns an empty list if no locations exist.
     """
     all_locations = db.query(Location).filter(Location.trip_id == trip_id).all()
     if not all_locations:
         return []
 
-    location_map = {loc.guid: loc for loc in all_locations}
+    guids_in_trip = {loc.guid for loc in all_locations}
 
-    # Find all tails (no other location points to them as previous_location_guid).
-    # Multiple tails indicate disconnected chain fragments.
-    guids_referenced = {loc.previous_location_guid for loc in all_locations if loc.previous_location_guid}
-    tails = [loc for loc in all_locations if loc.guid not in guids_referenced]
+    # Build forward map: guid → next location (what directly follows this guid).
+    # If two locations claim the same predecessor the chain is broken; first wins.
+    next_map = {}
+    for loc in all_locations:
+        prev = loc.previous_location_guid
+        if prev and prev in guids_in_trip and prev not in next_map:
+            next_map[prev] = loc
 
-    # Walk each tail backwards to rebuild connected segments in forward order.
-    segments = []
-    visited = set()
-    for tail in tails:
-        seg = []
-        current = tail
-        while current and current.guid not in visited:
-            seg.append(current)
-            visited.add(current.guid)
-            current = location_map.get(current.previous_location_guid)
-        seg.reverse()
-        segments.append(seg)
-
-    # For each segment, split into stops and waypoint gaps.
-    # Each gap is described by (prev_stop, next_stop, [waypoints]):
-    #   prev_stop=None → gap is before the first stop of the segment
-    #   next_stop=None → gap is after the last stop of the segment
-    all_stops = []
-    gap_entries = []  # list of (prev_stop, next_stop, [waypoints])
-
-    for seg in segments:
-        seg_stops = []
-        seg_gaps = []
-        current_gap = []
-        for loc in seg:
-            if isinstance(loc, Stop):
-                seg_gaps.append(current_gap)
-                seg_stops.append(loc)
-                current_gap = []
-            else:
-                current_gap.append(loc)
-        seg_gaps.append(current_gap)  # trailing gap after last stop
-
-        all_stops.extend(seg_stops)
-        n = len(seg_stops)
-        for i, wps in enumerate(seg_gaps):
-            if not wps:
-                continue
-            prev_stop = seg_stops[i - 1] if i > 0 else None
-            next_stop = seg_stops[i] if i < n else None
-            gap_entries.append((prev_stop, next_stop, wps))
-
-    if not all_stops:
-        # No stops at all — return all waypoints in chain order
-        return [loc for seg in segments for loc in seg]
-
-    all_stops.sort(key=lambda s: s.start_date or datetime.min)
-    stop_pos = {s.id: i for i, s in enumerate(all_stops)}
-
-    # Determine the insertion slot for each gap.
-    # Slot i means "insert after all_stops[i]"; slot -1 means "insert before all_stops[0]".
-    # For a gap between prev_stop and next_stop, use the slot of whichever stop
-    # sorts first — this keeps the waypoints between the two stops even when
-    # their dates are swapped.
-    insertions = {}  # slot -> list of waypoint lists (each list preserves chain order)
-    for prev_stop, next_stop, wps in gap_entries:
-        if prev_stop is None and next_stop is None:
-            slot = -1
-        elif prev_stop is None:
-            # Leading gap: goes just before next_stop
-            slot = stop_pos[next_stop.id] - 1
-        elif next_stop is None:
-            # Trailing gap: goes after prev_stop
-            slot = stop_pos[prev_stop.id]
-        else:
-            # Middle gap: goes after whichever of the two stops sorts earlier
-            slot = min(stop_pos[prev_stop.id], stop_pos[next_stop.id])
-        insertions.setdefault(slot, []).append(wps)
+    # Heads: no previous_location_guid, or it references outside this trip.
+    heads = [loc for loc in all_locations
+             if not loc.previous_location_guid or loc.previous_location_guid not in guids_in_trip]
 
     result = []
-    for wps_list in insertions.get(-1, []):
-        result.extend(wps_list)
-    for i, stop in enumerate(all_stops):
-        result.append(stop)
-        for wps_list in insertions.get(i, []):
-            result.extend(wps_list)
+    visited = set()
+    for head in heads:
+        current = head
+        while current and current.guid not in visited:
+            result.append(current)
+            visited.add(current.guid)
+            current = next_map.get(current.guid)
+
     return result
