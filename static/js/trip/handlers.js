@@ -914,15 +914,26 @@ function displayRouteInfo(routeData) {
             return 0;
         });
 
+        const maxDist = Math.max(...sortedSegments.map(s => s.distance_km));
+        const minDist = Math.min(...sortedSegments.map(s => s.distance_km));
+        const range = maxDist - minDist || 1;
+
+        // Interpolate hue: 120 (green) → 60 (yellow) → 0 (red)
+        const segmentHue = dist => Math.round(120 * (1 - (dist - minDist) / range));
+
         html += `
             <div class="route-segments">
                 <h4>${t('route.routeSegments')}</h4>
-                ${sortedSegments.map(segment => `
-                    <div class="segment">
+                ${sortedSegments.map(segment => {
+                    const hue = segmentHue(segment.distance_km);
+                    const accent = `hsl(${hue}, 72%, 42%)`;
+                    const bg = `hsl(${hue}, 72%, 96%)`;
+                    return `
+                    <div class="segment" style="border-left: 4px solid ${accent}; background: ${bg};">
                         <div class="route">${escapeHtml(segment.from_name)} ${t('route.to')} ${escapeHtml(segment.to_name)}</div>
-                        <div class="distance">${segment.distance_km.toFixed(1)} km</div>
-                    </div>
-                `).join('')}
+                        <div class="distance" style="color: ${accent};">${segment.distance_km.toFixed(1)} km</div>
+                    </div>`;
+                }).join('')}
             </div>
         `;
     }
@@ -930,113 +941,6 @@ function displayRouteInfo(routeData) {
     container.innerHTML = html;
 }
 
-// ============================================================================
-// Drag-and-Drop Stop Reorder Handlers
-// ============================================================================
-
-// DnD state
-App.dnd = {
-    draggedStopId: null,
-    dropTargetStopId: null
-};
-
-function handleDragStart(e) {
-    const card = e.target.closest('.stop-card[draggable="true"]');
-    if (!card) return;
-    const stopId = parseInt(card.dataset.stopId);
-    if (isNaN(stopId)) return;
-
-    App.dnd.draggedStopId = stopId;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', stopId);
-    // Slight delay so the browser snapshot doesn't show the drag-state style
-    requestAnimationFrame(() => card.classList.add('dragging'));
-}
-
-function handleDragEnd(e) {
-    const card = e.target.closest('.stop-card');
-    if (card) card.classList.remove('dragging');
-    // Clear all drop-target indicators
-    document.querySelectorAll('.stop-card.drop-target').forEach(el => el.classList.remove('drop-target'));
-    App.dnd.draggedStopId = null;
-    App.dnd.dropTargetStopId = null;
-}
-
-function handleDragOver(e) {
-    const card = e.target.closest('.stop-card[draggable="true"]');
-    if (!card) return;
-    const targetId = parseInt(card.dataset.stopId);
-    if (isNaN(targetId) || targetId === App.dnd.draggedStopId) return;
-
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-
-    if (App.dnd.dropTargetStopId !== targetId) {
-        document.querySelectorAll('.stop-card.drop-target').forEach(el => el.classList.remove('drop-target'));
-        card.classList.add('drop-target');
-        App.dnd.dropTargetStopId = targetId;
-    }
-}
-
-function handleDragLeave(e) {
-    const card = e.target.closest('.stop-card');
-    if (!card) return;
-    // Only clear if we're actually leaving the card (not entering a child element)
-    if (!card.contains(e.relatedTarget)) {
-        card.classList.remove('drop-target');
-        if (App.dnd.dropTargetStopId === parseInt(card.dataset.stopId)) {
-            App.dnd.dropTargetStopId = null;
-        }
-    }
-}
-
-async function handleDrop(e) {
-    e.preventDefault();
-    const card = e.target.closest('.stop-card[draggable="true"]');
-    if (!card) return;
-
-    const targetId = parseInt(card.dataset.stopId);
-    const draggedId = App.dnd.draggedStopId;
-
-    // Clean up visual state
-    document.querySelectorAll('.stop-card.drop-target, .stop-card.dragging')
-        .forEach(el => { el.classList.remove('drop-target'); el.classList.remove('dragging'); });
-    App.dnd.draggedStopId = null;
-    App.dnd.dropTargetStopId = null;
-
-    if (!draggedId || isNaN(targetId) || draggedId === targetId) return;
-
-    // Build new order by moving dragged stop to just before the drop target
-    const realStops = App.stops.filter(s => !s.is_trip_location);
-    const draggedIdx = realStops.findIndex(s => s.id === draggedId);
-    const targetIdx = realStops.findIndex(s => s.id === targetId);
-    if (draggedIdx === -1 || targetIdx === -1) return;
-
-    const newOrder = realStops.filter(s => s.id !== draggedId);
-    const insertAt = newOrder.findIndex(s => s.id === targetId);
-    newOrder.splice(insertAt, 0, realStops[draggedIdx]);
-
-    try {
-        await reorderStops(tripId, newOrder.map(s => s.id));
-        await loadStops();
-    } catch (_) {
-        // Error already shown by reorderStops
-    }
-}
-
-// Wire DnD listeners onto the stops container (event delegation)
-App.initDragAndDrop = function() {
-    const container = document.getElementById('stopsContainer');
-    if (!container) return;
-
-    container.addEventListener('dragstart', handleDragStart);
-    container.addEventListener('dragend', handleDragEnd);
-    container.addEventListener('dragover', handleDragOver);
-    container.addEventListener('dragleave', handleDragLeave);
-    container.addEventListener('drop', handleDrop);
-};
-
-// ============================================================================
 // ============================================================================
 // Bookmark Handlers
 // ============================================================================

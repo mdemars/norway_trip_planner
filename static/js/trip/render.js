@@ -167,16 +167,9 @@ App.createStopCard = function createStopCard(stop, index) {
     const color = App.STOP_COLORS[(index - 1) % App.STOP_COLORS.length];
 
     return `
-        <div class="stop-card collapsed" data-stop-id="${stop.id}" draggable="true" style="border-left-color: ${color};">
+        <div class="stop-card collapsed" data-stop-id="${stop.id}" style="border-left-color: ${color};">
             <div class="stop-header" onclick="toggleStopCollapse(${stop.id})">
                 <div class="stop-title-row">
-                    <span class="drag-handle" title="Drag to reorder" onclick="event.stopPropagation()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <line x1="3" y1="12" x2="21" y2="12"></line>
-                            <line x1="3" y1="18" x2="21" y2="18"></line>
-                        </svg>
-                    </span>
                     <button class="collapse-toggle" onclick="event.stopPropagation(); toggleStopCollapse(${stop.id})">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron">
                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -229,7 +222,7 @@ App.createStopCard = function createStopCard(stop, index) {
                             <line x1="8" y1="2" x2="8" y2="6"></line>
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
-                        Set dates &amp; details…
+                        ${t('stops.setDatesDetails')}
                     </button>`}
                     ${stop.address ? `<div class="stop-address">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">

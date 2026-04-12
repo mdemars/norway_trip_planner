@@ -193,16 +193,297 @@ async function uploadAndRestoreBackup(file) {
     }
 }
 
+// ── Section 3: Stop-Link Fix ──────────────────────────────────────────────────
+
+let chainLocations = [];        // current ordered array from the server
+let chainPendingDeletes = new Set(); // guids staged for deletion
+let chainTripId = null;
+let chainDragSrcIdx = null;
+
+function updateChainBackButton(tripId) {
+    const btn = document.getElementById('chainBackToTripBtn');
+    if (tripId) {
+        btn.href = `/trip/${tripId}`;
+        btn.style.display = 'inline-flex';
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+async function loadChainTrips() {
+    const select = document.getElementById('chainTripSelect');
+    try {
+        const res = await fetch('/api/admin/chain/trips');
+        const trips = await res.json();
+        for (const t of trips) {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            select.appendChild(opt);
+        }
+    } catch (err) {
+        console.error('Failed to load trips for chain fix:', err);
+    }
+}
+
+async function loadChainLocations(tripId) {
+    const container = document.getElementById('chainContainer');
+    container.innerHTML = '<p class="admin-placeholder">Loading…</p>';
+    document.getElementById('chainLocationCount').textContent = '';
+    document.getElementById('chainSaveBtn').style.display = 'none';
+    chainPendingDeletes = new Set();
+    try {
+        const res = await fetch(`/api/admin/chain/trips/${tripId}/locations`);
+        if (!res.ok) throw new Error((await res.json()).error);
+        chainLocations = await res.json();
+        chainTripId = tripId;
+        renderChainTable();
+    } catch (err) {
+        container.innerHTML = `<p class="admin-placeholder" style="color:var(--danger-color);">Error: ${escapeHtml(err.message)}</p>`;
+    }
+}
+
+function formatDateRange(loc) {
+    if (!loc.start_date && !loc.end_date) return '—';
+    const fmt = iso => iso ? iso.slice(0, 10) : '?';
+    if (loc.start_date && loc.end_date) return `${fmt(loc.start_date)} → ${fmt(loc.end_date)}`;
+    return fmt(loc.start_date || loc.end_date);
+}
+
+function shortGuid(guid) {
+    return guid ? guid.slice(0, 8) + '…' : '<span class="null-value">null</span>';
+}
+
+function renderChainTable() {
+    const container = document.getElementById('chainContainer');
+    const countEl = document.getElementById('chainLocationCount');
+    countEl.textContent = `${chainLocations.length} location${chainLocations.length !== 1 ? 's' : ''}`;
+    document.getElementById('chainSaveBtn').style.display = chainLocations.length ? 'inline-flex' : 'none';
+
+    if (!chainLocations.length) {
+        container.innerHTML = '<p class="admin-placeholder">No locations found for this trip.</p>';
+        return;
+    }
+
+    // Date-error detection — skip pending deletes
+    const dateErrors = new Set();
+    let prevStop = null;
+    for (let i = 0; i < chainLocations.length; i++) {
+        const loc = chainLocations[i];
+        if (chainPendingDeletes.has(loc.guid)) continue;
+        if (loc.type !== 'stop' || !loc.start_date) continue;
+        if (prevStop && prevStop.end_date) {
+            if (new Date(loc.start_date) < new Date(prevStop.end_date)) {
+                dateErrors.add(i);
+            }
+        }
+        prevStop = loc;
+    }
+
+    const rows = chainLocations.map((loc, i) => {
+        const isDeleted = chainPendingDeletes.has(loc.guid);
+        const badge = loc.type === 'stop'
+            ? '<span class="chain-badge chain-badge-stop">stop</span>'
+            : '<span class="chain-badge chain-badge-waypoint">waypoint</span>';
+        const errorClass = !isDeleted && dateErrors.has(i) ? ' chain-row-date-error' : '';
+        const deletedClass = isDeleted ? ' chain-row-pending-delete' : '';
+        const errorIcon = !isDeleted && dateErrors.has(i)
+            ? ' <svg style="vertical-align:middle;color:#dc3545;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+            : '';
+        const unreachableIcon = !isDeleted && loc.unreachable
+            ? ' <span class="chain-unreachable-badge" title="Unreachable — not connected to the main chain">orphan</span>'
+            : '';
+        const deleteBtn = isDeleted
+            ? `<button class="btn btn-secondary btn-sm chain-delete-toggle" data-guid="${loc.guid}" title="Undo delete">Undo</button>`
+            : `<button class="btn btn-danger btn-sm chain-delete-toggle" data-guid="${loc.guid}" title="Stage for deletion">Delete</button>`;
+        return `<tr class="chain-row${errorClass}${deletedClass}" ${isDeleted ? '' : 'draggable="true"'} data-idx="${i}">
+            <td class="chain-drag-handle" title="${isDeleted ? '' : 'Drag to reorder'}" style="${isDeleted ? 'opacity:0.3;' : ''}">
+                ${isDeleted ? '' : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
+                </svg>`}
+            </td>
+            <td>${escapeHtml(loc.name)}${errorIcon}${unreachableIcon}</td>
+            <td>${badge}</td>
+            <td class="chain-dates">${formatDateRange(loc)}</td>
+            <td class="chain-guid" title="${loc.previous_location_guid || 'null'}">${shortGuid(loc.previous_location_guid)}</td>
+            <td class="chain-action-cell">${deleteBtn}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="table-scroll">
+            <table class="admin-table chain-table">
+                <thead><tr>
+                    <th style="width:32px;"></th>
+                    <th>Name</th><th>Type</th><th>Date range</th><th>Previous link (current)</th><th style="width:80px;"></th>
+                </tr></thead>
+                <tbody id="chainTbody">${rows}</tbody>
+            </table>
+        </div>`;
+
+    // Delete toggle buttons
+    document.querySelectorAll('.chain-delete-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const guid = btn.dataset.guid;
+            if (chainPendingDeletes.has(guid)) {
+                chainPendingDeletes.delete(guid);
+            } else {
+                chainPendingDeletes.add(guid);
+            }
+            renderChainTable();
+        });
+    });
+
+    attachChainDragHandlers();
+}
+
+function attachChainDragHandlers() {
+    const tbody = document.getElementById('chainTbody');
+    if (!tbody) return;
+
+    tbody.addEventListener('dragstart', e => {
+        const row = e.target.closest('.chain-row');
+        if (!row) return;
+        chainDragSrcIdx = parseInt(row.dataset.idx);
+        row.classList.add('chain-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+
+    tbody.addEventListener('dragend', e => {
+        const row = e.target.closest('.chain-row');
+        if (row) row.classList.remove('chain-dragging');
+        tbody.querySelectorAll('.chain-row').forEach(r => r.classList.remove('chain-drop-target'));
+        chainDragSrcIdx = null;
+    });
+
+    tbody.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const row = e.target.closest('.chain-row');
+        tbody.querySelectorAll('.chain-row').forEach(r => r.classList.remove('chain-drop-target'));
+        if (row && parseInt(row.dataset.idx) !== chainDragSrcIdx) {
+            row.classList.add('chain-drop-target');
+        }
+    });
+
+    tbody.addEventListener('drop', e => {
+        e.preventDefault();
+        const targetRow = e.target.closest('.chain-row[draggable="true"]');
+        if (!targetRow) return;
+        const targetIdx = parseInt(targetRow.dataset.idx);
+        if (chainDragSrcIdx === null || chainDragSrcIdx === targetIdx) return;
+
+        const moved = chainLocations.splice(chainDragSrcIdx, 1)[0];
+        const insertAt = chainDragSrcIdx < targetIdx ? targetIdx : targetIdx;
+        chainLocations.splice(insertAt, 0, moved);
+        renderChainTable();
+    });
+}
+
+function computeChainDiff() {
+    // Non-deleted locations in their current display order
+    const active = chainLocations.filter(loc => !chainPendingDeletes.has(loc.guid));
+    const nameByGuid = {};
+    active.forEach(loc => { nameByGuid[loc.guid] = loc.name; });
+
+    const linkChanges = [];
+    active.forEach((loc, i) => {
+        const newPrev = i > 0 ? active[i - 1].guid : null;
+        if (loc.previous_location_guid !== newPrev) {
+            linkChanges.push({
+                name: loc.name,
+                type: loc.type,
+                old_prev_name: nameByGuid[loc.previous_location_guid] || null,
+                new_prev_name: nameByGuid[newPrev] || null,
+            });
+        }
+    });
+
+    const deletions = chainLocations.filter(loc => chainPendingDeletes.has(loc.guid));
+    return { linkChanges, deletions };
+}
+
+function showChainDiffModal({ linkChanges, deletions }) {
+    const badge = type => type === 'stop'
+        ? '<span class="chain-badge chain-badge-stop">stop</span>'
+        : '<span class="chain-badge chain-badge-waypoint">waypoint</span>';
+
+    const delSection = document.getElementById('chainDiffDeletionsSection');
+    if (deletions.length) {
+        document.getElementById('chainDiffDeleteCount').textContent = deletions.length;
+        document.getElementById('chainDiffDeleteTbody').innerHTML = deletions.map(d =>
+            `<tr class="chain-row-pending-delete"><td>${escapeHtml(d.name)}</td><td>${badge(d.type)}</td></tr>`
+        ).join('');
+        delSection.style.display = '';
+    } else {
+        delSection.style.display = 'none';
+    }
+
+    const linkSection = document.getElementById('chainDiffLinksSection');
+    if (linkChanges.length) {
+        document.getElementById('chainDiffLinkCount').textContent = linkChanges.length;
+        document.getElementById('chainDiffLinkTbody').innerHTML = linkChanges.map(c => {
+            const oldCell = c.old_prev_name
+                ? escapeHtml(c.old_prev_name)
+                : `<span class="null-value">null (chain head)</span>`;
+            const newCell = c.new_prev_name
+                ? escapeHtml(c.new_prev_name)
+                : `<span class="null-value">null (chain head)</span>`;
+            return `<tr><td>${escapeHtml(c.name)}</td><td>${badge(c.type)}</td><td>${oldCell}</td><td>${newCell}</td></tr>`;
+        }).join('');
+        linkSection.style.display = '';
+    } else {
+        linkSection.style.display = 'none';
+    }
+
+    document.getElementById('chainDiffModal').style.display = 'flex';
+}
+
+async function commitChain() {
+    const active = chainLocations.filter(loc => !chainPendingDeletes.has(loc.guid));
+    const guids = active.map(l => l.guid);
+    const delete_ids = chainLocations
+        .filter(loc => chainPendingDeletes.has(loc.guid))
+        .map(loc => loc.id);
+    try {
+        const res = await fetch(`/api/admin/chain/trips/${chainTripId}/rechain`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guids, delete_ids })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        document.getElementById('chainDiffModal').style.display = 'none';
+        const parts = [];
+        if (data.deleted?.length) parts.push(`${data.deleted.length} deleted`);
+        if (data.changes?.length) parts.push(`${data.changes.length} link(s) updated`);
+        showBackupStatus(`Done — ${parts.join(', ') || 'no changes'}.`);
+        await loadChainLocations(chainTripId);
+    } catch (err) {
+        showBackupStatus('Failed: ' + err.message, true);
+    }
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
+function activateTab(tabName) {
+    const tabs = document.querySelectorAll('.admin-tab');
+    tabs.forEach(t => {
+        const isActive = t.dataset.tab === tabName;
+        t.classList.toggle('active', isActive);
+    });
+    document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('tab-' + tabName);
+    if (panel) panel.classList.add('active');
+}
+
 function initTabs() {
+    activateTab(ADMIN_ACTIVE_TAB);
     const tabs = document.querySelectorAll('.admin-tab');
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+            activateTab(tab.dataset.tab);
+            history.pushState(null, '', tab.dataset.url);
         });
     });
 }
@@ -254,6 +535,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         await uploadAndRestoreBackup(file);
         e.target.value = '';
     });
+
+    // Stop-Link Fix
+    await loadChainTrips();
+
+    // Pre-select trip from URL param if present
+    if (ADMIN_PRESELECT_TRIP) {
+        const select = document.getElementById('chainTripSelect');
+        select.value = ADMIN_PRESELECT_TRIP;
+        if (select.value) {
+            updateChainBackButton(ADMIN_PRESELECT_TRIP);
+            await loadChainLocations(ADMIN_PRESELECT_TRIP);
+        }
+    }
+
+    document.getElementById('chainTripSelect').addEventListener('change', e => {
+        const id = e.target.value;
+        updateChainBackButton(id ? parseInt(id) : null);
+        if (id) loadChainLocations(id);
+        else {
+            chainLocations = [];
+            chainTripId = null;
+            document.getElementById('chainContainer').innerHTML = '<p class="admin-placeholder">Select a trip to view and reorder its stops and waypoints.</p>';
+            document.getElementById('chainLocationCount').textContent = '';
+            document.getElementById('chainSaveBtn').style.display = 'none';
+        }
+    });
+
+    document.getElementById('chainSaveBtn').addEventListener('click', () => {
+        const diff = computeChainDiff();
+        if (!diff.deletions.length && !diff.linkChanges.length) {
+            showBackupStatus('No changes — order is already up to date.');
+            return;
+        }
+        showChainDiffModal(diff);
+    });
+
+    document.getElementById('chainDiffClose').addEventListener('click', () => {
+        document.getElementById('chainDiffModal').style.display = 'none';
+    });
+    document.getElementById('chainDiffCancel').addEventListener('click', () => {
+        document.getElementById('chainDiffModal').style.display = 'none';
+    });
+    document.getElementById('chainDiffCommit').addEventListener('click', commitChain);
 
     document.getElementById('importTripInput').addEventListener('change', async (e) => {
         const file = e.target.files[0];

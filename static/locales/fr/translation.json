@@ -38,6 +38,11 @@
     "stop_one": "{{count}} etape",
     "stop_other": "{{count}} etapes",
     "noStopsMessage": "Aucune etape",
+    "noDatesSet": "Pas de dates definies",
+    "reorderStops": "Reordonner les etapes",
+    "setDatesDetails": "Definir dates & details\u2026",
+    "removeStop": "Supprimer l'etape",
+    "addressOrGps": "Adresse ou GPS (ex. 59.91, 10.75)",
     "showOnMap": "Afficher sur la carte"
   },
   "dates": {
@@ -147,6 +152,7 @@
   },
   "modals": {
     "createNewTrip": "Creer un nouveau voyage",
+    "quickTrip": "Voyage rapide",
     "editTripName": "Modifier le nom du voyage",
     "editTripLocations": "Modifier les lieux du voyage",
     "adjustFollowingStops": "Ajuster les etapes suivantes",
@@ -173,6 +179,8 @@
     "addressNotFound": "Adresse non trouvee - veuillez verifier l'orthographe",
     "couldNotValidate": "Impossible de valider l'adresse",
     "validatingAddress": "Veuillez patienter, l'adresse est en cours de validation...",
+    "pleaseWaitValidation": "Veuillez attendre la fin de la validation de l'adresse",
+    "pleaseFixErrors": "Veuillez corriger les erreurs avant de soumettre",
     "stopNameRequired": "Le nom de l'etape est requis",
     "activityNameRequired": "Le nom de l'activite est requis",
     "waypointNameRequired": "Le nom du point de passage est requis"
@@ -199,6 +207,10 @@
     "deleteStop": "Etes-vous sur de vouloir supprimer \"{{name}}\"? Cela supprimera aussi toutes les activites de cette etape.",
     "deleteActivity": "Etes-vous sur de vouloir supprimer \"{{name}}\"?",
     "deleteWaypoint": "Etes-vous sur de vouloir supprimer le point de passage \"{{name}}\"?"
+  },
+  "bookmarks": {
+    "title": "Favoris",
+    "noBookmarks": "Pas encore de favoris."
   },
   "errors": {
     "failedToLoadTrips": "Echec du chargement des voyages",

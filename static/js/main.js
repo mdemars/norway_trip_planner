@@ -130,7 +130,7 @@ function createTripCard(trip) {
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                 </svg>
-                ${stopsText} · No dates set
+                ${stopsText} · ${t('stops.noDatesSet')}
             </span>
         `;
     } else {
@@ -447,10 +447,12 @@ function addWizardRow() {
     const row = document.createElement('div');
     row.className = 'wizard-stop-row';
     row.innerHTML = `
-        <span class="wizard-badge"></span>
-        <input class="wizard-name" type="text" placeholder="Stop name" autocomplete="off">
-        <input class="wizard-address" type="text" placeholder="Address (optional)" autocomplete="off">
-        <button type="button" class="icon-btn wizard-remove" onclick="removeWizardRow(this)" title="Remove stop">
+        <input class="wizard-name" type="text" placeholder="${t('stops.stopName')}" autocomplete="off">
+        <div class="address-input-wrapper wizard-address-wrapper">
+            <input class="wizard-address" type="text" placeholder="${t('stops.addressOrGps')}" autocomplete="off">
+            <span class="address-validation-status"></span>
+        </div>
+        <button type="button" class="icon-btn wizard-remove" onclick="removeWizardRow(this)" title="${t('stops.removeStop')}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -459,6 +461,7 @@ function addWizardRow() {
     `;
     list.appendChild(row);
     updateWizardBadges();
+    setupWizardAddressValidation(row);
     // Tab from address → add new row (fast keyboard entry)
     row.querySelector('.wizard-address').addEventListener('keydown', (e) => {
         if (e.key === 'Tab' && !e.shiftKey) {
@@ -484,20 +487,8 @@ function removeWizardRow(btn) {
 
 function updateWizardBadges() {
     const rows = document.querySelectorAll('#wizardStopsList .wizard-stop-row');
-    rows.forEach((row, i) => {
-        const badge = row.querySelector('.wizard-badge');
+    rows.forEach((row) => {
         const removeBtn = row.querySelector('.wizard-remove');
-        if (i === 0) {
-            badge.textContent = 'START';
-            badge.className = 'wizard-badge wizard-badge-start';
-        } else if (i === rows.length - 1) {
-            badge.textContent = 'END';
-            badge.className = 'wizard-badge wizard-badge-end';
-        } else {
-            badge.textContent = '';
-            badge.className = 'wizard-badge wizard-badge-mid';
-        }
-        // Hide remove button when only 2 rows remain
         removeBtn.style.visibility = rows.length > 2 ? 'visible' : 'hidden';
     });
 }
@@ -506,29 +497,58 @@ async function handleQuickTripSubmit() {
     const name = document.getElementById('quickTripName').value.trim();
     if (!name) {
         document.getElementById('quickTripName').focus();
-        showError('Trip name is required');
+        showError(t('validation.tripNameRequired'));
         return;
     }
 
     const rows = document.querySelectorAll('#wizardStopsList .wizard-stop-row');
     const stops = [];
     let hasError = false;
+    let hasValidating = false;
 
     rows.forEach(row => {
         const nameInput = row.querySelector('.wizard-name');
+        const addressInput = row.querySelector('.wizard-address');
         const stopName = nameInput.value.trim();
-        const address = row.querySelector('.wizard-address').value.trim();
+        const addressValue = addressInput.value.trim();
+
         if (!stopName) {
             nameInput.classList.add('input-error');
             nameInput.addEventListener('input', () => nameInput.classList.remove('input-error'), { once: true });
             hasError = true;
             return;
         }
-        stops.push({ name: stopName, address });
+
+        if (addressValue) {
+            const state = addressInput.dataset.validationState;
+            if (state === 'validating') {
+                hasValidating = true;
+                hasError = true;
+                return;
+            }
+            if (state === 'invalid') {
+                addressInput.classList.add('input-error');
+                addressInput.addEventListener('input', () => addressInput.classList.remove('input-error'), { once: true });
+                hasError = true;
+                return;
+            }
+        }
+
+        const stop = { name: stopName };
+        if (addressValue) {
+            if (addressInput.dataset.locationType === 'gps') {
+                stop.latitude = parseFloat(addressInput.dataset.latitude);
+                stop.longitude = parseFloat(addressInput.dataset.longitude);
+                stop.location_type = 'gps';
+            } else {
+                stop.address = addressValue;
+            }
+        }
+        stops.push(stop);
     });
 
     if (hasError) {
-        showError('Each stop must have a name');
+        showError(hasValidating ? t('validation.pleaseWaitValidation') : t('validation.pleaseFixErrors'));
         return;
     }
 
@@ -554,6 +574,89 @@ async function handleQuickTripSubmit() {
         showError(error.message);
         submitBtn.disabled = false;
     }
+}
+
+// ============================================================================
+// Wizard Address Validation
+// ============================================================================
+
+function parseGpsCoords(str) {
+    // Match "lat, lng" or "lat lng" or "lat,lng" with optional whitespace
+    const match = str.match(/^(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)$/);
+    if (!match) return null;
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    return { latitude: lat, longitude: lng };
+}
+
+const wizardValidationTimers = {};
+
+function setupWizardAddressValidation(row) {
+    const input = row.querySelector('.wizard-address');
+    const status = row.querySelector('.address-validation-status');
+
+    input.addEventListener('input', () => {
+        const id = input.dataset.wizardId || (input.dataset.wizardId = Math.random().toString(36).slice(2));
+        clearTimeout(wizardValidationTimers[id]);
+        const value = input.value.trim();
+
+        if (!value) {
+            resetWizardAddressStatus(input, status);
+            return;
+        }
+
+        const gps = parseGpsCoords(value);
+        if (gps) {
+            input.dataset.validationState = 'valid';
+            input.dataset.locationType = 'gps';
+            input.dataset.latitude = gps.latitude;
+            input.dataset.longitude = gps.longitude;
+            setWizardAddressStatus(input, status, 'valid');
+            return;
+        }
+
+        input.dataset.locationType = 'address';
+        setWizardAddressStatus(input, status, 'validating');
+
+        wizardValidationTimers[id] = setTimeout(async () => {
+            try {
+                const response = await fetch('/api/validate-address', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: value })
+                });
+                const result = await response.json();
+                if (input.value.trim() !== value) return;
+                setWizardAddressStatus(input, status, result.valid ? 'valid' : 'invalid');
+            } catch {
+                setWizardAddressStatus(input, status, 'invalid');
+            }
+        }, 500);
+    });
+}
+
+function setWizardAddressStatus(input, status, state) {
+    input.dataset.validationState = state;
+    if (state === 'validating') {
+        status.className = 'address-validation-status validating';
+        status.textContent = '...';
+    } else if (state === 'valid') {
+        status.className = 'address-validation-status valid';
+        status.textContent = '\u2713';
+    } else if (state === 'invalid') {
+        status.className = 'address-validation-status invalid';
+        status.textContent = '\u2717';
+    }
+}
+
+function resetWizardAddressStatus(input, status) {
+    delete input.dataset.validationState;
+    delete input.dataset.locationType;
+    delete input.dataset.latitude;
+    delete input.dataset.longitude;
+    status.className = 'address-validation-status';
+    status.textContent = '';
 }
 
 window.addWizardRow = addWizardRow;

@@ -700,7 +700,7 @@ header .subtitle {
 
 .segment {
     background: var(--bg-surface);
-    padding: 12px;
+    padding: 12px 12px 12px 10px;
     border-radius: 6px;
     margin-bottom: 8px;
     display: flex;
@@ -1317,31 +1317,6 @@ header .subtitle {
     gap: 8px;
 }
 
-.wizard-badge {
-    flex-shrink: 0;
-    width: 46px;
-    font-size: 0.7em;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-align: center;
-    padding: 3px 6px;
-    border-radius: 4px;
-    line-height: 1.4;
-}
-
-.wizard-badge-start {
-    background: var(--success-color);
-    color: white;
-}
-
-.wizard-badge-end {
-    background: var(--danger-color);
-    color: white;
-}
-
-.wizard-badge-mid {
-    background: transparent; /* invisible spacer keeps column width */
-}
 
 .wizard-name {
     flex: 1;
@@ -1354,10 +1329,18 @@ header .subtitle {
     color: var(--text-color);
 }
 
-.wizard-address {
+.wizard-address-wrapper {
     flex: 2;
     min-width: 0;
-    padding: 8px 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.wizard-address {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 36px 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 0.95em;
@@ -1780,11 +1763,6 @@ header .subtitle {
 
 .stop-card[draggable="true"] {
     cursor: default;
-}
-
-.stop-card.dragging {
-    opacity: 0.4;
-    box-shadow: none;
 }
 
 .stop-card.drop-target {

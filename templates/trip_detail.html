@@ -67,6 +67,12 @@
                     <div class="section-header">
                         <h2 data-i18n="stops.title">Stops</h2>
                         <div style="display:flex;gap:8px;align-items:center;">
+                            <a href="/admin/ordering?trip={{ trip_id }}" class="btn btn-secondary btn-sm" style="text-decoration:none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
+                                </svg>
+                                <span data-i18n="stops.reorderStops">Re-Order Stops</span>
+                            </a>
                             <button id="addStopBtn" class="btn btn-primary btn-sm">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -108,18 +114,18 @@
 
                 <div class="section">
                     <div class="section-header">
-                        <h2>Bookmarks</h2>
+                        <h2 data-i18n="bookmarks.title">Bookmarks</h2>
                     </div>
                     <form id="addBookmarkForm" class="bookmark-add-form">
                         <input type="url" id="bookmarkUrl" placeholder="https://..." required class="bookmark-url-input">
                         <input type="text" id="bookmarkDescription" placeholder="Description (optional)" class="bookmark-desc-input">
-                        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                        <button type="submit" class="btn btn-primary btn-sm" data-i18n="buttons.add">Add</button>
                     </form>
                     <div id="bookmarksContainer">
                         <table class="bookmarks-table" id="bookmarksTable" style="display:none;">
                             <tbody id="bookmarksTbody"></tbody>
                         </table>
-                        <p class="info-text" id="bookmarksEmpty">No bookmarks yet.</p>
+                        <p class="info-text" id="bookmarksEmpty" data-i18n="bookmarks.noBookmarks">No bookmarks yet.</p>
                     </div>
                 </div>
             </div>

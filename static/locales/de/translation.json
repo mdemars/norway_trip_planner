@@ -38,6 +38,11 @@
     "stop_one": "{{count}} Stopp",
     "stop_other": "{{count}} Stopps",
     "noStopsMessage": "Noch keine Stopps",
+    "noDatesSet": "Keine Daten festgelegt",
+    "reorderStops": "Stopps neu ordnen",
+    "setDatesDetails": "Daten & Details festlegen\u2026",
+    "removeStop": "Stopp entfernen",
+    "addressOrGps": "Adresse oder GPS (z.B. 59.91, 10.75)",
     "showOnMap": "Auf Karte anzeigen"
   },
   "dates": {
@@ -147,6 +152,7 @@
   },
   "modals": {
     "createNewTrip": "Neue Reise erstellen",
+    "quickTrip": "Schnellreise",
     "editTripName": "Reisenamen bearbeiten",
     "editTripLocations": "Reiseorte bearbeiten",
     "adjustFollowingStops": "Folgende Stopps anpassen",
@@ -173,6 +179,8 @@
     "addressNotFound": "Adresse nicht gefunden - bitte Schreibweise uberprufen",
     "couldNotValidate": "Adresse konnte nicht validiert werden",
     "validatingAddress": "Bitte warten, Adresse wird validiert...",
+    "pleaseWaitValidation": "Bitte warten Sie, bis die Adressvalidierung abgeschlossen ist",
+    "pleaseFixErrors": "Bitte beheben Sie die markierten Fehler vor dem Absenden",
     "stopNameRequired": "Stopp-Name ist erforderlich",
     "activityNameRequired": "Aktivitatsname ist erforderlich",
     "waypointNameRequired": "Wegpunkt-Name ist erforderlich"
@@ -199,6 +207,10 @@
     "deleteStop": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten? Dies loscht auch alle Aktivitaten an diesem Stopp.",
     "deleteActivity": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten?",
     "deleteWaypoint": "Sind Sie sicher, dass Sie den Wegpunkt \"{{name}}\" loschen mochten?"
+  },
+  "bookmarks": {
+    "title": "Lesezeichen",
+    "noBookmarks": "Noch keine Lesezeichen."
   },
   "errors": {
     "failedToLoadTrips": "Reisen konnten nicht geladen werden",

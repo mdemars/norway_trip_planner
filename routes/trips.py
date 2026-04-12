@@ -79,14 +79,22 @@ def create_quick_trip():
                 return jsonify({'error': 'Each stop must have a name'}), 400
 
             address = (s.get('address') or '').strip() or None
-            lat, lng = None, None
-            if address:
-                lat, lng = geocode_trip_location(address)
+            location_type = s.get('location_type', 'address')
+            lat = s.get('latitude')
+            lng = s.get('longitude')
+
+            if location_type == 'gps' and lat is not None and lng is not None:
+                lat, lng = float(lat), float(lng)
+            elif address:
+                coords = geocode_trip_location(address)
+                lat, lng = coords if coords else (None, None)
+            else:
+                lat, lng = None, None
 
             stop = Stop(
                 trip_id=trip.id,
                 name=name,
-                location_type='address',
+                location_type=location_type,
                 address=address,
                 latitude=lat,
                 longitude=lng,

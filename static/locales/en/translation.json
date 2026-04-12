@@ -38,6 +38,11 @@
     "stop_one": "{{count}} stop",
     "stop_other": "{{count}} stops",
     "noStopsMessage": "No stops yet",
+    "noDatesSet": "No dates set",
+    "reorderStops": "Re-Order Stops",
+    "setDatesDetails": "Set dates & details\u2026",
+    "removeStop": "Remove stop",
+    "addressOrGps": "Address or GPS (e.g. 59.91, 10.75)",
     "showOnMap": "Show on map"
   },
   "dates": {
@@ -147,6 +152,7 @@
   },
   "modals": {
     "createNewTrip": "Create New Trip",
+    "quickTrip": "Quick Trip",
     "editTripName": "Edit Trip Name",
     "editTripLocations": "Edit Trip Locations",
     "adjustFollowingStops": "Adjust Following Stops",
@@ -173,6 +179,8 @@
     "addressNotFound": "Address not found - please check the spelling",
     "couldNotValidate": "Could not validate address",
     "validatingAddress": "Please wait, address is being validated...",
+    "pleaseWaitValidation": "Please wait for address validation to complete",
+    "pleaseFixErrors": "Please fix the highlighted errors before submitting",
     "stopNameRequired": "Stop name is required",
     "activityNameRequired": "Activity name is required",
     "waypointNameRequired": "Waypoint name is required"
@@ -199,6 +207,10 @@
     "deleteStop": "Are you sure you want to delete \"{{name}}\"? This will also delete all activities at this stop.",
     "deleteActivity": "Are you sure you want to delete \"{{name}}\"?",
     "deleteWaypoint": "Are you sure you want to delete waypoint \"{{name}}\"?"
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "noBookmarks": "No bookmarks yet."
   },
   "errors": {
     "failedToLoadTrips": "Failed to load trips",

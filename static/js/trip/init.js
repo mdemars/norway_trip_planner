@@ -365,9 +365,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     App.attachDMSParsing('editLatitude', 'editLongitude');
     App.attachDMSParsing('waypointLatitude', 'waypointLongitude');
 
-    // Initialize drag-and-drop on the stops container
-    App.initDragAndDrop();
-
     // Render calendar on page load
     renderCalendar();
 });
