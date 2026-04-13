@@ -1,14 +1,7 @@
-import io
-import json
-import urllib.parse
-import urllib.request
-from datetime import datetime, timezone
-
-from flask import Blueprint, request, jsonify, send_file
-from models import Trip, Stop, Location, RouteCache, get_db
+from flask import Blueprint, request, jsonify
+from models import Trip, Stop, Location, get_db
 from services import geocoding_service, route_service
 from helpers import get_ordered_locations
-from config import Config
 
 routing_bp = Blueprint('routing', __name__, url_prefix='/api')
 
@@ -62,59 +55,121 @@ def get_trip_route(trip_id):
             })
 
         route_info = route_service.calculate_route(all_points)
-        _upsert_route_cache(db, trip_id, all_points, route_info)
         return jsonify(route_info)
     finally:
         db.close()
 
 
-def _fetch_static_map_image(all_points, route_info):
-    """Fetch a static map PNG from Google Maps Static API."""
-    api_key = Config.GOOGLE_MAPS_API_KEY
-    if not api_key or not all_points:
-        return None
-
-    params = [
-        ('size', '800x500'),
-        ('maptype', 'roadmap'),
-        ('key', api_key),
-    ]
-
-    for pt in all_points:
-        pt_type = pt.get('type', 'stop')
-        color = 'green' if pt_type == 'start' else ('blue' if pt_type == 'end' else 'red')
-        params.append(('markers', f'color:{color}|{pt["latitude"]},{pt["longitude"]}'))
-
-    if route_info and route_info.get('segments'):
-        for seg in route_info['segments']:
-            if seg.get('polyline'):
-                params.append(('path', f'enc:{seg["polyline"]}'))
-
-    url = 'https://maps.googleapis.com/maps/api/staticmap?' + urllib.parse.urlencode(params)
+@routing_bp.route('/trips/<int:trip_id>/save-distances', methods=['POST'])
+def save_route_distances(trip_id):
+    """Save route distances to stop/waypoint locations
+    
+    Expected request body:
+    {
+        "segments": [
+            {
+                "to_guid": "location-guid",
+                "distance_km": 123.45
+            },
+            ...
+        ]
+    }
+    """
+    db = get_db()
     try:
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            if resp.status == 200:
-                return resp.read()
-    except Exception:
-        pass
-    return None
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+        
+        data = request.json
+        if not data or 'segments' not in data:
+            return jsonify({'error': 'segments array is required'}), 400
+        
+        segments = data['segments']
+        updated_count = 0
+
+        for segment in segments:
+            to_guid = segment.get('to_guid')
+            distance_km = segment.get('distance_km')
+
+            if not to_guid or distance_km is None:
+                continue
+
+            location = db.query(Location).filter(
+                Location.trip_id == trip_id,
+                Location.guid == to_guid
+            ).first()
+
+            if location:
+                location.distance_km = distance_km
+                updated_count += 1
+
+        # Persist the leg from the last stop to the trip end, if provided
+        end_distance_km = data.get('end_distance_km')
+        if end_distance_km is not None:
+            trip.end_location_distance_km = end_distance_km
+
+        total_distance_km = data.get('total_distance_km')
+        if total_distance_km is not None:
+            trip.total_distance_km = total_distance_km
+
+        db.commit()
+
+        # Fetch and return updated locations
+        ordered_locations = get_ordered_locations(db, trip_id)
+        result = []
+        for loc in ordered_locations:
+            if isinstance(loc, Stop):
+                result.append(loc.to_dict(include_activities=False))
+            else:
+                result.append(loc.to_dict())
+
+        return jsonify({
+            'success': True,
+            'updated_count': updated_count,
+            'end_distance_km': trip.end_location_distance_km,
+            'total_distance_km': trip.total_distance_km,
+            'locations': result
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
 
 
-def _upsert_route_cache(db, trip_id, all_points, route_info):
-    """Save route points + static map image to RouteCache, replacing any existing entry."""
-    route_json = json.dumps({'points': all_points, 'route': route_info})
-    route_image = _fetch_static_map_image(all_points, route_info)
-    now = datetime.now(timezone.utc)
 
-    existing = db.query(RouteCache).filter(RouteCache.trip_id == trip_id).first()
-    if existing:
-        existing.route_json = route_json
-        existing.route_image = route_image
-        existing.calculated_at = now
-    else:
-        db.add(RouteCache(trip_id=trip_id, route_json=route_json,
-                          route_image=route_image, calculated_at=now))
-    db.commit()
+@routing_bp.route('/trips/<int:trip_id>/clear-distances', methods=['POST'])
+def clear_route_distances(trip_id):
+    """Clear all route distances for a trip (call this when stops/waypoints are added/removed)"""
+    db = get_db()
+    try:
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+        
+        # Clear all distances for locations in this trip
+        cleared_count = db.query(Location).filter(
+            Location.trip_id == trip_id,
+            Location.distance_km != None
+        ).count()
+        
+        db.query(Location).filter(
+            Location.trip_id == trip_id
+        ).update({Location.distance_km: None}, synchronize_session=False)
+
+        trip.end_location_distance_km = None
+        trip.total_distance_km = None
+        db.commit()
+
+        return jsonify({
+            'success': True,
+            'cleared_count': cleared_count
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
 
 
 @routing_bp.route('/trips/<int:trip_id>/debug/route-points', methods=['GET'])
@@ -141,7 +196,7 @@ def get_debug_route_points(trip_id):
 
         # Walk the location chain
         ordered_locations = get_ordered_locations(db, trip_id)
-        for i, loc in enumerate(ordered_locations):
+        for loc in ordered_locations:
             loc_type = 'stop' if isinstance(loc, Stop) else 'waypoint'
             all_points.append({
                 'order': len(all_points),
@@ -201,18 +256,6 @@ def get_trip_locations(trip_id):
     finally:
         db.close()
 
-
-@routing_bp.route('/trips/<int:trip_id>/route/image', methods=['GET'])
-def get_trip_route_image(trip_id):
-    """Serve the cached static map PNG for a trip's most recent route calculation."""
-    db = get_db()
-    try:
-        cache = db.query(RouteCache).filter(RouteCache.trip_id == trip_id).first()
-        if not cache or not cache.route_image:
-            return jsonify({'error': 'No route image available. Calculate the route first.'}), 404
-        return send_file(io.BytesIO(cache.route_image), mimetype='image/png')
-    finally:
-        db.close()
 
 
 @routing_bp.route('/validate-address', methods=['POST'])

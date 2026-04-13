@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime
-from models import Trip, Location, Activity, RouteCache, get_db
+from models import Trip, Location, Activity, get_db
 from helpers import get_ordered_locations
 from sqlalchemy import inspect as sa_inspect
 
@@ -10,7 +10,6 @@ ADMIN_MODELS = {
     'trip': Trip,
     'location': Location,
     'activity': Activity,
-    'route_cache': RouteCache,
 }
 
 

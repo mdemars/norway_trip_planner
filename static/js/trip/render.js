@@ -15,6 +15,19 @@ App.renderStops = function renderStops(stopsData, waypointsData) {
         return;
     }
 
+    // Calculate min/max distance for gradient coloring
+    const allLocations = [...App.stops, ...App.waypoints];
+    const distancesWithValues = allLocations.filter(loc => loc.distance_km != null).map(loc => loc.distance_km);
+    let minDistance = Infinity;
+    let maxDistance = -Infinity;
+    
+    if (distancesWithValues.length > 0) {
+        minDistance = Math.min(...distancesWithValues);
+        maxDistance = Math.max(...distancesWithValues);
+    }
+
+    const distanceGradient = { min: minDistance, max: maxDistance, range: maxDistance - minDistance || 1 };
+
     // Build a lookup so we can walk the chain: previous_guid → waypoint
     const waypointByPrev = {};
     App.waypoints.forEach(w => { waypointByPrev[w.previous_location_guid] = w; });
@@ -22,39 +35,17 @@ App.renderStops = function renderStops(stopsData, waypointsData) {
     // Build combined list with stops and waypoints
     let html = '';
     App.stops.forEach((stop, index) => {
-        html += App.createStopCard(stop, index + 1);
+        const isLastStop = index === App.stops.length - 1;
+        const nextStop = !isLastStop ? App.stops[index + 1] : null;
+        html += App.createStopCard(stop, index + 1, isLastStop, nextStop, distanceGradient);
 
         // Walk the chain from this stop, rendering all consecutive waypoints
         // (including waypoints that follow other waypoints, not just the stop directly)
         let nextGuid = stop.guid;
         while (waypointByPrev[nextGuid]) {
             const wp = waypointByPrev[nextGuid];
-            html += App.createWaypointCard(wp);
+            html += App.createWaypointCard(wp, distanceGradient);
             nextGuid = wp.guid;
-        }
-
-        // Add buttons to insert stop/waypoint after this stop (except after the last stop)
-        if (index < App.stops.length - 1) {
-            const nextStop = App.stops[index + 1];
-
-            html += `
-                <div style="display: flex; justify-content: center; gap: 8px; padding: 8px 0;">
-                    <button class="btn btn-primary btn-sm" onclick="openAddStopAfter('${stop.id}')" style="font-size: 0.85em;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        ${t('stops.addStop')}
-                    </button>
-                    <button class="btn btn-secondary btn-sm" onclick="openAddWaypointModal('${stop.id}', '${nextStop.id}')" style="font-size: 0.85em;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        ${t('waypoints.addWaypoint')}
-                    </button>
-                </div>
-            `;
         }
     });
 
@@ -67,7 +58,24 @@ App.renderStops = function renderStops(stopsData, waypointsData) {
     App.renderCalendar();
 };
 
-App.createStopCard = function createStopCard(stop, index) {
+App.createStopCard = function createStopCard(stop, index, isLastStop, nextStop, distanceGradient = {}) {
+    // Helper to calculate distance color hue (120=green, 60=yellow, 0=red)
+    const getDistanceHue = (distance) => {
+        if (distance == null || distanceGradient.range === undefined || distanceGradient.range === 0) {
+            return 60; // Yellow for no data
+        }
+        return Math.round(120 * (1 - (distance - distanceGradient.min) / distanceGradient.range));
+    };
+
+    // Helper to build distance badge HTML
+    const renderDistanceBadge = (distance) => {
+        if (distance == null) return '';
+        const hue = getDistanceHue(distance);
+        const textColor = `hsl(${hue}, 72%, 42%)`;
+        const bgColor = `hsl(${hue}, 72%, 96%)`;
+        return ` <span class="distance-badge" style="background-color: ${bgColor}; color: ${textColor}; border-left: 3px solid ${textColor};">↤ ${distance.toFixed(1)} km</span>`;
+    };
+
     // Check if this is a trip location (start/end)
     if (stop.is_trip_location) {
         const color = App.STOP_COLORS[(index - 1) % App.STOP_COLORS.length];
@@ -86,6 +94,7 @@ App.createStopCard = function createStopCard(stop, index) {
                             <span style="color: #6c757d; font-weight: normal; margin-right: 8px;">${index}.</span>
                             <span style="font-style: italic; color: #6c757d;">${labelText}:</span>
                             ${escapeHtml(stop.name)}
+                            ${renderDistanceBadge(stop.distance_km)}
                         </h3>
                     </div>
                     <div class="stop-actions" onclick="event.stopPropagation()">
@@ -179,7 +188,7 @@ App.createStopCard = function createStopCard(stop, index) {
                         <span style="color: #6c757d; font-weight: normal; margin-right: 8px;">${index}.</span>
                         ${escapeHtml(stop.name)}
                         ${hasDates
-                            ? `<span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${dateRangeText}, ${nightsText})</span>`
+                            ? `<span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${dateRangeText}, ${nightsText})</span>${renderDistanceBadge(stop.distance_km)}`
                             : `<span class="undated-badge">No dates</span>`
                         }
                     </h3>
@@ -191,6 +200,19 @@ App.createStopCard = function createStopCard(stop, index) {
                             <circle cx="12" cy="10" r="3"></circle>
                         </svg>
                     </button>
+                    ${!isLastStop ? `
+                    <button class="icon-btn" onclick="event.stopPropagation(); openAddStopAfter('${stop.id}')" title="${t('stops.addStop')}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" onclick="event.stopPropagation(); openAddWaypointModal('${stop.id}', '${nextStop.id}')" title="${t('waypoints.addWaypoint')}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 22h20L12 2z"></path>
+                        </svg>
+                    </button>
+                    ` : ''}
                     <button class="icon-btn" onclick="openEditStopModal(${stop.id})" title="${t('buttons.edit')}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -260,11 +282,28 @@ App.createActivityItem = function createActivityItem(activity) {
     `;
 };
 
-App.createWaypointCard = function createWaypointCard(waypoint) {
+App.createWaypointCard = function createWaypointCard(waypoint, distanceGradient = {}) {
+    // Helper to calculate distance color hue (120=green, 60=yellow, 0=red)
+    const getDistanceHue = (distance) => {
+        if (distance == null || distanceGradient.range === undefined || distanceGradient.range === 0) {
+            return 60; // Yellow for no data
+        }
+        return Math.round(120 * (1 - (distance - distanceGradient.min) / distanceGradient.range));
+    };
+
+    // Helper to build distance badge HTML
+    const renderDistanceBadge = (distance) => {
+        if (distance == null) return '';
+        const hue = getDistanceHue(distance);
+        const textColor = `hsl(${hue}, 72%, 42%)`;
+        const bgColor = `hsl(${hue}, 72%, 96%)`;
+        return ` <span class="distance-badge" style="background-color: ${bgColor}; color: ${textColor}; border-left: 3px solid ${textColor}; margin-left: 12px;">↤ ${distance.toFixed(1)} km</span>`;
+    };
+
     return `
         <div class="waypoint-card collapsed" data-waypoint-id="${waypoint.id}" style="margin: 8px 0; padding: 12px; background: #f8f9fa; border-left: 3px solid #6c757d; border-radius: 4px;">
             <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleWaypointCollapse(${waypoint.id})">
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
                     <button class="collapse-toggle" onclick="event.stopPropagation(); toggleWaypointCollapse(${waypoint.id})" style="background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron">
                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -274,9 +313,21 @@ App.createWaypointCard = function createWaypointCard(waypoint) {
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
                     </svg>
-                    <div style="font-weight: 500; color: #495057;">${escapeHtml(waypoint.name)}</div>
+                    <div style="font-weight: 500; color: #495057;">${escapeHtml(waypoint.name)}${renderDistanceBadge(waypoint.distance_km)}</div>
                 </div>
-                <div onclick="event.stopPropagation()">
+                <div style="display: flex; gap: 4px;" onclick="event.stopPropagation()">
+                    <button class="icon-btn" onclick="showWaypointOnMap(${waypoint.id})" title="Show on map">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" onclick="openEditWaypointModal(${waypoint.id})" title="Edit">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
                     <button class="icon-btn danger" onclick="handleDeleteWaypoint(${waypoint.id}, '${escapeHtml(waypoint.name).replace(/'/g, "\\'")}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"></polyline>

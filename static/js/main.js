@@ -141,11 +141,22 @@ function createTripCard(trip) {
         `;
     }
 
+    const distanceHtml = trip.total_distance_km != null
+        ? `<span class="date">
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <line x1="5" y1="12" x2="19" y2="12"></line>
+                   <polyline points="12 5 19 12 12 19"></polyline>
+               </svg>
+               ${trip.total_distance_km.toFixed(1)} km
+           </span>`
+        : '';
+
     return `
         <div class="trip-card" onclick="window.location.href='/trip/${trip.id}'">
             <h3>${escapeHtml(trip.name)}</h3>
             <div class="meta">
                 ${tripDatesHtml}
+                ${distanceHtml}
             </div>
             <div class="actions">
                 <button id="deleteTrip_${trip.id}" class="btn btn-danger btn-sm">

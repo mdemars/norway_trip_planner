@@ -217,6 +217,27 @@ async function createWaypoint(tripId, waypointData) {
     }
 }
 
+async function updateWaypoint(waypointId, waypointData) {
+    try {
+        const response = await fetch(`/api/waypoints/${waypointId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(waypointData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || t('errors.failedToUpdateWaypoint'));
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating waypoint:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
 async function deleteWaypoint(waypointId) {
     try {
         const response = await fetch(`/api/waypoints/${waypointId}`, {
@@ -300,6 +321,24 @@ async function reorderStops(tripId, stopIds) {
     }
 }
 
+async function clearRouteDistances(tripId) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/clear-distances`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to clear distances');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error clearing distances:', error);
+        // Don't show error to user - this is a background operation
+        throw error;
+    }
+}
+
 // Attach all API functions to window.TripApp
 App.fetchTrip = fetchTrip;
 App.updateTrip = updateTrip;
@@ -313,11 +352,13 @@ App.deleteActivity = deleteActivity;
 App.calculateRoute = calculateRoute;
 App.fetchWaypoints = fetchWaypoints;
 App.createWaypoint = createWaypoint;
+App.updateWaypoint = updateWaypoint;
 App.deleteWaypoint = deleteWaypoint;
 App.fetchBookmarks = fetchBookmarks;
 App.createBookmark = createBookmark;
 App.deleteBookmark = deleteBookmark;
 App.reorderStops = reorderStops;
+App.clearRouteDistances = clearRouteDistances;
 
 // Expose API functions globally for use by other modules
 window.fetchTrip = fetchTrip;

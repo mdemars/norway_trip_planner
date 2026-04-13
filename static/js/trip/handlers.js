@@ -77,6 +77,18 @@ async function handleAddStopSubmit(e) {
 
     const form = e.target;
     const locationType = form.locationType.value;
+    const addAfterStopId = form.addAfterStop.value;
+
+    // Find the stop we're adding after to get its GUID
+    let previousLocationGuid = null;
+    if (addAfterStopId === 'start') {
+        // Adding after the start location
+        previousLocationGuid = App.currentTrip && App.currentTrip.start_location ? App.currentTrip.start_location.guid : null;
+    } else {
+        // Adding after a specific stop
+        const afterStop = App.stops.find(s => s.id === parseInt(addAfterStopId));
+        previousLocationGuid = afterStop ? afterStop.guid : null;
+    }
 
     const stopData = {
         name: form.stopName.value.trim(),
@@ -84,7 +96,8 @@ async function handleAddStopSubmit(e) {
         end_date: form.endDate.value + 'T00:00:00',
         location_type: locationType,
         description: form.stopDescription.value.trim(),
-        url: form.stopUrl.value.trim()
+        url: form.stopUrl.value.trim(),
+        previous_location_guid: previousLocationGuid
     };
 
     if (locationType === 'address') {
@@ -104,6 +117,14 @@ async function handleAddStopSubmit(e) {
 
     try {
         await createStop(tripId, stopData);
+        
+        // Clear all distances since the route has changed
+        try {
+            await App.clearRouteDistances(tripId);
+        } catch (e) {
+            // Silently ignore - distances clearing is not critical
+        }
+        
         closeModal('addStopModal');
         form.reset();
         showSuccess(t('notifications.stopAdded'));
@@ -241,6 +262,14 @@ async function handleDeleteStop(stopId, stopName) {
 
     try {
         await deleteStopApi(stopId);
+        
+        // Clear all distances since the route has changed
+        try {
+            await App.clearRouteDistances(tripId);
+        } catch (e) {
+            // Silently ignore - distances clearing is not critical
+        }
+        
         showSuccess(t('notifications.stopDeleted'));
         await loadStops();
     } catch (error) {
@@ -460,7 +489,7 @@ function openEditTripLocationModal(locationId, locationType) {
     openModal('editStopModal');
 }
 
-async function handleDeleteTripLocation(locationId, locationType, address) {
+async function handleDeleteTripLocation(_locationId, locationType, address) {
     if (!confirm(`${t('confirmations.deleteStop', { name: address })}`)) {
         return;
     }
@@ -542,7 +571,7 @@ async function handleDeleteActivity(activityId, activityName) {
 // Waypoint Handlers
 // ============================================================================
 
-function openAddWaypointModal(afterStopId, beforeStopId) {
+function openAddWaypointModal(afterStopId, _beforeStopId) {
     document.getElementById('addWaypointForm').reset();
 
     // Populate previous location dropdown with all stops and waypoints in route order
@@ -612,6 +641,14 @@ async function handleAddWaypointSubmit(e) {
 
     try {
         await createWaypoint(tripId, waypointData);
+        
+        // Clear all distances since the route has changed
+        try {
+            await App.clearRouteDistances(tripId);
+        } catch (e) {
+            // Silently ignore - distances clearing is not critical
+        }
+        
         closeModal('addWaypointModal');
         form.reset();
         showSuccess(t('notifications.waypointAdded'));
@@ -628,10 +665,142 @@ async function handleDeleteWaypoint(waypointId, waypointName) {
 
     try {
         await deleteWaypoint(waypointId);
+        
+        // Clear all distances since the route has changed
+        try {
+            await App.clearRouteDistances(tripId);
+        } catch (e) {
+            // Silently ignore - distances clearing is not critical
+        }
+        
         showSuccess(t('notifications.waypointDeleted'));
         await loadStops();
     } catch (error) {
         // Error already shown
+    }
+}
+
+function openEditWaypointModal(waypointId) {
+    const waypoint = App.waypoints.find(w => w.id === waypointId);
+    if (!waypoint) return;
+
+    document.getElementById('editWaypointId').value = waypoint.id;
+    document.getElementById('editWaypointName').value = waypoint.name;
+
+    // Set location type and values
+    const locationType = waypoint.location_type || 'address';
+    document.querySelector(`input[name="editWaypointLocationType"][value="${locationType}"]`).checked = true;
+
+    // Populate fields
+    document.getElementById('editWaypointAddress').value = waypoint.address || '';
+    document.getElementById('editWaypointDescription').value = waypoint.description || '';
+    document.getElementById('editWaypointUrl').value = waypoint.url || '';
+    document.getElementById('editWaypointLatitude').value = waypoint.latitude ? parseFloat(waypoint.latitude).toFixed(4) : '';
+    document.getElementById('editWaypointLongitude').value = waypoint.longitude ? parseFloat(waypoint.longitude).toFixed(4) : '';
+
+    // Show/hide address and GPS input fields based on location type
+    const addressInput = document.getElementById('editWaypointAddressInput');
+    const gpsInput = document.getElementById('editWaypointGpsInput');
+    const latInput = document.getElementById('editWaypointLatitude');
+    const lonInput = document.getElementById('editWaypointLongitude');
+
+    addressInput.style.display = 'block';
+    if (locationType === 'gps') {
+        document.getElementById('editWaypointAddress').required = false;
+        latInput.required = true;
+        lonInput.required = true;
+        gpsInput.style.display = 'flex';
+    } else {
+        document.getElementById('editWaypointAddress').required = true;
+        latInput.required = false;
+        lonInput.required = false;
+        gpsInput.style.display = 'none';
+    }
+
+    openModal('editWaypointModal');
+}
+
+async function handleEditWaypointSubmit(e) {
+    e.preventDefault();
+
+    const waypointId = parseInt(document.getElementById('editWaypointId').value);
+    const locationType = document.querySelector('input[name="editWaypointLocationType"]:checked').value;
+
+    const waypointData = {
+        name: document.getElementById('editWaypointName').value.trim(),
+        location_type: locationType,
+        description: document.getElementById('editWaypointDescription').value.trim(),
+        url: document.getElementById('editWaypointUrl').value.trim()
+    };
+
+    if (locationType === 'address') {
+        waypointData.address = document.getElementById('editWaypointAddress').value.trim();
+        if (!waypointData.address) {
+            showError(t('validation.addressRequired'));
+            return;
+        }
+    } else if (locationType === 'gps') {
+        waypointData.latitude = parseFloat(document.getElementById('editWaypointLatitude').value);
+        waypointData.longitude = parseFloat(document.getElementById('editWaypointLongitude').value);
+        if (isNaN(waypointData.latitude) || isNaN(waypointData.longitude)) {
+            showError(t('validation.validCoordinatesRequired'));
+            return;
+        }
+    }
+
+    try {
+        await updateWaypoint(waypointId, waypointData);
+        closeModal('editWaypointModal');
+        showSuccess(t('notifications.waypointUpdated'));
+        await loadStops();
+    } catch (error) {
+        // Error already shown
+    }
+}
+
+function showWaypointOnMap(waypointId) {
+    const waypoint = App.waypoints.find(w => w.id === waypointId);
+
+    if (!waypoint || !waypoint.latitude || !waypoint.longitude) {
+        showError(t('map.unableToShow'));
+        return;
+    }
+
+    if (!App.map) {
+        showError(t('map.notInitialized'));
+        return;
+    }
+
+    // Center map on the waypoint
+    const position = { lat: waypoint.latitude, lng: waypoint.longitude };
+    App.map.setCenter(position);
+    App.map.setZoom(14);
+
+    // Find the waypoint marker in the markers array
+    // Waypoints come after the trip start marker and all stop markers and their associated waypoints
+    const hasStartLocation = App.currentTrip && App.currentTrip.start_location && App.currentTrip.start_location.latitude;
+    let markerOffset = 0;
+
+    // Calculate the marker index for this specific waypoint
+    if (hasStartLocation) {
+        markerOffset += 1; // Account for trip start marker
+    }
+    markerOffset += App.stops.length; // All stop markers
+
+    // Find the index of this waypoint among all waypoints to get its marker index
+    const waypointIndex = App.waypoints.findIndex(w => w.id === waypointId);
+    if (waypointIndex !== -1) {
+        const markerIndex = markerOffset + waypointIndex;
+        if (App.markers[markerIndex] && App.infoWindows[markerIndex]) {
+            App.infoWindows.forEach(iw => iw.close());
+            App.infoWindows[markerIndex].open(App.map, App.markers[markerIndex]);
+        }
+    }
+
+    // Scroll to map on mobile/small screens
+    const mapElement = document.getElementById('map');
+    if (mapElement && window.innerWidth < 1024) {
+        mapElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
@@ -811,15 +980,14 @@ async function handleCalculateRoute() {
         return;
     }
 
-    const btn = document.getElementById('calculateRouteBtn');
-    const originalText = btn.textContent;
+    const btn = document.getElementById('calculateRouteBtnTop');
     btn.textContent = t('route.calculating');
     btn.disabled = true;
 
     try {
         const routeData = await calculateRoute(tripId);
-        displayRouteInfo(routeData);
         drawRoute(routeData);
+        await saveRouteDistances(routeData);
         showSuccess(t('notifications.routeCalculated'));
     } catch (error) {
         // Error already shown
@@ -882,63 +1050,52 @@ async function handleDebugRoute() {
     }
 }
 
-function displayRouteInfo(routeData) {
-    const container = document.getElementById('routeInfo');
 
-    if (!routeData || !routeData.total_distance_km) {
-        container.innerHTML = `<p class="info-text">${t('route.unableToCalculate')}</p>`;
-        return;
+async function saveRouteDistances(routeData) {
+    if (!routeData || !routeData.segments) return;
+
+    const allLocations = [...App.stops, ...App.waypoints];
+    const segments = [];
+    let endDistanceKm = null;
+
+    for (const segment of routeData.segments) {
+        if (segment.to_name === 'Trip End') {
+            endDistanceKm = segment.distance_km;
+        } else {
+            const loc = allLocations.find(l => l.name === segment.to_name);
+            if (loc && loc.guid) segments.push({ to_guid: loc.guid, distance_km: segment.distance_km });
+        }
     }
 
-    const hoursEstimate = (routeData.total_distance_km / 80).toFixed(1);
+    if (segments.length === 0 && endDistanceKm === null) return;
 
-    let html = `
-        <div class="route-stats">
-            <div class="route-stat">
-                <span class="value">${routeData.total_distance_km.toFixed(1)}</span>
-                <span class="label">${t('route.kmTotal')}</span>
-            </div>
-            <div class="route-stat">
-                <span class="value">${hoursEstimate}</span>
-                <span class="label">${t('route.hoursEst')}</span>
-            </div>
-        </div>
-    `;
+    const payload = { segments };
+    if (endDistanceKm !== null) payload.end_distance_km = endDistanceKm;
+    if (routeData.total_distance_km != null) payload.total_distance_km = routeData.total_distance_km;
 
-    if (routeData.segments && routeData.segments.length > 0) {
-        // Sort segments by start_date if available
-        const sortedSegments = [...routeData.segments].sort((a, b) => {
-            if (a.start_date && b.start_date) {
-                return new Date(a.start_date) - new Date(b.start_date);
-            }
-            return 0;
-        });
+    const response = await fetch(`/api/trips/${App.currentTrip.id}/save-distances`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
 
-        const maxDist = Math.max(...sortedSegments.map(s => s.distance_km));
-        const minDist = Math.min(...sortedSegments.map(s => s.distance_km));
-        const range = maxDist - minDist || 1;
+    if (!response.ok) return;
 
-        // Interpolate hue: 120 (green) → 60 (yellow) → 0 (red)
-        const segmentHue = dist => Math.round(120 * (1 - (dist - minDist) / range));
+    const result = await response.json();
 
-        html += `
-            <div class="route-segments">
-                <h4>${t('route.routeSegments')}</h4>
-                ${sortedSegments.map(segment => {
-                    const hue = segmentHue(segment.distance_km);
-                    const accent = `hsl(${hue}, 72%, 42%)`;
-                    const bg = `hsl(${hue}, 72%, 96%)`;
-                    return `
-                    <div class="segment" style="border-left: 4px solid ${accent}; background: ${bg};">
-                        <div class="route">${escapeHtml(segment.from_name)} ${t('route.to')} ${escapeHtml(segment.to_name)}</div>
-                        <div class="distance" style="color: ${accent};">${segment.distance_km.toFixed(1)} km</div>
-                    </div>`;
-                }).join('')}
-            </div>
-        `;
+    // Update in-memory trip so cards re-render correctly
+    if (result.end_distance_km !== undefined && App.currentTrip.end_location) {
+        App.currentTrip.end_location.distance_km = result.end_distance_km;
+    }
+    if (result.total_distance_km != null) {
+        App.currentTrip.total_distance_km = result.total_distance_km;
+        document.getElementById('tripTotalDistance').textContent = `${result.total_distance_km.toFixed(1)} km`;
+        document.getElementById('tripDistanceBadge').style.display = 'block';
     }
 
-    container.innerHTML = html;
+    App.stops = result.locations.filter(loc => loc.type === 'stop');
+    App.waypoints = result.locations.filter(loc => loc.type === 'waypoint');
+    App.renderStops(App.stops, App.waypoints);
 }
 
 // ============================================================================
@@ -1040,6 +1197,9 @@ window.handleDeleteActivity = handleDeleteActivity;
 window.openAddWaypointModal = openAddWaypointModal;
 window.handleAddWaypointSubmit = handleAddWaypointSubmit;
 window.handleDeleteWaypoint = handleDeleteWaypoint;
+window.openEditWaypointModal = openEditWaypointModal;
+window.handleEditWaypointSubmit = handleEditWaypointSubmit;
+window.showWaypointOnMap = showWaypointOnMap;
 window.toggleStopCollapse = toggleStopCollapse;
 window.toggleWaypointCollapse = toggleWaypointCollapse;
 window.handleEditTripSubmit = handleEditTripSubmit;
@@ -1048,7 +1208,6 @@ window.handleEditLocationsSubmit = handleEditLocationsSubmit;
 window.handleDeleteTrip = handleDeleteTrip;
 window.handleCalculateRoute = handleCalculateRoute;
 window.handleDebugRoute = handleDebugRoute;
-window.displayRouteInfo = displayRouteInfo;
 window.renderBookmarks = renderBookmarks;
 window.handleAddBookmarkSubmit = handleAddBookmarkSubmit;
 window.handleDeleteBookmark = handleDeleteBookmark;

@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, LargeBinary, text, inspect, event
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect, event
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from config import Config
 import uuid
@@ -30,6 +30,8 @@ class Trip(Base):
     end_location_latitude = Column(Float)
     end_location_longitude = Column(Float)
     end_location_guid = Column(String(36))
+    end_location_distance_km = Column(Float, nullable=True)
+    total_distance_km = Column(Float, nullable=True)
 
     # Relationships
     stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Location.start_date')
@@ -45,13 +47,15 @@ class Trip(Base):
                 'latitude': self.start_location_latitude,
                 'longitude': self.start_location_longitude,
                 'guid': self.start_location_guid
-            } if self.start_location_address else None,
+            } if (self.start_location_address or self.start_location_latitude) else None,
             'end_location': {
                 'address': self.end_location_address,
                 'latitude': self.end_location_latitude,
                 'longitude': self.end_location_longitude,
-                'guid': self.end_location_guid
-            } if self.end_location_address else None
+                'guid': self.end_location_guid,
+                'distance_km': self.end_location_distance_km
+            } if (self.end_location_address or self.end_location_latitude) else None,
+            'total_distance_km': self.total_distance_km
         }
         if include_stops:
             data['stops'] = [stop.to_dict(include_activities=True) for stop in self.stops]
@@ -81,6 +85,9 @@ class Location(Base):
     # Stop-specific fields (nullable, only used when type='stop')
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
+
+    # Route distance (km from previous location, calculated and persisted)
+    distance_km = Column(Float, nullable=True)
 
     # Relationships
     trip = relationship('Trip', foreign_keys=[trip_id],
@@ -123,6 +130,7 @@ class Stop(Location):
             'description': self.description,
             'url': self.url,
             'previous_location_guid': self.previous_location_guid,
+            'distance_km': self.distance_km,
             'type': 'stop'
         }
         if include_activities:
@@ -176,19 +184,6 @@ class TripBookmark(Base):
         }
 
 
-class RouteCache(Base):
-    """Stores the most recently calculated route for a trip (JSON + static map PNG)."""
-    __tablename__ = 'route_cache'
-    __table_args__ = {'schema': TRIPS_SCHEMA}
-
-    id = Column(Integer, primary_key=True)
-    trip_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.trips.id'), unique=True, nullable=False)
-    route_json = Column(Text, nullable=True)
-    route_image = Column(LargeBinary, nullable=True)
-    calculated_at = Column(DateTime, nullable=False)
-
-    trip = relationship('Trip', backref='route_cache')
-
 
 class Waypoint(Location):
     """Waypoint model representing intermediate points along the route"""
@@ -211,6 +206,7 @@ class Waypoint(Location):
             'description': self.description,
             'url': self.url,
             'previous_location_guid': self.previous_location_guid,
+            'distance_km': self.distance_km,
             'type': 'waypoint'
         }
 
@@ -368,6 +364,72 @@ def _migrate_add_trip_bookmarks(engine):
         pass
 
 
+def _migrate_add_location_distance_km(engine):
+    """Add distance_km column to locations table."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+
+    if 'locations' not in existing_tables:
+        return
+
+    location_cols = [c['name'] for c in insp.get_columns('locations', schema=schema)]
+    if 'distance_km' in location_cols:
+        return  # Already migrated
+
+    schema_prefix = f"{TRIPS_SCHEMA}."
+    print("Adding distance_km column to locations...")
+    with engine.connect() as conn:
+        conn.execute(text(f"ALTER TABLE {schema_prefix}locations ADD COLUMN distance_km FLOAT"))
+        conn.commit()
+
+    print("Location distance_km migration complete.")
+
+
+def _migrate_add_trip_end_distance_km(engine):
+    """Add end_location_distance_km column to trips table."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+
+    if 'trips' not in existing_tables:
+        return
+
+    trip_cols = [c['name'] for c in insp.get_columns('trips', schema=schema)]
+    if 'end_location_distance_km' in trip_cols:
+        return  # Already migrated
+
+    schema_prefix = f"{TRIPS_SCHEMA}."
+    print("Adding end_location_distance_km column to trips...")
+    with engine.connect() as conn:
+        conn.execute(text(f"ALTER TABLE {schema_prefix}trips ADD COLUMN end_location_distance_km FLOAT"))
+        conn.commit()
+
+    print("Trip end_location_distance_km migration complete.")
+
+
+def _migrate_add_trip_total_distance_km(engine):
+    """Add total_distance_km column to trips table."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+
+    if 'trips' not in existing_tables:
+        return
+
+    trip_cols = [c['name'] for c in insp.get_columns('trips', schema=schema)]
+    if 'total_distance_km' in trip_cols:
+        return  # Already migrated
+
+    schema_prefix = f"{TRIPS_SCHEMA}."
+    print("Adding total_distance_km column to trips...")
+    with engine.connect() as conn:
+        conn.execute(text(f"ALTER TABLE {schema_prefix}trips ADD COLUMN total_distance_km FLOAT"))
+        conn.commit()
+
+    print("Trip total_distance_km migration complete.")
+
+
 def init_db():
     """Initialize the database"""
     _ensure_schema_exists(engine)
@@ -375,6 +437,9 @@ def init_db():
     _migrate_add_trip_location_guids(engine)
     _migrate_add_location_description_url(engine)
     _migrate_add_trip_bookmarks(engine)
+    _migrate_add_location_distance_km(engine)
+    _migrate_add_trip_end_distance_km(engine)
+    _migrate_add_trip_total_distance_km(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 

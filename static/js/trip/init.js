@@ -15,6 +15,11 @@ App.loadTrip = async function() {
         App.currentTrip = trip;
         document.getElementById('tripTitle').textContent = trip.name;
         document.getElementById('tripName').textContent = trip.name;
+        const badge = document.getElementById('tripDistanceBadge');
+        if (badge && trip.total_distance_km != null) {
+            document.getElementById('tripTotalDistance').textContent = `${trip.total_distance_km.toFixed(1)} km`;
+            badge.style.display = 'block';
+        }
     }
 };
 
@@ -43,14 +48,15 @@ App.loadStops = async function() {
     let allStops = [];
 
     // Add start location if it exists
-    if (App.currentTrip && App.currentTrip.start_location && App.currentTrip.start_location.address) {
+    const startLoc = App.currentTrip && App.currentTrip.start_location;
+    if (startLoc && (startLoc.address || startLoc.latitude)) {
         allStops.push({
             id: 'trip-start',
-            guid: App.currentTrip.start_location.guid,
-            name: App.currentTrip.start_location.address,
-            address: App.currentTrip.start_location.address,
-            latitude: App.currentTrip.start_location.latitude,
-            longitude: App.currentTrip.start_location.longitude,
+            guid: startLoc.guid,
+            name: startLoc.address || `${startLoc.latitude}, ${startLoc.longitude}`,
+            address: startLoc.address,
+            latitude: startLoc.latitude,
+            longitude: startLoc.longitude,
             type: 'trip-start',
             is_trip_location: true,
             activities: []
@@ -61,14 +67,16 @@ App.loadStops = async function() {
     allStops = allStops.concat(stopsData);
 
     // Add end location if it exists
-    if (App.currentTrip && App.currentTrip.end_location && App.currentTrip.end_location.address) {
+    const endLoc = App.currentTrip && App.currentTrip.end_location;
+    if (endLoc && (endLoc.address || endLoc.latitude)) {
         allStops.push({
             id: 'trip-end',
-            guid: App.currentTrip.end_location.guid,
-            name: App.currentTrip.end_location.address,
-            address: App.currentTrip.end_location.address,
-            latitude: App.currentTrip.end_location.latitude,
-            longitude: App.currentTrip.end_location.longitude,
+            guid: endLoc.guid,
+            name: endLoc.address || `${endLoc.latitude}, ${endLoc.longitude}`,
+            address: endLoc.address,
+            latitude: endLoc.latitude,
+            longitude: endLoc.longitude,
+            distance_km: endLoc.distance_km || null,
             type: 'trip-end',
             is_trip_location: true,
             activities: []
@@ -304,6 +312,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Waypoint form
     document.getElementById('addWaypointForm').addEventListener('submit', handleAddWaypointSubmit);
 
+    // Edit waypoint form
+    document.getElementById('editWaypointForm').addEventListener('submit', handleEditWaypointSubmit);
+
     // Waypoint location type radio buttons
     const waypointRadioButtons = document.querySelectorAll('input[name="waypointLocationType"]');
     waypointRadioButtons.forEach(radio => {
@@ -328,6 +339,51 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+
+    // Edit waypoint location type radio buttons
+    const editWaypointRadioButtons = document.querySelectorAll('input[name="editWaypointLocationType"]');
+    editWaypointRadioButtons.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const addressInput = document.getElementById('editWaypointAddressInput');
+            const gpsInput = document.getElementById('editWaypointGpsInput');
+            const latInput = document.getElementById('editWaypointLatitude');
+            const lonInput = document.getElementById('editWaypointLongitude');
+
+            if (e.target.value === 'address') {
+                addressInput.style.display = 'block';
+                gpsInput.style.display = 'none';
+                document.getElementById('editWaypointGpsHint').style.display = 'none';
+                document.getElementById('editWaypointAddress').required = true;
+                latInput.required = false;
+                lonInput.required = false;
+            } else {
+                addressInput.style.display = 'none';
+                gpsInput.style.display = 'flex';
+                document.getElementById('editWaypointGpsHint').style.display = 'block';
+                document.getElementById('editWaypointAddress').required = false;
+                latInput.required = true;
+                lonInput.required = true;
+            }
+        });
+    });
+
+    // Edit Waypoint modal - address validation
+    const editWaypointAddress = document.getElementById('editWaypointAddress');
+    if (editWaypointAddress) {
+        editWaypointAddress.addEventListener('blur', () => {
+            const locationType = document.querySelector('input[name="editWaypointLocationType"]:checked').value;
+            if (locationType === 'address') {
+                validateAddressField('editWaypointAddress', 'editWaypointAddressValidation', 'editWaypointLatitude', 'editWaypointLongitude');
+            }
+        });
+
+        editWaypointAddress.addEventListener('input', () => {
+            const validationIcon = document.getElementById('editWaypointAddressValidation');
+            if (validationIcon && (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid'))) {
+                validationIcon.className = 'validation-icon';
+            }
+        });
+    }
 
     // Right-panel toggle (map + calendar)
     const tripDetailContent = document.querySelector('.trip-detail-content');

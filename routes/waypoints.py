@@ -58,6 +58,18 @@ def create_waypoint(trip_id):
         db.add(waypoint)
         db.commit()
         db.refresh(waypoint)
+
+        # If inserted between two existing locations, re-link the follower
+        if previous_location_guid:
+            next_location = db.query(Location).filter(
+                Location.trip_id == trip_id,
+                Location.previous_location_guid == previous_location_guid,
+                Location.id != waypoint.id
+            ).first()
+            if next_location:
+                next_location.previous_location_guid = waypoint.guid
+                db.commit()
+
         return jsonify(waypoint.to_dict()), 201
     except Exception as e:
         db.rollback()

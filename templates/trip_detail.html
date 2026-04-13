@@ -60,6 +60,15 @@
         </header>
 
         <h1 id="tripName" class="trip-name-heading">Loading...</h1>
+        <div id="tripDistanceBadge" style="margin-bottom:12px;display:none;">
+            <span style="font-size:0.9em;color:var(--text-muted,#6c757d);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+                <span id="tripTotalDistance"></span> total
+            </span>
+        </div>
 
         <div class="trip-detail-content">
             <div class="left-panel">
@@ -73,6 +82,7 @@
                                 </svg>
                                 <span data-i18n="stops.reorderStops">Re-Order Stops</span>
                             </a>
+                            <button id="calculateRouteBtnTop" class="btn btn-secondary btn-sm" onclick="handleCalculateRoute()" data-i18n="route.calculateRoute">Calculate Route</button>
                             <button id="addStopBtn" class="btn btn-primary btn-sm">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -102,15 +112,6 @@
                     </div>
                 </div>
 
-                <div class="section">
-                    <div class="section-header">
-                        <h2 data-i18n="route.title">Route Information</h2>
-                        <button id="calculateRouteBtn" class="btn btn-secondary btn-sm" data-i18n="route.calculateRoute">Calculate Route</button>
-                    </div>
-                    <div id="routeInfo" class="route-info">
-                        <p class="info-text" data-i18n="route.addStopsToCalculate">Add stops to calculate route</p>
-                    </div>
-                </div>
 
                 <div class="section">
                     <div class="section-header">
@@ -463,6 +464,73 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('addWaypointModal')" data-i18n="buttons.cancel">Cancel</button>
                     <button type="submit" class="btn btn-primary" data-i18n="waypoints.addWaypoint">Add Waypoint</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Waypoint Modal -->
+    <div id="editWaypointModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 data-i18n="waypoints.editWaypoint">Edit Waypoint</h2>
+                <button class="close-btn" onclick="closeModal('editWaypointModal')">&times;</button>
+            </div>
+            <form id="editWaypointForm">
+                <input type="hidden" id="editWaypointId">
+                <div class="form-group">
+                    <label for="editWaypointName" data-i18n="waypoints.waypointName">Waypoint Name</label>
+                    <input type="text" id="editWaypointName" name="waypointName" required>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="locations.locationType">Location Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="editWaypointLocationType" value="address" checked>
+                            <span data-i18n="locations.address">Address</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="editWaypointLocationType" value="gps">
+                            <span data-i18n="locations.gpsCoordinates">GPS Coordinates</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="editWaypointAddressInput" class="form-group">
+                    <label for="editWaypointAddress" data-i18n="locations.address">Address</label>
+                    <div class="input-with-validation">
+                        <input type="text" id="editWaypointAddress" name="waypointAddress" placeholder="e.g., Stegastein Viewpoint, Norway">
+                        <span id="editWaypointAddressValidation" class="validation-icon"></span>
+                    </div>
+                </div>
+
+                <div id="editWaypointGpsInput" class="form-row" style="display: none;">
+                    <div class="form-group">
+                        <label for="editWaypointLatitude" data-i18n="locations.latitude">Latitude</label>
+                        <input type="text" id="editWaypointLatitude" name="waypointLatitude" placeholder="60.8795 or 60°52′46″N">
+                    </div>
+                    <div class="form-group">
+                        <label for="editWaypointLongitude" data-i18n="locations.longitude">Longitude</label>
+                        <input type="text" id="editWaypointLongitude" name="waypointLongitude" placeholder="7.3139 or 7°18′50″E">
+                    </div>
+                </div>
+                <p id="editWaypointGpsHint" style="font-size:0.8em; color:#6c757d; margin-top:-8px;">
+                    Paste a full DMS string (e.g. <em>63°32′29.6″N 10°48′45.7″E</em>) into the latitude field and both will be filled automatically.
+                </p>
+
+                <div class="form-group">
+                    <label for="editWaypointDescription" data-i18n="locations.description">Description (Optional)</label>
+                    <textarea id="editWaypointDescription" name="waypointDescription" rows="3" data-i18n-placeholder="locations.descriptionPlaceholder" placeholder="Details about this location..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editWaypointUrl" data-i18n="locations.url">URL (Optional)</label>
+                    <input type="url" id="editWaypointUrl" name="waypointUrl" placeholder="https://...">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editWaypointModal')" data-i18n="buttons.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="buttons.save">Save Changes</button>
                 </div>
             </form>
         </div>

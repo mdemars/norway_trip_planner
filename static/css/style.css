@@ -718,6 +718,28 @@ header .subtitle {
 }
 
 /* ============================================================================
+   Distance Badge (for stops and waypoints)
+   ============================================================================ */
+
+.distance-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.stop-card .distance-badge {
+    margin-left: 12px;
+}
+
+.waypoint-card .distance-badge {
+    margin-left: 12px;
+}
+
+/* ============================================================================
    Map
    ============================================================================ */
 

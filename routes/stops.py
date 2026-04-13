@@ -43,9 +43,11 @@ def create_stop(trip_id):
         if end_date < start_date:
             return jsonify({'error': 'End date must be after start date'}), 400
 
-        # Find the previous location
-        previous_location = db.query(Location).filter(Location.trip_id == trip_id).order_by(Location.id.desc()).first()
-        previous_location_guid = previous_location.guid if previous_location else None
+        # Get the previous location GUID from the request or from the last location
+        previous_location_guid = data.get('previous_location_guid')
+        if previous_location_guid is None:
+            previous_location = db.query(Location).filter(Location.trip_id == trip_id).order_by(Location.id.desc()).first()
+            previous_location_guid = previous_location.guid if previous_location else None
 
         # Handle location
         latitude, longitude, address = geocode_location_fields(data)
@@ -67,6 +69,22 @@ def create_stop(trip_id):
         db.add(stop)
         db.commit()
         db.refresh(stop)
+
+        # If we inserted this stop between two existing locations,
+        # update the stop that comes after to point to the new stop
+        if previous_location_guid:
+            # Find the location that currently points to after this stop
+            next_location = db.query(Location).filter(
+                Location.trip_id == trip_id,
+                Location.previous_location_guid == previous_location_guid,
+                Location.id != stop.id
+            ).first()
+            
+            if next_location:
+                # Update the next location to point to the newly inserted stop
+                next_location.previous_location_guid = stop.guid
+                db.commit()
+
         return jsonify(stop.to_dict()), 201
     except Exception as e:
         db.rollback()

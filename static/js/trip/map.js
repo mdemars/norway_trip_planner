@@ -305,9 +305,13 @@ function showStopOnMap(stopId) {
     App.map.setZoom(14);
 
     // Close all info windows and open the selected one
-    if (stopIndex !== -1 && App.markers[stopIndex] && App.infoWindows[stopIndex]) {
+    // Account for trip start marker being at index 0
+    const hasStartLocation = App.currentTrip && App.currentTrip.start_location && App.currentTrip.start_location.latitude;
+    const markerIndex = hasStartLocation ? stopIndex + 1 : stopIndex;
+    
+    if (stopIndex !== -1 && App.markers[markerIndex] && App.infoWindows[markerIndex]) {
         App.infoWindows.forEach(iw => iw.close());
-        App.infoWindows[stopIndex].open(App.map, App.markers[stopIndex]);
+        App.infoWindows[markerIndex].open(App.map, App.markers[markerIndex]);
     }
 
     // Scroll to map on mobile/small screens
