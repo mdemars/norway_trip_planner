@@ -122,6 +122,7 @@ header .subtitle {
     border-radius: 12px;
     box-shadow: var(--shadow);
     margin-bottom: 20px;
+    color: var(--text-color);
 }
 
 .header-left {
@@ -445,8 +446,7 @@ header .subtitle {
 .stop-card {
     background: var(--light-gray);
     border-radius: 8px;
-    padding: 16px;
-    overflow: hidden; /* clip content that exceeds card width */
+    padding: 8px 12px;
     border-left: 5px solid var(--primary-color);
     transition: all 0.2s;
 }
@@ -484,6 +484,55 @@ header .subtitle {
 .stop-actions {
     display: flex;
     gap: 8px;
+}
+
+.stop-menu {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.stop-menu-btn {
+    border: none;
+    background: none;
+}
+
+.stop-menu-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    min-width: 160px;
+    overflow: hidden;
+}
+
+.stop-menu-dropdown.open {
+    display: block;
+}
+
+.stop-menu-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 8px 14px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.stop-menu-dropdown button:hover {
+    background: var(--bg-hover);
+}
+
+.stop-menu-dropdown button.danger {
+    color: var(--danger-color, #dc3545);
 }
 
 .icon-btn {

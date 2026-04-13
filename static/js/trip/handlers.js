@@ -822,6 +822,18 @@ function toggleWaypointCollapse(waypointId) {
     }
 }
 
+function closeAllStopMenus() {
+    document.querySelectorAll('.stop-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+}
+
+function toggleStopMenu(id) {
+    const dropdown = document.getElementById(`stop-menu-${id}`);
+    if (!dropdown) return;
+    const isOpen = dropdown.classList.contains('open');
+    closeAllStopMenus();
+    if (!isOpen) dropdown.classList.add('open');
+}
+
 // ============================================================================
 // Trip Handlers
 // ============================================================================
@@ -841,7 +853,6 @@ async function handleEditTripSubmit(e) {
         const updatedTrip = await updateTrip(tripId, tripName);
         closeModal('editTripModal');
         document.getElementById('tripTitle').textContent = updatedTrip.name;
-        document.getElementById('tripName').textContent = updatedTrip.name;
         App.currentTrip = updatedTrip;
         showSuccess(t('notifications.tripUpdated'));
     } catch (error) {
@@ -1202,6 +1213,8 @@ window.handleEditWaypointSubmit = handleEditWaypointSubmit;
 window.showWaypointOnMap = showWaypointOnMap;
 window.toggleStopCollapse = toggleStopCollapse;
 window.toggleWaypointCollapse = toggleWaypointCollapse;
+window.toggleStopMenu = toggleStopMenu;
+window.closeAllStopMenus = closeAllStopMenus;
 window.handleEditTripSubmit = handleEditTripSubmit;
 window.validateAddressField = validateAddressField;
 window.handleEditLocationsSubmit = handleEditLocationsSubmit;

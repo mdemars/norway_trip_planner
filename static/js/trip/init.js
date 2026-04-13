@@ -14,7 +14,6 @@ App.loadTrip = async function() {
     if (trip) {
         App.currentTrip = trip;
         document.getElementById('tripTitle').textContent = trip.name;
-        document.getElementById('tripName').textContent = trip.name;
         const badge = document.getElementById('tripDistanceBadge');
         if (badge && trip.total_distance_km != null) {
             document.getElementById('tripTotalDistance').textContent = `${trip.total_distance_km.toFixed(1)} km`;
@@ -111,6 +110,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load data
     await App.loadTrip();
     await App.loadStops();
+
+    // If distances were previously saved, re-fetch the route to draw it on the map
+    if (App.currentTrip && App.currentTrip.total_distance_km != null) {
+        try {
+            const routeData = await App.calculateRoute(tripId);
+            if (routeData) App.drawRoute(routeData);
+        } catch (e) {
+            // Non-critical — map just won't show the route line
+        }
+    }
 
     // Load bookmarks
     const bookmarks = await fetchBookmarks(tripId);
@@ -299,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('debugRouteBtn').addEventListener('click', handleDebugRoute);
 
     // Calculate route button
-    document.getElementById('calculateRouteBtn').addEventListener('click', handleCalculateRoute);
+    document.getElementById('calculateRouteBtnTop').addEventListener('click', handleCalculateRoute);
 
     // Duration change modal buttons
     document.getElementById('shiftAllStopsBtn').addEventListener('click', handleShiftAllStops);
@@ -415,6 +424,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('rightPanelCollapsed', nowCollapsed);
         applyPanelState(nowCollapsed);
     });
+
+    // Close hamburger menus when clicking outside
+    document.addEventListener('click', () => closeAllStopMenus());
 
     // DMS coordinate parsing for all GPS field pairs
     App.attachDMSParsing('latitude', 'longitude');
