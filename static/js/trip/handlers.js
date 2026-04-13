@@ -1165,24 +1165,31 @@ function renderBookmarks(bookmarks) {
 }
 
 async function handleAddBookmarkSubmit(e) {
-    e.preventDefault();
-    const url = document.getElementById('bookmarkUrl').value.trim();
-    const description = document.getElementById('bookmarkDescription').value.trim();
-    if (!url) return;
     try {
-        await createBookmark(tripId, { url, description });
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const url = document.getElementById('bookmarkUrl').value.trim();
+        const description = document.getElementById('bookmarkDescription').value.trim();
+        if (!url) {
+            console.warn('Bookmark URL is empty');
+            return;
+        }
+        
+        await window.createBookmark(tripId, { url, description });
         e.target.reset();
-        const bookmarks = await fetchBookmarks(tripId);
-        renderBookmarks(bookmarks);
-    } catch {
-        // Error already shown
+        const bookmarks = await window.fetchBookmarks(tripId);
+        window.renderBookmarks(bookmarks);
+    } catch (error) {
+        console.error('Error in handleAddBookmarkSubmit:', error);
+        // Error already shown by showError in API call
     }
 }
 
 async function handleDeleteBookmark(bookmarkId) {
     try {
-        await deleteBookmark(bookmarkId);
-        const bookmarks = await fetchBookmarks(tripId);
+        await window.deleteBookmark(bookmarkId);
+        const bookmarks = await window.fetchBookmarks(tripId);
         renderBookmarks(bookmarks);
     } catch {
         // Error already shown

@@ -122,8 +122,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Load bookmarks
-    const bookmarks = await fetchBookmarks(tripId);
-    renderBookmarks(bookmarks);
+    const bookmarks = await window.fetchBookmarks(tripId);
+    window.renderBookmarks(bookmarks);
 
     // Map will be initialized via callback from Google Maps script
     // The callback=initMap parameter in the script URL will call initMap() when ready
@@ -302,27 +302,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Delete trip button
-    document.getElementById('deleteTripBtn').addEventListener('click', handleDeleteTrip);
+    const deleteTripBtn = document.getElementById('deleteTripBtn');
+    if (deleteTripBtn) deleteTripBtn.addEventListener('click', handleDeleteTrip);
 
     // Debug route button
-    document.getElementById('debugRouteBtn').addEventListener('click', handleDebugRoute);
+    const debugRouteBtn = document.getElementById('debugRouteBtn');
+    if (debugRouteBtn) debugRouteBtn.addEventListener('click', handleDebugRoute);
 
     // Calculate route button
-    document.getElementById('calculateRouteBtnTop').addEventListener('click', handleCalculateRoute);
+    const calculateRouteBtnTop = document.getElementById('calculateRouteBtnTop');
+    if (calculateRouteBtnTop) calculateRouteBtnTop.addEventListener('click', handleCalculateRoute);
 
     // Duration change modal buttons
-    document.getElementById('shiftAllStopsBtn').addEventListener('click', handleShiftAllStops);
-    document.getElementById('adjustNextStopBtn').addEventListener('click', handleAdjustNextStop);
-    document.getElementById('justUpdateStopBtn').addEventListener('click', handleJustUpdateStop);
+    const shiftAllStopsBtn = document.getElementById('shiftAllStopsBtn');
+    if (shiftAllStopsBtn) shiftAllStopsBtn.addEventListener('click', handleShiftAllStops);
+    
+    const adjustNextStopBtn = document.getElementById('adjustNextStopBtn');
+    if (adjustNextStopBtn) adjustNextStopBtn.addEventListener('click', handleAdjustNextStop);
+    
+    const justUpdateStopBtn = document.getElementById('justUpdateStopBtn');
+    if (justUpdateStopBtn) justUpdateStopBtn.addEventListener('click', handleJustUpdateStop);
 
     // Bookmark form
-    document.getElementById('addBookmarkForm').addEventListener('submit', handleAddBookmarkSubmit);
+    const addBookmarkForm = document.getElementById('addBookmarkForm');
+    if (addBookmarkForm) addBookmarkForm.addEventListener('submit', handleAddBookmarkSubmit);
 
     // Waypoint form
-    document.getElementById('addWaypointForm').addEventListener('submit', handleAddWaypointSubmit);
+    const addWaypointForm = document.getElementById('addWaypointForm');
+    if (addWaypointForm) addWaypointForm.addEventListener('submit', handleAddWaypointSubmit);
 
     // Edit waypoint form
-    document.getElementById('editWaypointForm').addEventListener('submit', handleEditWaypointSubmit);
+    const editWaypointForm = document.getElementById('editWaypointForm');
+    if (editWaypointForm) editWaypointForm.addEventListener('submit', handleEditWaypointSubmit);
 
     // Waypoint location type radio buttons
     const waypointRadioButtons = document.querySelectorAll('input[name="waypointLocationType"]');
@@ -330,21 +341,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         radio.addEventListener('change', (e) => {
             const addressInput = document.getElementById('waypointAddressInput');
             const gpsInput = document.getElementById('waypointGpsInput');
+            if (!addressInput || !gpsInput) return;
 
             if (e.target.value === 'address') {
                 addressInput.style.display = 'block';
                 gpsInput.style.display = 'none';
-                document.getElementById('waypointGpsHint').style.display = 'none';
-                document.getElementById('waypointAddress').required = true;
-                document.getElementById('waypointLatitude').required = false;
-                document.getElementById('waypointLongitude').required = false;
+                const waypointGpsHint = document.getElementById('waypointGpsHint');
+                const waypointAddress = document.getElementById('waypointAddress');
+                const waypointLatitude = document.getElementById('waypointLatitude');
+                const waypointLongitude = document.getElementById('waypointLongitude');
+                if (waypointGpsHint) waypointGpsHint.style.display = 'none';
+                if (waypointAddress) waypointAddress.required = true;
+                if (waypointLatitude) waypointLatitude.required = false;
+                if (waypointLongitude) waypointLongitude.required = false;
             } else {
                 addressInput.style.display = 'none';
                 gpsInput.style.display = 'flex';
-                document.getElementById('waypointGpsHint').style.display = 'block';
-                document.getElementById('waypointAddress').required = false;
-                document.getElementById('waypointLatitude').required = true;
-                document.getElementById('waypointLongitude').required = true;
+                const waypointGpsHint = document.getElementById('waypointGpsHint');
+                const waypointAddress = document.getElementById('waypointAddress');
+                const waypointLatitude = document.getElementById('waypointLatitude');
+                const waypointLongitude = document.getElementById('waypointLongitude');
+                if (waypointGpsHint) waypointGpsHint.style.display = 'block';
+                if (waypointAddress) waypointAddress.required = false;
+                if (waypointLatitude) waypointLatitude.required = true;
+                if (waypointLongitude) waypointLongitude.required = true;
             }
         });
     });
@@ -357,19 +377,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             const gpsInput = document.getElementById('editWaypointGpsInput');
             const latInput = document.getElementById('editWaypointLatitude');
             const lonInput = document.getElementById('editWaypointLongitude');
+            if (!addressInput || !gpsInput || !latInput || !lonInput) return;
 
             if (e.target.value === 'address') {
                 addressInput.style.display = 'block';
                 gpsInput.style.display = 'none';
-                document.getElementById('editWaypointGpsHint').style.display = 'none';
-                document.getElementById('editWaypointAddress').required = true;
+                const editWaypointGpsHint = document.getElementById('editWaypointGpsHint');
+                const editWaypointAddress = document.getElementById('editWaypointAddress');
+                if (editWaypointGpsHint) editWaypointGpsHint.style.display = 'none';
+                if (editWaypointAddress) editWaypointAddress.required = true;
                 latInput.required = false;
                 lonInput.required = false;
             } else {
                 addressInput.style.display = 'none';
                 gpsInput.style.display = 'flex';
-                document.getElementById('editWaypointGpsHint').style.display = 'block';
-                document.getElementById('editWaypointAddress').required = false;
+                const editWaypointGpsHint = document.getElementById('editWaypointGpsHint');
+                const editWaypointAddress = document.getElementById('editWaypointAddress');
+                if (editWaypointGpsHint) editWaypointGpsHint.style.display = 'block';
+                if (editWaypointAddress) editWaypointAddress.required = false;
                 latInput.required = true;
                 lonInput.required = true;
             }
@@ -399,31 +424,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toggleBtn = document.getElementById('toggleRightPanelBtn');
     const toggleIcon = document.getElementById('toggleRightPanelIcon');
 
-    // SVG paths for the two states
-    const iconExpanded  = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>';   // panel visible → clicking will hide
-    const iconCollapsed = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>';     // panel hidden  → clicking will show
+    if (tripDetailContent && toggleBtn && toggleIcon) {
+        // SVG paths for the two states
+        const iconExpanded  = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>';   // panel visible → clicking will hide
+        const iconCollapsed = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>';     // panel hidden  → clicking will show
 
-    function applyPanelState(collapsed) {
-        if (collapsed) {
-            tripDetailContent.classList.add('right-collapsed');
-            toggleIcon.innerHTML = iconCollapsed;
-            toggleBtn.title = 'Show map & calendar';
-        } else {
-            tripDetailContent.classList.remove('right-collapsed');
-            toggleIcon.innerHTML = iconExpanded;
-            toggleBtn.title = 'Hide map & calendar';
+        function applyPanelState(collapsed) {
+            if (collapsed) {
+                tripDetailContent.classList.add('right-collapsed');
+                toggleIcon.innerHTML = iconCollapsed;
+                toggleBtn.title = 'Show map & calendar';
+            } else {
+                tripDetailContent.classList.remove('right-collapsed');
+                toggleIcon.innerHTML = iconExpanded;
+                toggleBtn.title = 'Hide map & calendar';
+            }
         }
+
+        // Restore persisted state
+        const panelCollapsed = localStorage.getItem('rightPanelCollapsed') === 'true';
+        applyPanelState(panelCollapsed);
+
+        toggleBtn.addEventListener('click', () => {
+            const nowCollapsed = !tripDetailContent.classList.contains('right-collapsed');
+            localStorage.setItem('rightPanelCollapsed', nowCollapsed);
+            applyPanelState(nowCollapsed);
+        });
     }
-
-    // Restore persisted state
-    const panelCollapsed = localStorage.getItem('rightPanelCollapsed') === 'true';
-    applyPanelState(panelCollapsed);
-
-    toggleBtn.addEventListener('click', () => {
-        const nowCollapsed = !tripDetailContent.classList.contains('right-collapsed');
-        localStorage.setItem('rightPanelCollapsed', nowCollapsed);
-        applyPanelState(nowCollapsed);
-    });
 
     // Close hamburger menus when clicking outside
     document.addEventListener('click', () => closeAllStopMenus());
