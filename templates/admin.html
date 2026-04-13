@@ -47,6 +47,7 @@
                 <button class="admin-tab" data-tab="entities" data-url="/admin/entities" role="tab">Entity Browser</button>
                 <button class="admin-tab" data-tab="backup" data-url="/admin/backup" role="tab">Database Backup</button>
                 <button class="admin-tab" data-tab="ordering" data-url="/admin/ordering" role="tab">Stop-Link Fix</button>
+                <button class="admin-tab" data-tab="delete-trip" data-url="/admin/delete-trip" role="tab">Delete Trip</button>
             </div>
 
             <!-- Tab: Entity Browser -->
@@ -102,6 +103,22 @@
                 </div>
                 <div id="chainContainer" class="admin-table-container">
                     <p class="admin-placeholder">Select a trip to view and reorder its stops and waypoints.</p>
+                </div>
+            </div>
+
+            <!-- Tab: Delete Trip -->
+            <div id="tab-delete-trip" class="admin-tab-panel">
+                <div class="admin-controls">
+                    <label for="deleteTripSelect">Trip:</label>
+                    <select id="deleteTripSelect">
+                        <option value="">-- Select a trip --</option>
+                    </select>
+                </div>
+                <div id="deleteTripPreview" class="admin-table-container">
+                    <p class="admin-placeholder">Select a trip to see its details before deleting.</p>
+                </div>
+                <div id="deleteTripActions" style="display:none; margin-top:16px;">
+                    <button id="deleteTripConfirmBtn" class="btn btn-danger">Delete Trip</button>
                 </div>
             </div>
 

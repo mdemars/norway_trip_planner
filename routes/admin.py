@@ -27,6 +27,10 @@ def admin_ordering():
     trip_id = request.args.get('trip', type=int)
     return render_template('admin.html', active_tab='ordering', preselect_trip_id=trip_id)
 
+@admin_bp.route('/admin/delete-trip')
+def admin_delete_trip():
+    return render_template('admin.html', active_tab='delete-trip')
+
 
 @admin_bp.route('/api/admin/entities', methods=['GET'])
 def get_entity_types():

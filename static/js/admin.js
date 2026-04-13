@@ -464,6 +464,80 @@ async function commitChain() {
     }
 }
 
+// ── Section 4: Delete Trip ────────────────────────────────────────────────────
+
+async function loadDeleteTripList() {
+    const select = document.getElementById('deleteTripSelect');
+    try {
+        const res = await fetch('/api/trips');
+        if (!res.ok) throw new Error('Failed to load trips');
+        const trips = await res.json();
+        // Clear all options except placeholder
+        select.innerHTML = '<option value="">-- Select a trip --</option>';
+        for (const trip of trips) {
+            const opt = document.createElement('option');
+            opt.value = trip.id;
+            opt.textContent = trip.name;
+            select.appendChild(opt);
+        }
+    } catch (err) {
+        console.error('Failed to load trips for delete:', err);
+    }
+}
+
+async function loadDeleteTripPreview(tripId) {
+    const preview = document.getElementById('deleteTripPreview');
+    const actions = document.getElementById('deleteTripActions');
+    actions.style.display = 'none';
+
+    if (!tripId) {
+        preview.innerHTML = '<p class="admin-placeholder">Select a trip to see its details before deleting.</p>';
+        return;
+    }
+
+    preview.innerHTML = '<p class="admin-placeholder">Loading…</p>';
+    try {
+        const res = await fetch(`/api/trips/${tripId}`);
+        if (!res.ok) throw new Error('Failed to load trip');
+        const trip = await res.json();
+        const stops = trip.stops || [];
+        const stopRows = stops.map(s => `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.start_date || '—')}</td><td>${escapeHtml(s.end_date || '—')}</td></tr>`).join('');
+        preview.innerHTML = `
+            <div class="table-scroll">
+                <table class="admin-table">
+                    <thead><tr><th colspan="3"><strong>${escapeHtml(trip.name)}</strong> — ${stops.length} stop${stops.length !== 1 ? 's' : ''}</th></tr>
+                    <tr><th>Stop</th><th>Start</th><th>End</th></tr></thead>
+                    <tbody>${stopRows || '<tr><td colspan="3" style="color:var(--text-muted)">No stops</td></tr>'}</tbody>
+                </table>
+            </div>`;
+        actions.style.display = 'block';
+    } catch (err) {
+        preview.innerHTML = `<p class="admin-placeholder" style="color:var(--danger-color);">Error: ${escapeHtml(err.message)}</p>`;
+    }
+}
+
+async function handleDeleteTripConfirm() {
+    const select = document.getElementById('deleteTripSelect');
+    const tripId = select.value;
+    const tripName = select.options[select.selectedIndex]?.text;
+    if (!tripId) return;
+    if (!confirm(`Permanently delete trip "${tripName}" and all its stops, waypoints, and activities? This cannot be undone.`)) return;
+
+    try {
+        const res = await fetch(`/api/trips/${tripId}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to delete trip');
+        }
+        showBackupStatus(`Trip "${tripName}" deleted.`);
+        await loadDeleteTripList();
+        document.getElementById('deleteTripPreview').innerHTML = '<p class="admin-placeholder">Select a trip to see its details before deleting.</p>';
+        document.getElementById('deleteTripActions').style.display = 'none';
+    } catch (err) {
+        showBackupStatus('Delete failed: ' + err.message, true);
+    }
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
 function activateTab(tabName) {
@@ -578,6 +652,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('chainDiffModal').style.display = 'none';
     });
     document.getElementById('chainDiffCommit').addEventListener('click', commitChain);
+
+    // Delete Trip tab
+    await loadDeleteTripList();
+    document.getElementById('deleteTripSelect').addEventListener('change', e => {
+        loadDeleteTripPreview(e.target.value);
+    });
+    document.getElementById('deleteTripConfirmBtn').addEventListener('click', handleDeleteTripConfirm);
 
     document.getElementById('importTripInput').addEventListener('change', async (e) => {
         const file = e.target.files[0];
