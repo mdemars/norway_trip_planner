@@ -999,6 +999,8 @@ async function handleCalculateRoute() {
         const routeData = await calculateRoute(tripId);
         drawRoute(routeData);
         await saveRouteDistances(routeData);
+        await App.loadTrip();  // Reload trip to get updated distances and start/end locations
+        App.updateMap();  // Refresh markers while preserving the drawn route
         showSuccess(t('notifications.routeCalculated'));
     } catch (error) {
         // Error already shown

@@ -24,14 +24,11 @@ function initMap() {
 function updateMap() {
     if (!App.map) return;
 
-    // Clear existing markers, info windows, and paths
+    // Clear existing markers and info windows, but preserve the route
     App.markers.forEach(marker => marker.setMap(null));
     App.markers = [];
     App.infoWindows = [];
-    if (App.routePath) {
-        App.routePath.setMap(null);
-        App.routePath = null;
-    }
+    // NOTE: DO NOT clear App.routePath here - it should persist until explicitly recalculated
 
     const bounds = new google.maps.LatLngBounds();
 
@@ -246,7 +243,7 @@ function updateMap() {
 function drawRoute(routeData) {
     if (!App.map || !routeData || !routeData.segments) return;
 
-    // Clear existing route path
+    // Clear existing route path before drawing new one
     if (App.routePath) {
         App.routePath.setMap(null);
     }

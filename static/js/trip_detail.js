@@ -570,14 +570,11 @@ function initMap() {
 function updateMap() {
     if (!map) return;
 
-    // Clear existing markers, info windows, and paths
+    // Clear existing markers and info windows, but preserve the route
     markers.forEach(marker => marker.setMap(null));
     markers = [];
     infoWindows = [];
-    if (routePath) {
-        routePath.setMap(null);
-        routePath = null;
-    }
+    // NOTE: DO NOT clear routePath here - it should persist until explicitly recalculated
 
     const bounds = new google.maps.LatLngBounds();
 
@@ -792,7 +789,7 @@ function updateMap() {
 function drawRoute(routeData) {
     if (!map || !routeData || !routeData.segments) return;
 
-    // Clear existing route path
+    // Clear existing route path before drawing new one
     if (routePath) {
         routePath.setMap(null);
     }
@@ -1840,6 +1837,7 @@ async function handleCalculateRoute() {
         const routeData = await calculateRoute(tripId);
         displayRouteInfo(routeData);
         drawRoute(routeData);
+        updateMap();  // Refresh markers while preserving the drawn route
         showSuccess(t('notifications.routeCalculated'));
     } catch (error) {
         // Error already shown

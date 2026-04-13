@@ -46,8 +46,19 @@ def create_stop(trip_id):
         # Get the previous location GUID from the request or from the last location
         previous_location_guid = data.get('previous_location_guid')
         if previous_location_guid is None:
+            # Only set previous_location_guid if there are existing locations in this trip
             previous_location = db.query(Location).filter(Location.trip_id == trip_id).order_by(Location.id.desc()).first()
             previous_location_guid = previous_location.guid if previous_location else None
+        
+        # Validate that the previous_location_guid actually exists in locations table
+        # If it's the trip's start_location_guid or doesn't exist, set to NULL
+        if previous_location_guid:
+            location_exists = db.query(Location).filter(
+                Location.trip_id == trip_id,
+                Location.guid == previous_location_guid
+            ).first()
+            if not location_exists:
+                previous_location_guid = None
 
         # Handle location
         latitude, longitude, address = geocode_location_fields(data)
