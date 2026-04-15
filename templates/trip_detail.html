@@ -68,19 +68,24 @@
                             </span>
                         </div>
                         <div style="display:flex;gap:8px;align-items:center;">
-                            <a href="/admin/ordering?trip={{ trip_id }}" class="btn btn-secondary btn-sm" style="text-decoration:none;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
+                            <a href="/admin/ordering?trip={{ trip_id }}" class="icon-btn" style="text-decoration:none;" data-i18n-title="stops.reorderStops" title="Re-Order Stops">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
                                 </svg>
-                                <span data-i18n="stops.reorderStops">Re-Order Stops</span>
                             </a>
-                            <button id="calculateRouteBtnTop" class="btn btn-secondary btn-sm" onclick="handleCalculateRoute()" data-i18n="route.calculateRoute">Calculate Route</button>
-                            <button id="addStopBtn" class="btn btn-primary btn-sm">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <button id="calculateRouteBtnTop" class="icon-btn" onclick="handleCalculateRoute()" data1i18n-title="route.calculateRoute" title="Calculate Route">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/>
+                                    <path d="M6 16V7a6 6 0 0 1 6-6"/>
+                                    <path d="M18 8v9a6 6 0 0 1-6 6"/>
+                                </svg>
+                            </button>
+                            <button id="addStopBtn" class="icon-btn" data-i18n-title="stops.addStop" title="Add Stop">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                <span data-i18n="stops.addStop">Add Stop</span>
                             </button>
                             <button id="toggleRightPanelBtn" class="icon-btn" title="Toggle map &amp; calendar">
                                 <!-- icon swapped by JS -->
@@ -165,6 +170,21 @@
                     <input type="text" id="stopName" name="stopName" data-i18n-placeholder="stops.stopNamePlaceholder" placeholder="e.g., Oslo" required>
                 </div>
 
+                <div class="form-group">
+                    <label data-i18n="stops.stopType">Stop Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="stopType" value="overnight" checked onchange="updateAddStopTypeDisplay()">
+                            <span data-i18n="stops.overnight">Overnight stop</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="stopType" value="road" onchange="updateAddStopTypeDisplay()">
+                            <span data-i18n="stops.roadStop">Road stop (no dates)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="addDatesSection">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="addAfterStop" data-i18n="dates.addAfter">Add After</label>
@@ -187,6 +207,7 @@
                         <label for="endDate"><span data-i18n="dates.endDate">End Date</span> <span style="font-size: 0.85em; color: #6c757d;">(<span data-i18n="dates.autoCalculated">auto-calculated</span>)</span></label>
                         <input type="date" id="endDate" name="endDate" required>
                     </div>
+                </div>
                 </div>
 
                 <div class="form-group">
@@ -256,6 +277,21 @@
                     <input type="text" id="editStopName" name="stopName" required>
                 </div>
 
+                <div class="form-group" id="editStopTypeSection">
+                    <label data-i18n="stops.stopType">Stop Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="editStopType" value="overnight" checked onchange="updateEditStopTypeDisplay()">
+                            <span data-i18n="stops.overnight">Overnight stop</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="editStopType" value="road" onchange="updateEditStopTypeDisplay()">
+                            <span data-i18n="stops.roadStop">Road stop (no dates)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="editDatesSection">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="editStartDate" data-i18n="dates.startDate">Start Date</label>
@@ -265,6 +301,7 @@
                         <label for="editEndDate" data-i18n="dates.endDate">End Date</label>
                         <input type="date" id="editEndDate" name="endDate" required>
                     </div>
+                </div>
                 </div>
 
                 <div class="form-group">
@@ -384,147 +421,6 @@
                     </button>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Add Waypoint Modal -->
-    <div id="addWaypointModal" class="modal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <h2 data-i18n="waypoints.addWaypoint">Add Waypoint</h2>
-                <button class="close-btn" onclick="closeModal('addWaypointModal')">&times;</button>
-            </div>
-            <form id="addWaypointForm">
-                <input type="hidden" id="waypointAfterIndex">
-                <div class="form-group">
-                    <label for="waypointName" data-i18n="waypoints.waypointName">Waypoint Name</label>
-                    <input type="text" id="waypointName" name="waypointName" data-i18n-placeholder="waypoints.waypointNamePlaceholder" placeholder="e.g., Scenic viewpoint" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="waypointPreviousLocation" data-i18n="waypoints.previousLocation">Previous Location</label>
-                    <select id="waypointPreviousLocation" name="waypointPreviousLocation">
-                        <option value="" data-i18n="waypoints.noPreviousLocation">None (start of route)</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label data-i18n="locations.locationType">Location Type</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="waypointLocationType" value="address" checked>
-                            <span data-i18n="locations.address">Address</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="waypointLocationType" value="gps">
-                            <span data-i18n="locations.gpsCoordinates">GPS Coordinates</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div id="waypointAddressInput" class="form-group">
-                    <label for="waypointAddress" data-i18n="locations.address">Address</label>
-                    <div class="input-with-validation">
-                        <input type="text" id="waypointAddress" name="waypointAddress" placeholder="e.g., Stegastein Viewpoint, Norway">
-                        <span id="waypointAddressValidation" class="validation-icon"></span>
-                    </div>
-                </div>
-
-                <div id="waypointGpsInput" class="form-row" style="display: none;">
-                    <div class="form-group">
-                        <label for="waypointLatitude" data-i18n="locations.latitude">Latitude</label>
-                        <input type="text" id="waypointLatitude" name="waypointLatitude" placeholder="60.8795 or 60°52′46″N">
-                    </div>
-                    <div class="form-group">
-                        <label for="waypointLongitude" data-i18n="locations.longitude">Longitude</label>
-                        <input type="text" id="waypointLongitude" name="waypointLongitude" placeholder="7.3139 or 7°18′50″E">
-                    </div>
-                </div>
-                <p id="waypointGpsHint" style="display:none; font-size:0.8em; color:#6c757d; margin-top:-8px;">
-                    Paste a full DMS string (e.g. <em>63°32′29.6″N 10°48′45.7″E</em>) into the latitude field and both will be filled automatically.
-                </p>
-
-                <div class="form-group">
-                    <label for="waypointDescription" data-i18n="locations.description">Description (Optional)</label>
-                    <textarea id="waypointDescription" name="waypointDescription" rows="3" data-i18n-placeholder="locations.descriptionPlaceholder" placeholder="Details about this location..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="waypointUrl" data-i18n="locations.url">URL (Optional)</label>
-                    <input type="url" id="waypointUrl" name="waypointUrl" placeholder="https://...">
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('addWaypointModal')" data-i18n="buttons.cancel">Cancel</button>
-                    <button type="submit" class="btn btn-primary" data-i18n="waypoints.addWaypoint">Add Waypoint</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit Waypoint Modal -->
-    <div id="editWaypointModal" class="modal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <h2 data-i18n="waypoints.editWaypoint">Edit Waypoint</h2>
-                <button class="close-btn" onclick="closeModal('editWaypointModal')">&times;</button>
-            </div>
-            <form id="editWaypointForm">
-                <input type="hidden" id="editWaypointId">
-                <div class="form-group">
-                    <label for="editWaypointName" data-i18n="waypoints.waypointName">Waypoint Name</label>
-                    <input type="text" id="editWaypointName" name="waypointName" required>
-                </div>
-
-                <div class="form-group">
-                    <label data-i18n="locations.locationType">Location Type</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="editWaypointLocationType" value="address" checked>
-                            <span data-i18n="locations.address">Address</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="editWaypointLocationType" value="gps">
-                            <span data-i18n="locations.gpsCoordinates">GPS Coordinates</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div id="editWaypointAddressInput" class="form-group">
-                    <label for="editWaypointAddress" data-i18n="locations.address">Address</label>
-                    <div class="input-with-validation">
-                        <input type="text" id="editWaypointAddress" name="waypointAddress" placeholder="e.g., Stegastein Viewpoint, Norway">
-                        <span id="editWaypointAddressValidation" class="validation-icon"></span>
-                    </div>
-                </div>
-
-                <div id="editWaypointGpsInput" class="form-row" style="display: none;">
-                    <div class="form-group">
-                        <label for="editWaypointLatitude" data-i18n="locations.latitude">Latitude</label>
-                        <input type="text" id="editWaypointLatitude" name="waypointLatitude" placeholder="60.8795 or 60°52′46″N">
-                    </div>
-                    <div class="form-group">
-                        <label for="editWaypointLongitude" data-i18n="locations.longitude">Longitude</label>
-                        <input type="text" id="editWaypointLongitude" name="waypointLongitude" placeholder="7.3139 or 7°18′50″E">
-                    </div>
-                </div>
-                <p id="editWaypointGpsHint" style="font-size:0.8em; color:#6c757d; margin-top:-8px;">
-                    Paste a full DMS string (e.g. <em>63°32′29.6″N 10°48′45.7″E</em>) into the latitude field and both will be filled automatically.
-                </p>
-
-                <div class="form-group">
-                    <label for="editWaypointDescription" data-i18n="locations.description">Description (Optional)</label>
-                    <textarea id="editWaypointDescription" name="waypointDescription" rows="3" data-i18n-placeholder="locations.descriptionPlaceholder" placeholder="Details about this location..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="editWaypointUrl" data-i18n="locations.url">URL (Optional)</label>
-                    <input type="url" id="editWaypointUrl" name="waypointUrl" placeholder="https://...">
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('editWaypointModal')" data-i18n="buttons.cancel">Cancel</button>
-                    <button type="submit" class="btn btn-primary" data-i18n="buttons.save">Save Changes</button>
-                </div>
-            </form>
         </div>
     </div>
 

@@ -7,7 +7,7 @@ import os
 import zipfile
 from datetime import datetime, timezone
 import uuid as uuid_module
-from models import Trip, Stop, Waypoint, Activity, get_db
+from models import Trip, Stop, Activity, get_db
 from helpers import parse_iso_date
 from werkzeug.utils import secure_filename
 
@@ -152,7 +152,7 @@ def upload_backup():
 def export_json():
     """
     Export all trips as a ZIP file containing one JSON file per trip.
-    Each JSON includes the trip's stops (with activities) and waypoints.
+    Each JSON includes the trip's stops (with activities).
     """
     db = get_db()
     try:
@@ -162,8 +162,6 @@ def export_json():
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for trip in trips:
                 trip_data = trip.to_dict(include_stops=True)
-                waypoints = db.query(Waypoint).filter(Waypoint.trip_id == trip.id).all()
-                trip_data['waypoints'] = [wp.to_dict() for wp in waypoints]
 
                 safe_name = ''.join(c if c.isalnum() or c in ' -_' else '_' for c in trip.name)[:50].strip()
                 filename = f"trip_{trip.id}_{safe_name}.json"
@@ -197,8 +195,9 @@ def import_trip():
         return jsonify({'error': 'Invalid trip JSON: missing name field'}), 400
 
     stops_data = data.get('stops', [])
-    waypoints_data = data.get('waypoints', [])
-    all_locations_data = [l for l in stops_data + waypoints_data if l.get('guid')]
+    # Support old export format that had a separate 'waypoints' list
+    legacy_waypoints = data.get('waypoints', [])
+    all_locations_data = [l for l in stops_data + legacy_waypoints if l.get('guid')]
 
     # Build old_guid → new_guid mapping for every location up front
     guid_map = {loc['guid']: str(uuid_module.uuid4()) for loc in all_locations_data}
@@ -272,17 +271,14 @@ def import_trip():
                 previous_location_guid=new_prev,
             )
 
-            if loc.get('type') == 'stop':
-                new_stop = Stop(
-                    **common,
-                    start_date=parse_iso_date(loc['start_date']) if loc.get('start_date') else None,
-                    end_date=parse_iso_date(loc['end_date']) if loc.get('end_date') else None,
-                )
-                db.add(new_stop)
-                db.flush()
-                old_id_to_new_stop[loc['id']] = new_stop
-            else:
-                db.add(Waypoint(**common))
+            new_stop = Stop(
+                **common,
+                start_date=parse_iso_date(loc['start_date']) if loc.get('start_date') else None,
+                end_date=parse_iso_date(loc['end_date']) if loc.get('end_date') else None,
+            )
+            db.add(new_stop)
+            db.flush()
+            old_id_to_new_stop[loc['id']] = new_stop
 
         # ── Insert activities linked to new stop IDs ──────────────────────────
         for stop_data in stops_data:

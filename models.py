@@ -34,7 +34,7 @@ class Trip(Base):
     total_distance_km = Column(Float, nullable=True)
 
     # Relationships
-    stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Location.start_date')
+    stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Location.id')
 
     def to_dict(self, include_stops=False):
         """Convert trip to dictionary"""
@@ -183,32 +183,6 @@ class TripBookmark(Base):
             'description': self.description,
         }
 
-
-
-class Waypoint(Location):
-    """Waypoint model representing intermediate points along the route"""
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'waypoint',
-    }
-
-    def to_dict(self):
-        """Convert waypoint to dictionary"""
-        return {
-            'id': self.id,
-            'guid': self.guid,
-            'trip_id': self.trip_id,
-            'name': self.name,
-            'location_type': self.location_type,
-            'latitude': self.latitude,
-            'longitude': self.longitude,
-            'address': self.address,
-            'description': self.description,
-            'url': self.url,
-            'previous_location_guid': self.previous_location_guid,
-            'distance_km': self.distance_km,
-            'type': 'waypoint'
-        }
 
 
 # Database setup
@@ -430,6 +404,25 @@ def _migrate_add_trip_total_distance_km(engine):
     print("Trip total_distance_km migration complete.")
 
 
+def _migrate_waypoints_to_stops(engine):
+    """Convert all waypoint rows to stops (type='stop')."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+    if 'locations' not in existing_tables:
+        return
+    schema_prefix = f"{TRIPS_SCHEMA}."
+    with engine.connect() as conn:
+        result = conn.execute(text(f"SELECT COUNT(*) FROM {schema_prefix}locations WHERE type = 'waypoint'"))
+        count = result.scalar()
+        if count == 0:
+            return
+        print(f"Converting {count} waypoints to stops...")
+        conn.execute(text(f"UPDATE {schema_prefix}locations SET type = 'stop' WHERE type = 'waypoint'"))
+        conn.commit()
+    print("Waypoints to stops conversion complete.")
+
+
 def init_db():
     """Initialize the database"""
     _ensure_schema_exists(engine)
@@ -440,6 +433,7 @@ def init_db():
     _migrate_add_location_distance_km(engine)
     _migrate_add_trip_end_distance_km(engine)
     _migrate_add_trip_total_distance_km(engine)
+    _migrate_waypoints_to_stops(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 

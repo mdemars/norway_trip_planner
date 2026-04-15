@@ -6,7 +6,6 @@ window.TripApp = window.TripApp || {};
 
 window.TripApp.currentTrip = null;
 window.TripApp.stops = [];
-window.TripApp.waypoints = [];
 window.TripApp.map = null;
 window.TripApp.markers = [];
 window.TripApp.infoWindows = [];

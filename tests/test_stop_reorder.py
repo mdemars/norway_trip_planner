@@ -88,30 +88,30 @@ def test_stop_display_order_matches_route_order_after_date_change(client):
     )
 
 
-def test_waypoint_stays_between_stops_after_date_swap(client):
+def test_road_stop_stays_between_stops_after_date_swap(client):
     """
-    After swapping stop dates, a waypoint that sat between the two stops must
-    remain between them in the route — it should not stay anchored to its
-    original predecessor stop.
+    After swapping stop dates, the chain order must remain unchanged and the
+    road stop must stay between the same two overnight stops.
+
+    Route order is determined by the explicit chain (linked list), not by dates.
+    Changing dates does not reorder the chain.
 
     Scenario
     --------
     1. Create two stops in order:
          Bergen  July 4–8   → first in chain
          Oslo    July 8–11  → second in chain
-    2. Insert a waypoint explicitly between them (previous_location_guid = Bergen).
-       Oslo auto-appends after the waypoint, so the chain is:
-         Bergen → Waypoint → Oslo
+    2. Insert a road stop explicitly between them (previous_location_guid = Bergen).
+       Oslo auto-appends after the road stop, so the chain is:
+         Bergen → Scenic viewpoint → Oslo
     3. Swap dates via PUT:
-         Oslo   → July 4–8  (now the earlier stop)
-         Bergen → July 8–11 (now the later stop)
-    4. GET /api/trips/<id>/debug/route-points must return:
-         Oslo → Waypoint → Bergen
-       The waypoint must stay between the two stops, not be left after Bergen
-       at the tail (Oslo → Bergen → Waypoint).
+         Oslo   → July 4–8
+         Bergen → July 8–11
+    4. GET /api/trips/<id>/debug/route-points must still return:
+         Bergen → Scenic viewpoint → Oslo
+       Chain order is unchanged; dates are just metadata.
     """
-    # ── 1 & 2. Create trip, two stops, and a waypoint between them ───────────
-    trip_id = post_json(client, '/api/trips', {'name': 'Waypoint reorder test'}).get_json()['id']
+    trip_id = post_json(client, '/api/trips', {'name': 'Road stop reorder test'}).get_json()['id']
 
     stop_a = post_json(client, f'/api/trips/{trip_id}/stops', {
         'name': 'Bergen',
@@ -122,16 +122,15 @@ def test_waypoint_stays_between_stops_after_date_swap(client):
         'longitude': 5.3221,
     }).get_json()
 
-    # Waypoint sits immediately after Bergen
-    waypoint = post_json(client, f'/api/trips/{trip_id}/waypoints', {
+    # Road stop (no dates) sits immediately after Bergen
+    post_json(client, f'/api/trips/{trip_id}/stops', {
         'name': 'Scenic viewpoint',
         'location_type': 'gps',
         'latitude': 60.1000,
         'longitude': 6.5000,
         'previous_location_guid': stop_a['guid'],
-    }).get_json()
+    })
 
-    # Oslo auto-appends after the waypoint (last location by id)
     stop_b = post_json(client, f'/api/trips/{trip_id}/stops', {
         'name': 'Oslo',
         'start_date': '2026-07-08',
@@ -141,7 +140,7 @@ def test_waypoint_stays_between_stops_after_date_swap(client):
         'longitude': 10.7522,
     }).get_json()
 
-    # ── 3. Swap dates ─────────────────────────────────────────────────────────
+    # Swap dates — chain order must not change
     put_json(client, f'/api/stops/{stop_b["id"]}', {
         'start_date': '2026-07-04',
         'end_date': '2026-07-08',
@@ -151,13 +150,11 @@ def test_waypoint_stays_between_stops_after_date_swap(client):
         'end_date': '2026-07-11',
     })
 
-    # ── 4. Route chain order ──────────────────────────────────────────────────
     route_resp = client.get(f'/api/trips/{trip_id}/debug/route-points')
     assert route_resp.status_code == 200
-    route_points = route_resp.get_json()['points']
-    route_names = [p['name'] for p in route_points]
+    route_names = [p['name'] for p in route_resp.get_json()['points']]
 
-    assert route_names == ['Oslo', 'Scenic viewpoint', 'Bergen'], (
-        f"Expected ['Oslo', 'Scenic viewpoint', 'Bergen'] but got {route_names}. "
-        f"The waypoint must remain between the two stops after the date swap."
+    assert route_names == ['Bergen', 'Scenic viewpoint', 'Oslo'], (
+        f"Expected ['Bergen', 'Scenic viewpoint', 'Oslo'] but got {route_names}. "
+        f"Chain order must not change when dates are updated."
     )

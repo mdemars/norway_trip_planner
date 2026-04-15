@@ -22,7 +22,7 @@ def create_stop(trip_id):
     """Create a new stop"""
     data = request.json
 
-    required_fields = ['name', 'start_date', 'end_date', 'location_type']
+    required_fields = ['name', 'location_type']
     for field in required_fields:
         if field not in data:
             return jsonify({'error': f'{field} is required'}), 400
@@ -33,14 +33,20 @@ def create_stop(trip_id):
         if not trip:
             return jsonify({'error': 'Trip not found'}), 404
 
-        # Parse dates
-        try:
-            start_date = parse_iso_date(data['start_date'])
-            end_date = parse_iso_date(data['end_date'])
-        except ValueError:
-            return jsonify({'error': 'Invalid date format'}), 400
-
-        if end_date < start_date:
+        # Parse dates (optional - road stops have no dates)
+        start_date = None
+        end_date = None
+        if data.get('start_date'):
+            try:
+                start_date = parse_iso_date(data['start_date'])
+            except ValueError:
+                return jsonify({'error': 'Invalid date format'}), 400
+        if data.get('end_date'):
+            try:
+                end_date = parse_iso_date(data['end_date'])
+            except ValueError:
+                return jsonify({'error': 'Invalid date format'}), 400
+        if start_date and end_date and end_date < start_date:
             return jsonify({'error': 'End date must be after start date'}), 400
 
         # Get the previous location GUID from the request or from the last location
@@ -136,10 +142,10 @@ def update_stop(stop_id):
             stop.url = data['url']
 
         if 'start_date' in data:
-            stop.start_date = parse_iso_date(data['start_date'])
+            stop.start_date = parse_iso_date(data['start_date']) if data['start_date'] else None
 
         if 'end_date' in data:
-            stop.end_date = parse_iso_date(data['end_date'])
+            stop.end_date = parse_iso_date(data['end_date']) if data['end_date'] else None
 
         if stop.end_date is not None and stop.start_date is not None and stop.end_date < stop.start_date:
             return jsonify({'error': 'End date must be after start date'}), 400
@@ -173,6 +179,14 @@ def delete_stop(stop_id):
         if not stop:
             return jsonify({'error': 'Stop not found'}), 404
 
+        # Relink the next location in the chain to point to this stop's predecessor
+        next_location = db.query(Location).filter(
+            Location.trip_id == stop.trip_id,
+            Location.previous_location_guid == stop.guid
+        ).first()
+        if next_location:
+            next_location.previous_location_guid = stop.previous_location_guid
+
         db.delete(stop)
         db.commit()
         return jsonify({'message': 'Stop deleted successfully'})
@@ -188,8 +202,8 @@ def reorder_trip_stops(trip_id):
     """Reorder stops by rebuilding the previous_location_guid chain.
 
     Accepts { stop_ids: [id1, id2, ...] } in the desired new order.
-    Waypoints stay attached to their stop: each stop's previous_location_guid
-    is updated to point to the tail of the previous stop's waypoint segment.
+    Road stops (no dates) stay attached to their preceding overnight stop
+    and travel with it during reordering.
     """
     data = request.json
     stop_ids = data.get('stop_ids', [])
@@ -211,7 +225,7 @@ def reorder_trip_stops(trip_id):
                 return jsonify({'error': f'Stop {sid} not found in trip'}), 404
             stops.append(stop)
 
-        # Build a forward map across all locations so we can walk waypoint tails
+        # Build a forward map across all locations so we can walk road-stop tails
         all_locs = db.query(Location).filter(Location.trip_id == trip_id).all()
         guids_in_trip = {loc.guid for loc in all_locs}
         next_map = {}
@@ -221,12 +235,12 @@ def reorder_trip_stops(trip_id):
                 next_map[prev] = loc
 
         def get_segment_tail_guid(stop):
-            """Walk forward through waypoints after this stop; return guid of last node."""
+            """Walk forward through road stops after this stop; return guid of last node."""
             current_guid = stop.guid
             while current_guid in next_map:
                 nxt = next_map[current_guid]
-                if isinstance(nxt, Stop):
-                    break  # Don't cross into the next stop
+                if nxt.start_date is not None:
+                    break  # Don't cross into the next overnight stop
                 current_guid = nxt.guid
             return current_guid
 

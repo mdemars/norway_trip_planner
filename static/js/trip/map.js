@@ -134,55 +134,6 @@ function updateMap() {
         }
     });
 
-    // Add markers for waypoints
-    App.waypoints.forEach((waypoint) => {
-        if (waypoint.latitude && waypoint.longitude) {
-            const position = { lat: waypoint.latitude, lng: waypoint.longitude };
-
-            // Create a simple circular marker for waypoints
-            const waypointIcon = {
-                path: google.maps.SymbolPath.CIRCLE,
-                fillColor: '#6c757d',
-                fillOpacity: 1,
-                strokeWeight: 2,
-                strokeColor: '#ffffff',
-                scale: 8
-            };
-
-            const marker = new google.maps.Marker({
-                position: position,
-                map: App.map,
-                icon: waypointIcon,
-                title: waypoint.name
-            });
-
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
-                    <div style="padding: 8px;">
-                        <h3 style="margin: 0 0 8px 0; color: #6c757d;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                <circle cx="12" cy="10" r="3"></circle>
-                            </svg>
-                            ${escapeHtml(waypoint.name)}
-                        </h3>
-                        <p style="margin: 0; color: #6c757d; font-size: 0.9em;">${escapeHtml(waypoint.address || t('waypoints.waypoint'))}</p>
-                    </div>
-                `
-            });
-
-            marker.addListener('click', () => {
-                // Close all other info windows
-                App.infoWindows.forEach(iw => iw.close());
-                infoWindow.open(App.map, marker);
-            });
-
-            App.markers.push(marker);
-            App.infoWindows.push(infoWindow);
-            bounds.extend(position);
-        }
-    });
-
     // Add end location marker if it exists
     if (App.currentTrip && App.currentTrip.end_location && App.currentTrip.end_location.latitude) {
         const position = {

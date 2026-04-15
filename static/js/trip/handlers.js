@@ -17,6 +17,15 @@ function openAddStopAfter(stopId) {
 }
 
 function populateAddStopModal() {
+    // Reset to overnight mode
+    const overnightRadio = document.querySelector('input[name="stopType"][value="overnight"]');
+    if (overnightRadio) { overnightRadio.checked = true; }
+    const addDatesSection = document.getElementById('addDatesSection');
+    if (addDatesSection) addDatesSection.style.display = 'block';
+    document.getElementById('numberOfNights').required = true;
+    document.getElementById('startDate').required = true;
+    document.getElementById('endDate').required = true;
+
     const addAfterSelect = document.getElementById('addAfterStop');
 
     // Clear existing options except "Start of trip"
@@ -90,15 +99,21 @@ async function handleAddStopSubmit(e) {
         previousLocationGuid = afterStop ? afterStop.guid : null;
     }
 
+    const stopTypeEl = document.querySelector('input[name="stopType"]:checked');
+    const isOvernight = !stopTypeEl || stopTypeEl.value === 'overnight';
+
     const stopData = {
         name: form.stopName.value.trim(),
-        start_date: form.startDate.value + 'T00:00:00',
-        end_date: form.endDate.value + 'T00:00:00',
         location_type: locationType,
         description: form.stopDescription.value.trim(),
         url: form.stopUrl.value.trim(),
         previous_location_guid: previousLocationGuid
     };
+
+    if (isOvernight) {
+        stopData.start_date = form.startDate.value + 'T00:00:00';
+        stopData.end_date = form.endDate.value + 'T00:00:00';
+    }
 
     if (locationType === 'address') {
         stopData.address = form.address.value.trim();
@@ -182,8 +197,8 @@ async function handleEditStopSubmit(e) {
 
             closeModal('editStopModal');
             form.dataset.tripLocationType = '';
-            document.getElementById('editStartDate').parentElement.style.display = 'block';
-            document.getElementById('editEndDate').parentElement.style.display = 'block';
+            const editStopTypeSect = document.getElementById('editStopTypeSection');
+            if (editStopTypeSect) editStopTypeSect.style.display = 'block';
             showSuccess(t('notifications.stopUpdated'));
             await loadTrip();
             await loadStops();
@@ -198,11 +213,13 @@ async function handleEditStopSubmit(e) {
     const stopIndex = App.stops.findIndex(s => s.id === stopId);
     const originalStop = App.stops[stopIndex];
     const locationType = form.editLocationType.value;
+    const editStopTypeEl = document.querySelector('input[name="editStopType"]:checked');
+    const isOvernight = !editStopTypeEl || editStopTypeEl.value === 'overnight';
 
     const stopData = {
         name: form.stopName.value.trim(),
-        start_date: form.startDate.value + 'T00:00:00',
-        end_date: form.endDate.value + 'T00:00:00',
+        start_date: isOvernight && form.startDate.value ? form.startDate.value + 'T00:00:00' : null,
+        end_date: isOvernight && form.endDate.value ? form.endDate.value + 'T00:00:00' : null,
         location_type: locationType,
         description: document.getElementById('editStopDescription').value.trim(),
         url: document.getElementById('editStopUrl').value.trim()
@@ -223,12 +240,12 @@ async function handleEditStopSubmit(e) {
         }
     }
 
-    // Check if duration was extended and there are following stops
-    const originalEndDate = new Date(originalStop.end_date);
-    const newEndDate = new Date(stopData.end_date);
+    // Check if duration was extended and there are following overnight stops
+    const originalEndDate = originalStop.end_date ? new Date(originalStop.end_date) : null;
+    const newEndDate = stopData.end_date ? new Date(stopData.end_date) : null;
     const hasFollowingStops = stopIndex < App.stops.length - 1;
 
-    if (newEndDate > originalEndDate && hasFollowingStops) {
+    if (isOvernight && originalEndDate && newEndDate && newEndDate > originalEndDate && hasFollowingStops) {
         // Duration extended - ask user how to handle following stops
         App.pendingStopUpdate = {
             stopId,
@@ -287,13 +304,19 @@ function openEditStopModal(stopId) {
     document.getElementById('editStopId').value = stop.id;
     document.getElementById('editStopName').value = stop.name;
 
-    // Show date fields and restore required attribute for regular stops
+    // Set stop type toggle (overnight vs road stop)
+    const isOvernight = !!(stop.start_date);
+    const stopTypeRadio = document.querySelector(`input[name="editStopType"][value="${isOvernight ? 'overnight' : 'road'}"]`);
+    if (stopTypeRadio) stopTypeRadio.checked = true;
+
+    // Show/hide dates section
+    const editDatesSection = document.getElementById('editDatesSection');
+    if (editDatesSection) editDatesSection.style.display = isOvernight ? 'block' : 'none';
+
     const startDateInput = document.getElementById('editStartDate');
     const endDateInput = document.getElementById('editEndDate');
-    startDateInput.parentElement.style.display = 'block';
-    endDateInput.parentElement.style.display = 'block';
-    startDateInput.required = true;
-    endDateInput.required = true;
+    startDateInput.required = isOvernight;
+    endDateInput.required = isOvernight;
     startDateInput.value = stop.start_date ? formatDateForInput(stop.start_date) : '';
     endDateInput.value = stop.end_date ? formatDateForInput(stop.end_date) : '';
 
@@ -352,8 +375,8 @@ async function handleShiftAllStops() {
         // Update the current stop
         await updateStop(stopId, stopData);
 
-        // Update all following stops
-        const followingStops = App.stops.slice(stopIndex + 1);
+        // Update all following overnight stops (skip road stops which have no dates)
+        const followingStops = App.stops.slice(stopIndex + 1).filter(s => !s.is_trip_location && s.start_date);
 
         for (const stop of followingStops) {
             const startDate = new Date(stop.start_date);
@@ -391,8 +414,8 @@ async function handleAdjustNextStop() {
         // Update the current stop
         await updateStop(stopId, stopData);
 
-        // Update only the next stop
-        const nextStop = App.stops[stopIndex + 1];
+        // Update only the next overnight stop (skip road stops which have no dates)
+        const nextStop = App.stops.slice(stopIndex + 1).find(s => !s.is_trip_location && s.start_date);
 
         if (nextStop) {
             const nextStartDate = new Date(newEndDate);
@@ -468,11 +491,13 @@ function openEditTripLocationModal(locationId, locationType) {
     document.getElementById('editLatitude').value = location.latitude || '';
     document.getElementById('editLongitude').value = location.longitude || '';
 
-    // Hide date fields and remove required attribute (not applicable to trip locations)
+    // Hide stop type section and dates (not applicable to trip locations)
+    const editStopTypeSection = document.getElementById('editStopTypeSection');
+    if (editStopTypeSection) editStopTypeSection.style.display = 'none';
+    const editDatesSection = document.getElementById('editDatesSection');
+    if (editDatesSection) editDatesSection.style.display = 'none';
     const startDateInput = document.getElementById('editStartDate');
     const endDateInput = document.getElementById('editEndDate');
-    startDateInput.parentElement.style.display = 'none';
-    endDateInput.parentElement.style.display = 'none';
     startDateInput.required = false;
     endDateInput.required = false;
 
@@ -568,240 +593,34 @@ async function handleDeleteActivity(activityId, activityName) {
 }
 
 // ============================================================================
-// Waypoint Handlers
+// Road Stop Helpers
 // ============================================================================
 
-function openAddWaypointModal(afterStopId, _beforeStopId) {
-    document.getElementById('addWaypointForm').reset();
-
-    // Populate previous location dropdown with all stops and waypoints in route order
-    const previousLocationSelect = document.getElementById('waypointPreviousLocation');
-    previousLocationSelect.innerHTML = `<option value="">${t('waypoints.noPreviousLocation') || 'None (start of route)'}</option>`;
-
-    // Build ordered list: stops (excl. trip-end) interleaved with their following waypoints
-    const waypointByPrev = {};
-    App.waypoints.forEach(w => { waypointByPrev[w.previous_location_guid] = w; });
-
-    App.stops.filter(s => s.type !== 'trip-end').forEach(stop => {
-        const stopOpt = document.createElement('option');
-        stopOpt.value = stop.guid;
-        stopOpt.textContent = stop.name;
-        previousLocationSelect.appendChild(stopOpt);
-
-        // Walk waypoints chained after this stop
-        let nextGuid = stop.guid;
-        while (waypointByPrev[nextGuid]) {
-            const wp = waypointByPrev[nextGuid];
-            const wpOpt = document.createElement('option');
-            wpOpt.value = wp.guid;
-            wpOpt.textContent = `\u00a0\u00a0↳ ${wp.name}`;
-            previousLocationSelect.appendChild(wpOpt);
-            nextGuid = wp.guid;
-        }
-    });
-
-    // Auto-select the stop above where "Add Waypoint" was clicked
-    const afterStop = App.stops.find(s => s.id === afterStopId);
-    if (afterStop) {
-        previousLocationSelect.value = afterStop.guid;
-    }
-
-    openModal('addWaypointModal');
+function openAddRoadStopAfter(stopId) {
+    populateAddStopModal();
+    document.getElementById('addAfterStop').value = stopId;
+    document.querySelector('input[name="stopType"][value="road"]').checked = true;
+    document.getElementById('addDatesSection').style.display = 'none';
+    document.getElementById('numberOfNights').required = false;
+    document.getElementById('startDate').required = false;
+    document.getElementById('endDate').required = false;
+    openModal('addStopModal');
 }
 
-async function handleAddWaypointSubmit(e) {
-    e.preventDefault();
-
-    const form = e.target;
-    const locationType = document.querySelector('input[name="waypointLocationType"]:checked').value;
-    const previousLocationGuid = document.getElementById('waypointPreviousLocation').value || null;
-
-    const waypointData = {
-        name: form.waypointName.value.trim(),
-        location_type: locationType,
-        previous_location_guid: previousLocationGuid,
-        description: document.getElementById('waypointDescription').value.trim(),
-        url: document.getElementById('waypointUrl').value.trim()
-    };
-
-    if (locationType === 'address') {
-        waypointData.address = document.getElementById('waypointAddress').value.trim();
-        if (!waypointData.address) {
-            showError(t('validation.addressRequired'));
-            return;
-        }
-    } else {
-        waypointData.latitude = parseFloat(document.getElementById('waypointLatitude').value);
-        waypointData.longitude = parseFloat(document.getElementById('waypointLongitude').value);
-        if (isNaN(waypointData.latitude) || isNaN(waypointData.longitude)) {
-            showError(t('validation.validCoordinatesRequired'));
-            return;
-        }
-    }
-
-    try {
-        await createWaypoint(tripId, waypointData);
-        
-        // Clear all distances since the route has changed
-        try {
-            await App.clearRouteDistances(tripId);
-        } catch (e) {
-            // Silently ignore - distances clearing is not critical
-        }
-        
-        closeModal('addWaypointModal');
-        form.reset();
-        showSuccess(t('notifications.waypointAdded'));
-        await loadStops();
-    } catch (error) {
-        // Error already shown
-    }
+function updateAddStopTypeDisplay() {
+    const isOvernight = document.querySelector('input[name="stopType"]:checked').value === 'overnight';
+    document.getElementById('addDatesSection').style.display = isOvernight ? 'block' : 'none';
+    document.getElementById('numberOfNights').required = isOvernight;
+    document.getElementById('startDate').required = isOvernight;
+    document.getElementById('endDate').required = isOvernight;
+    if (isOvernight) calculateStopDates();
 }
 
-async function handleDeleteWaypoint(waypointId, waypointName) {
-    if (!confirm(t('confirmations.deleteWaypoint', { name: waypointName }))) {
-        return;
-    }
-
-    try {
-        await deleteWaypoint(waypointId);
-        
-        // Clear all distances since the route has changed
-        try {
-            await App.clearRouteDistances(tripId);
-        } catch (e) {
-            // Silently ignore - distances clearing is not critical
-        }
-        
-        showSuccess(t('notifications.waypointDeleted'));
-        await loadStops();
-    } catch (error) {
-        // Error already shown
-    }
-}
-
-function openEditWaypointModal(waypointId) {
-    const waypoint = App.waypoints.find(w => w.id === waypointId);
-    if (!waypoint) return;
-
-    document.getElementById('editWaypointId').value = waypoint.id;
-    document.getElementById('editWaypointName').value = waypoint.name;
-
-    // Set location type and values
-    const locationType = waypoint.location_type || 'address';
-    document.querySelector(`input[name="editWaypointLocationType"][value="${locationType}"]`).checked = true;
-
-    // Populate fields
-    document.getElementById('editWaypointAddress').value = waypoint.address || '';
-    document.getElementById('editWaypointDescription').value = waypoint.description || '';
-    document.getElementById('editWaypointUrl').value = waypoint.url || '';
-    document.getElementById('editWaypointLatitude').value = waypoint.latitude ? parseFloat(waypoint.latitude).toFixed(4) : '';
-    document.getElementById('editWaypointLongitude').value = waypoint.longitude ? parseFloat(waypoint.longitude).toFixed(4) : '';
-
-    // Show/hide address and GPS input fields based on location type
-    const addressInput = document.getElementById('editWaypointAddressInput');
-    const gpsInput = document.getElementById('editWaypointGpsInput');
-    const latInput = document.getElementById('editWaypointLatitude');
-    const lonInput = document.getElementById('editWaypointLongitude');
-
-    addressInput.style.display = 'block';
-    if (locationType === 'gps') {
-        document.getElementById('editWaypointAddress').required = false;
-        latInput.required = true;
-        lonInput.required = true;
-        gpsInput.style.display = 'flex';
-    } else {
-        document.getElementById('editWaypointAddress').required = true;
-        latInput.required = false;
-        lonInput.required = false;
-        gpsInput.style.display = 'none';
-    }
-
-    openModal('editWaypointModal');
-}
-
-async function handleEditWaypointSubmit(e) {
-    e.preventDefault();
-
-    const waypointId = parseInt(document.getElementById('editWaypointId').value);
-    const locationType = document.querySelector('input[name="editWaypointLocationType"]:checked').value;
-
-    const waypointData = {
-        name: document.getElementById('editWaypointName').value.trim(),
-        location_type: locationType,
-        description: document.getElementById('editWaypointDescription').value.trim(),
-        url: document.getElementById('editWaypointUrl').value.trim()
-    };
-
-    if (locationType === 'address') {
-        waypointData.address = document.getElementById('editWaypointAddress').value.trim();
-        if (!waypointData.address) {
-            showError(t('validation.addressRequired'));
-            return;
-        }
-    } else if (locationType === 'gps') {
-        waypointData.latitude = parseFloat(document.getElementById('editWaypointLatitude').value);
-        waypointData.longitude = parseFloat(document.getElementById('editWaypointLongitude').value);
-        if (isNaN(waypointData.latitude) || isNaN(waypointData.longitude)) {
-            showError(t('validation.validCoordinatesRequired'));
-            return;
-        }
-    }
-
-    try {
-        await updateWaypoint(waypointId, waypointData);
-        closeModal('editWaypointModal');
-        showSuccess(t('notifications.waypointUpdated'));
-        await loadStops();
-    } catch (error) {
-        // Error already shown
-    }
-}
-
-function showWaypointOnMap(waypointId) {
-    const waypoint = App.waypoints.find(w => w.id === waypointId);
-
-    if (!waypoint || !waypoint.latitude || !waypoint.longitude) {
-        showError(t('map.unableToShow'));
-        return;
-    }
-
-    if (!App.map) {
-        showError(t('map.notInitialized'));
-        return;
-    }
-
-    // Center map on the waypoint
-    const position = { lat: waypoint.latitude, lng: waypoint.longitude };
-    App.map.setCenter(position);
-    App.map.setZoom(14);
-
-    // Find the waypoint marker in the markers array
-    // Waypoints come after the trip start marker and all stop markers and their associated waypoints
-    const hasStartLocation = App.currentTrip && App.currentTrip.start_location && App.currentTrip.start_location.latitude;
-    let markerOffset = 0;
-
-    // Calculate the marker index for this specific waypoint
-    if (hasStartLocation) {
-        markerOffset += 1; // Account for trip start marker
-    }
-    markerOffset += App.stops.length; // All stop markers
-
-    // Find the index of this waypoint among all waypoints to get its marker index
-    const waypointIndex = App.waypoints.findIndex(w => w.id === waypointId);
-    if (waypointIndex !== -1) {
-        const markerIndex = markerOffset + waypointIndex;
-        if (App.markers[markerIndex] && App.infoWindows[markerIndex]) {
-            App.infoWindows.forEach(iw => iw.close());
-            App.infoWindows[markerIndex].open(App.map, App.markers[markerIndex]);
-        }
-    }
-
-    // Scroll to map on mobile/small screens
-    const mapElement = document.getElementById('map');
-    if (mapElement && window.innerWidth < 1024) {
-        mapElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+function updateEditStopTypeDisplay() {
+    const isOvernight = document.querySelector('input[name="editStopType"]:checked').value === 'overnight';
+    document.getElementById('editDatesSection').style.display = isOvernight ? 'block' : 'none';
+    document.getElementById('editStartDate').required = isOvernight;
+    document.getElementById('editEndDate').required = isOvernight;
 }
 
 // ============================================================================
@@ -815,12 +634,6 @@ function toggleStopCollapse(stopId) {
     }
 }
 
-function toggleWaypointCollapse(waypointId) {
-    const waypointCard = document.querySelector(`.waypoint-card[data-waypoint-id="${waypointId}"]`);
-    if (waypointCard) {
-        waypointCard.classList.toggle('collapsed');
-    }
-}
 
 function closeAllStopMenus() {
     document.querySelectorAll('.stop-menu-dropdown.open').forEach(d => d.classList.remove('open'));
@@ -1041,8 +854,7 @@ async function handleDebugRoute() {
 
         data.points.forEach((point, index) => {
             const typeColor = point.type === 'start' ? '#34A853' :
-                              point.type === 'end' ? '#EA4335' :
-                              point.type === 'waypoint' ? '#9334E6' : '#4285F4';
+                              point.type === 'end' ? '#EA4335' : '#4285F4';
             const coords = point.latitude && point.longitude ?
                 `${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)}` : 'N/A';
 
@@ -1067,7 +879,7 @@ async function handleDebugRoute() {
 async function saveRouteDistances(routeData) {
     if (!routeData || !routeData.segments) return;
 
-    const allLocations = [...App.stops, ...App.waypoints];
+    const allLocations = App.stops;
     const segments = [];
     let endDistanceKm = null;
 
@@ -1107,8 +919,7 @@ async function saveRouteDistances(routeData) {
     }
 
     App.stops = result.locations.filter(loc => loc.type === 'stop');
-    App.waypoints = result.locations.filter(loc => loc.type === 'waypoint');
-    App.renderStops(App.stops, App.waypoints);
+    App.renderStops(App.stops);
 }
 
 // ============================================================================
@@ -1214,14 +1025,10 @@ window.handleDeleteTripLocation = handleDeleteTripLocation;
 window.openAddActivityModal = openAddActivityModal;
 window.handleAddActivitySubmit = handleAddActivitySubmit;
 window.handleDeleteActivity = handleDeleteActivity;
-window.openAddWaypointModal = openAddWaypointModal;
-window.handleAddWaypointSubmit = handleAddWaypointSubmit;
-window.handleDeleteWaypoint = handleDeleteWaypoint;
-window.openEditWaypointModal = openEditWaypointModal;
-window.handleEditWaypointSubmit = handleEditWaypointSubmit;
-window.showWaypointOnMap = showWaypointOnMap;
+window.openAddRoadStopAfter = openAddRoadStopAfter;
+window.updateAddStopTypeDisplay = updateAddStopTypeDisplay;
+window.updateEditStopTypeDisplay = updateEditStopTypeDisplay;
 window.toggleStopCollapse = toggleStopCollapse;
-window.toggleWaypointCollapse = toggleWaypointCollapse;
 window.toggleStopMenu = toggleStopMenu;
 window.closeAllStopMenus = closeAllStopMenus;
 window.handleEditTripSubmit = handleEditTripSubmit;

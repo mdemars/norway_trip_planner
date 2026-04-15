@@ -185,78 +185,6 @@ async function calculateRoute(tripId) {
     }
 }
 
-async function fetchWaypoints(tripId) {
-    try {
-        const response = await fetch(`/api/trips/${tripId}/waypoints`);
-        if (!response.ok) throw new Error('Failed to fetch waypoints');
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching waypoints:', error);
-        return [];
-    }
-}
-
-async function createWaypoint(tripId, waypointData) {
-    try {
-        const response = await fetch(`/api/trips/${tripId}/waypoints`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(waypointData)
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || t('errors.failedToCreateWaypoint'));
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Error creating waypoint:', error);
-        showError(error.message);
-        throw error;
-    }
-}
-
-async function updateWaypoint(waypointId, waypointData) {
-    try {
-        const response = await fetch(`/api/waypoints/${waypointId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(waypointData)
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || t('errors.failedToUpdateWaypoint'));
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Error updating waypoint:', error);
-        showError(error.message);
-        throw error;
-    }
-}
-
-async function deleteWaypoint(waypointId) {
-    try {
-        const response = await fetch(`/api/waypoints/${waypointId}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || t('errors.failedToDeleteWaypoint'));
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Error deleting waypoint:', error);
-        showError(error.message);
-        throw error;
-    }
-}
-
 async function fetchBookmarks(tripId) {
     try {
         const response = await fetch(`/api/trips/${tripId}/bookmarks`);
@@ -350,10 +278,6 @@ App.deleteStopApi = deleteStopApi;
 App.createActivity = createActivity;
 App.deleteActivity = deleteActivity;
 App.calculateRoute = calculateRoute;
-App.fetchWaypoints = fetchWaypoints;
-App.createWaypoint = createWaypoint;
-App.updateWaypoint = updateWaypoint;
-App.deleteWaypoint = deleteWaypoint;
 App.fetchBookmarks = fetchBookmarks;
 App.createBookmark = createBookmark;
 App.deleteBookmark = deleteBookmark;
@@ -371,9 +295,6 @@ window.deleteStopApi = deleteStopApi;
 window.createActivity = createActivity;
 window.deleteActivity = deleteActivity;
 window.calculateRoute = calculateRoute;
-window.fetchWaypoints = fetchWaypoints;
-window.createWaypoint = createWaypoint;
-window.deleteWaypoint = deleteWaypoint;
 window.reorderStops = reorderStops;
 window.fetchBookmarks = fetchBookmarks;
 window.createBookmark = createBookmark;

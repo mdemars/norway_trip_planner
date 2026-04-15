@@ -43,7 +43,11 @@
     "setDatesDetails": "Daten & Details festlegen\u2026",
     "removeStop": "Stopp entfernen",
     "addressOrGps": "Adresse oder GPS (z.B. 59.91, 10.75)",
-    "showOnMap": "Auf Karte anzeigen"
+    "showOnMap": "Auf Karte anzeigen",
+    "addRoadStop": "Etappe hinzufügen",
+    "stopType": "Stopptyp",
+    "overnight": "Übernachtung",
+    "roadStop": "Etappe (keine Nacht)"
   },
   "dates": {
     "startDate": "Startdatum",
@@ -90,16 +94,6 @@
     "descriptionPlaceholder": "Details zur Aktivitat...",
     "url": "URL (Optional)",
     "viewLink": "Link ansehen"
-  },
-  "waypoints": {
-    "title": "Wegpunkte",
-    "addWaypoint": "Wegpunkt hinzufugen",
-    "waypointName": "Wegpunkt-Name",
-    "waypointNamePlaceholder": "z.B. Aussichtspunkt",
-    "waypoint": "Wegpunkt",
-    "waypointBetween": "Wegpunkt zwischen Stopps {{from}} und {{to}}",
-    "previousLocation": "Vorheriger Standort",
-    "noPreviousLocation": "Keiner (Routenbeginn)"
   },
   "route": {
     "title": "Routeninformationen",
@@ -182,8 +176,7 @@
     "pleaseWaitValidation": "Bitte warten Sie, bis die Adressvalidierung abgeschlossen ist",
     "pleaseFixErrors": "Bitte beheben Sie die markierten Fehler vor dem Absenden",
     "stopNameRequired": "Stopp-Name ist erforderlich",
-    "activityNameRequired": "Aktivitatsname ist erforderlich",
-    "waypointNameRequired": "Wegpunkt-Name ist erforderlich"
+    "activityNameRequired": "Aktivitatsname ist erforderlich"
   },
   "notifications": {
     "tripCreated": "Reise erfolgreich erstellt",
@@ -197,8 +190,7 @@
     "nextStopAdjusted": "Stopp aktualisiert und nachster Stopp angepasst",
     "activityAdded": "Aktivitat erfolgreich hinzugefugt",
     "activityDeleted": "Aktivitat erfolgreich geloscht",
-    "waypointAdded": "Wegpunkt erfolgreich hinzugefugt",
-    "waypointDeleted": "Wegpunkt erfolgreich geloscht",
+
     "routeCalculated": "Route erfolgreich berechnet",
     "cannotAdjust": "Anpassung nicht moglich: Der nachste Stopp wurde ungultig. Erwagen Sie alle Stopps zu verschieben."
   },
@@ -206,7 +198,7 @@
     "deleteTrip": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten? Dies loscht auch alle Stopps und Aktivitaten.",
     "deleteStop": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten? Dies loscht auch alle Aktivitaten an diesem Stopp.",
     "deleteActivity": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten?",
-    "deleteWaypoint": "Sind Sie sicher, dass Sie den Wegpunkt \"{{name}}\" loschen mochten?"
+    "deleteRoadStop": "Sind Sie sicher, dass Sie \"{{name}}\" loschen mochten?"
   },
   "bookmarks": {
     "title": "Lesezeichen",
@@ -224,8 +216,7 @@
     "failedToDeleteStop": "Stopp konnte nicht geloscht werden",
     "failedToCreateActivity": "Aktivitat konnte nicht erstellt werden",
     "failedToDeleteActivity": "Aktivitat konnte nicht geloscht werden",
-    "failedToCreateWaypoint": "Wegpunkt konnte nicht erstellt werden",
-    "failedToDeleteWaypoint": "Wegpunkt konnte nicht geloscht werden",
+
     "failedToCalculateRoute": "Route konnte nicht berechnet werden",
     "failedToUpdateLocations": "Orte konnten nicht aktualisiert werden",
     "failedToUpdateStops": "Stopps konnten nicht aktualisiert werden"

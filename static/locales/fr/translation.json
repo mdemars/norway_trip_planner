@@ -43,7 +43,11 @@
     "setDatesDetails": "Definir dates & details\u2026",
     "removeStop": "Supprimer l'etape",
     "addressOrGps": "Adresse ou GPS (ex. 59.91, 10.75)",
-    "showOnMap": "Afficher sur la carte"
+    "showOnMap": "Afficher sur la carte",
+    "addRoadStop": "Ajouter un Séjour",
+    "stopType": "Type d'étape",
+    "overnight": "Séjour",
+    "roadStop": "Escale (sans nuit)"
   },
   "dates": {
     "startDate": "Date de debut",
@@ -90,16 +94,6 @@
     "descriptionPlaceholder": "Details sur l'activite...",
     "url": "URL (Optionnel)",
     "viewLink": "Voir le lien"
-  },
-  "waypoints": {
-    "title": "Points de passage",
-    "addWaypoint": "Ajouter un point de passage",
-    "waypointName": "Nom du point de passage",
-    "waypointNamePlaceholder": "ex: Point de vue panoramique",
-    "waypoint": "Point de passage",
-    "waypointBetween": "Point de passage entre les etapes {{from}} et {{to}}",
-    "previousLocation": "Lieu precedent",
-    "noPreviousLocation": "Aucun (debut de l'itineraire)"
   },
   "route": {
     "title": "Informations sur l'itineraire",
@@ -182,8 +176,7 @@
     "pleaseWaitValidation": "Veuillez attendre la fin de la validation de l'adresse",
     "pleaseFixErrors": "Veuillez corriger les erreurs avant de soumettre",
     "stopNameRequired": "Le nom de l'etape est requis",
-    "activityNameRequired": "Le nom de l'activite est requis",
-    "waypointNameRequired": "Le nom du point de passage est requis"
+    "activityNameRequired": "Le nom de l'activite est requis"
   },
   "notifications": {
     "tripCreated": "Voyage cree avec succes",
@@ -197,8 +190,7 @@
     "nextStopAdjusted": "Etape mise a jour et etape suivante ajustee",
     "activityAdded": "Activite ajoutee",
     "activityDeleted": "Activite supprimee",
-    "waypointAdded": "Point de passage ajoute",
-    "waypointDeleted": "Point de passage supprime",
+
     "routeCalculated": "Itineraire calcule avec succes",
     "cannotAdjust": "Impossible d'ajuster: cela rendrait l'etape suivante invalide. Envisagez de decaler toutes les etapes."
   },
@@ -206,7 +198,7 @@
     "deleteTrip": "Etes-vous sur de vouloir supprimer \"{{name}}\"? Cela supprimera aussi toutes les etapes et activites.",
     "deleteStop": "Etes-vous sur de vouloir supprimer \"{{name}}\"? Cela supprimera aussi toutes les activites de cette etape.",
     "deleteActivity": "Etes-vous sur de vouloir supprimer \"{{name}}\"?",
-    "deleteWaypoint": "Etes-vous sur de vouloir supprimer le point de passage \"{{name}}\"?"
+    "deleteRoadStop": "Etes-vous sur de vouloir supprimer \"{{name}}\"?"
   },
   "bookmarks": {
     "title": "Favoris",
@@ -224,8 +216,7 @@
     "failedToDeleteStop": "Echec de la suppression de l'etape",
     "failedToCreateActivity": "Echec de la creation de l'activite",
     "failedToDeleteActivity": "Echec de la suppression de l'activite",
-    "failedToCreateWaypoint": "Echec de la creation du point de passage",
-    "failedToDeleteWaypoint": "Echec de la suppression du point de passage",
+
     "failedToCalculateRoute": "Echec du calcul de l'itineraire",
     "failedToUpdateLocations": "Echec de la mise a jour des lieux",
     "failedToUpdateStops": "Echec de la mise a jour des etapes"

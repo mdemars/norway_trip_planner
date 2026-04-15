@@ -48,18 +48,6 @@ def load_trip(filepath):
         for act in stop.get("activities", []):
             requests.post(f"{BASE_URL}/stops/{s['id']}/activities", json=act)
 
-    # Create waypoints
-    for wp in data.get("waypoints", []):
-        requests.post(f"{BASE_URL}/trips/{trip_id}/waypoints", json={
-            "name": wp["name"],
-            "location_type": wp.get("location_type", "address"),
-            "address": wp.get("address"),
-            "latitude": wp.get("latitude"),
-            "longitude": wp.get("longitude"),
-            "description": wp.get("description", ""),
-            "url": wp.get("url", "")
-        })
-
     return trip_id
 
 

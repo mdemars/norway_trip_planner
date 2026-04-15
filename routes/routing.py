@@ -197,7 +197,7 @@ def get_debug_route_points(trip_id):
         # Walk the location chain
         ordered_locations = get_ordered_locations(db, trip_id)
         for loc in ordered_locations:
-            loc_type = 'stop' if isinstance(loc, Stop) else 'waypoint'
+            loc_type = 'stop'
             all_points.append({
                 'order': len(all_points),
                 'type': loc_type,

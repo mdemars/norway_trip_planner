@@ -20,3 +20,4 @@
 * allow to edit waypoints DONE
 * persist the route distance between stops and display them in the stop card summary after the nights DONE
 * when adding a stop between existing locations, it looks like we're not updating the previous-link for the later stop, resulting in the new stop not showing on the stop list DONE
+* adding bookmarks seems broken DONE

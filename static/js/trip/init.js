@@ -38,7 +38,6 @@ function checkChainIntegrity(stopsData) {
 
 App.loadStops = async function() {
     const stopsData = await window.fetchStops(tripId);
-    const waypointsData = await window.fetchWaypoints(tripId);
 
     // Check for broken chain and show warning if needed
     checkChainIntegrity(stopsData);
@@ -82,7 +81,7 @@ App.loadStops = async function() {
         });
     }
 
-    renderStops(allStops, waypointsData);
+    renderStops(allStops);
 };
 
 // Expose on window
@@ -286,21 +285,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Add Waypoint modal - address validation
-    document.getElementById('waypointAddress').addEventListener('blur', () => {
-        const locationType = document.querySelector('input[name="waypointLocationType"]:checked').value;
-        if (locationType === 'address') {
-            validateAddressField('waypointAddress', 'waypointAddressValidation');
-        }
-    });
-
-    document.getElementById('waypointAddress').addEventListener('input', () => {
-        const validationIcon = document.getElementById('waypointAddressValidation');
-        if (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid')) {
-            validationIcon.className = 'validation-icon';
-        }
-    });
-
     // Delete trip button
     const deleteTripBtn = document.getElementById('deleteTripBtn');
     if (deleteTripBtn) deleteTripBtn.addEventListener('click', handleDeleteTrip);
@@ -326,98 +310,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Bookmark form
     const addBookmarkForm = document.getElementById('addBookmarkForm');
     if (addBookmarkForm) addBookmarkForm.addEventListener('submit', handleAddBookmarkSubmit);
-
-    // Waypoint form
-    const addWaypointForm = document.getElementById('addWaypointForm');
-    if (addWaypointForm) addWaypointForm.addEventListener('submit', handleAddWaypointSubmit);
-
-    // Edit waypoint form
-    const editWaypointForm = document.getElementById('editWaypointForm');
-    if (editWaypointForm) editWaypointForm.addEventListener('submit', handleEditWaypointSubmit);
-
-    // Waypoint location type radio buttons
-    const waypointRadioButtons = document.querySelectorAll('input[name="waypointLocationType"]');
-    waypointRadioButtons.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            const addressInput = document.getElementById('waypointAddressInput');
-            const gpsInput = document.getElementById('waypointGpsInput');
-            if (!addressInput || !gpsInput) return;
-
-            if (e.target.value === 'address') {
-                addressInput.style.display = 'block';
-                gpsInput.style.display = 'none';
-                const waypointGpsHint = document.getElementById('waypointGpsHint');
-                const waypointAddress = document.getElementById('waypointAddress');
-                const waypointLatitude = document.getElementById('waypointLatitude');
-                const waypointLongitude = document.getElementById('waypointLongitude');
-                if (waypointGpsHint) waypointGpsHint.style.display = 'none';
-                if (waypointAddress) waypointAddress.required = true;
-                if (waypointLatitude) waypointLatitude.required = false;
-                if (waypointLongitude) waypointLongitude.required = false;
-            } else {
-                addressInput.style.display = 'none';
-                gpsInput.style.display = 'flex';
-                const waypointGpsHint = document.getElementById('waypointGpsHint');
-                const waypointAddress = document.getElementById('waypointAddress');
-                const waypointLatitude = document.getElementById('waypointLatitude');
-                const waypointLongitude = document.getElementById('waypointLongitude');
-                if (waypointGpsHint) waypointGpsHint.style.display = 'block';
-                if (waypointAddress) waypointAddress.required = false;
-                if (waypointLatitude) waypointLatitude.required = true;
-                if (waypointLongitude) waypointLongitude.required = true;
-            }
-        });
-    });
-
-    // Edit waypoint location type radio buttons
-    const editWaypointRadioButtons = document.querySelectorAll('input[name="editWaypointLocationType"]');
-    editWaypointRadioButtons.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            const addressInput = document.getElementById('editWaypointAddressInput');
-            const gpsInput = document.getElementById('editWaypointGpsInput');
-            const latInput = document.getElementById('editWaypointLatitude');
-            const lonInput = document.getElementById('editWaypointLongitude');
-            if (!addressInput || !gpsInput || !latInput || !lonInput) return;
-
-            if (e.target.value === 'address') {
-                addressInput.style.display = 'block';
-                gpsInput.style.display = 'none';
-                const editWaypointGpsHint = document.getElementById('editWaypointGpsHint');
-                const editWaypointAddress = document.getElementById('editWaypointAddress');
-                if (editWaypointGpsHint) editWaypointGpsHint.style.display = 'none';
-                if (editWaypointAddress) editWaypointAddress.required = true;
-                latInput.required = false;
-                lonInput.required = false;
-            } else {
-                addressInput.style.display = 'none';
-                gpsInput.style.display = 'flex';
-                const editWaypointGpsHint = document.getElementById('editWaypointGpsHint');
-                const editWaypointAddress = document.getElementById('editWaypointAddress');
-                if (editWaypointGpsHint) editWaypointGpsHint.style.display = 'block';
-                if (editWaypointAddress) editWaypointAddress.required = false;
-                latInput.required = true;
-                lonInput.required = true;
-            }
-        });
-    });
-
-    // Edit Waypoint modal - address validation
-    const editWaypointAddress = document.getElementById('editWaypointAddress');
-    if (editWaypointAddress) {
-        editWaypointAddress.addEventListener('blur', () => {
-            const locationType = document.querySelector('input[name="editWaypointLocationType"]:checked').value;
-            if (locationType === 'address') {
-                validateAddressField('editWaypointAddress', 'editWaypointAddressValidation', 'editWaypointLatitude', 'editWaypointLongitude');
-            }
-        });
-
-        editWaypointAddress.addEventListener('input', () => {
-            const validationIcon = document.getElementById('editWaypointAddressValidation');
-            if (validationIcon && (validationIcon.classList.contains('valid') || validationIcon.classList.contains('invalid'))) {
-                validationIcon.className = 'validation-icon';
-            }
-        });
-    }
 
     // Right-panel toggle (map + calendar)
     const tripDetailContent = document.querySelector('.trip-detail-content');
@@ -458,7 +350,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // DMS coordinate parsing for all GPS field pairs
     App.attachDMSParsing('latitude', 'longitude');
     App.attachDMSParsing('editLatitude', 'editLongitude');
-    App.attachDMSParsing('waypointLatitude', 'waypointLongitude');
 
     // Render calendar on page load
     renderCalendar();
@@ -471,7 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Listen for language changes
 document.addEventListener('languageChanged', async () => {
     // Re-render dynamic content
-    renderStops(App.stops, App.waypoints);
+    renderStops(App.stops);
     renderCalendar();
     updateMap();
 
