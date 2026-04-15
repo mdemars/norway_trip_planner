@@ -293,6 +293,21 @@ header .subtitle {
     border-color: var(--primary-color);
 }
 
+.trip-flags {
+    font-size: 1.8em;
+    line-height: 1;
+    margin-bottom: 10px;
+    letter-spacing: 0.1em;
+}
+
+.trip-flags-header {
+    font-size: 1.4em;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
 .trip-card h3 {
     font-size: 1.5em;
     margin-bottom: 12px;

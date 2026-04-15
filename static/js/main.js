@@ -79,6 +79,10 @@ function renderTrips(trips) {
     container.innerHTML = trips.map(trip => createTripCard(trip)).join('');
 }
 
+function countryCodeToFlag(code) {
+    return [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
+}
+
 function createTripCard(trip) {
     const createdDate = formatDate(trip.created_at);
 
@@ -140,8 +144,13 @@ function createTripCard(trip) {
            </span>`
         : '';
 
+    const flagsHtml = trip.country_codes && trip.country_codes.length > 0
+        ? `<div class="trip-flags">${trip.country_codes.map(countryCodeToFlag).join('')}</div>`
+        : '';
+
     return `
         <div class="trip-card" onclick="window.location.href='/trip/${trip.id}'">
+            ${flagsHtml}
             <h3>${escapeHtml(trip.name)}</h3>
             <div class="meta">
                 ${tripDatesHtml}

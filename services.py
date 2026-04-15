@@ -5,9 +5,15 @@ from typing import Optional, Tuple, List, Dict
 
 class GeocodingService:
     """Service for converting addresses to coordinates"""
-    
+
     def __init__(self):
         self.geolocator = Nominatim(user_agent="trip-planner")
+        self.gmaps = None
+        if Config.GOOGLE_MAPS_API_KEY:
+            try:
+                self.gmaps = googlemaps.Client(key=Config.GOOGLE_MAPS_API_KEY)
+            except Exception as e:
+                print(f"GeocodingService: Google Maps init error: {e}")
     
     def geocode_address(self, address: str) -> Optional[Tuple[float, float]]:
         """
@@ -36,6 +42,33 @@ class GeocodingService:
         except Exception as e:
             print(f"Reverse geocoding error: {e}")
             return None
+
+    def get_country_code(self, latitude: float, longitude: float) -> Optional[str]:
+        """
+        Get ISO 3166-1 alpha-2 country code for coordinates.
+        Uses Google Maps Geocoding API if available, falls back to Nominatim.
+        Returns: uppercase country code (e.g. 'NO') or None.
+        """
+        if self.gmaps:
+            try:
+                results = self.gmaps.reverse_geocode((latitude, longitude))
+                for result in results:
+                    for component in result.get('address_components', []):
+                        if 'country' in component.get('types', []):
+                            return component['short_name'].upper()
+            except Exception as e:
+                print(f"Google reverse geocode error: {e}")
+
+        # Fallback to Nominatim
+        try:
+            location = self.geolocator.reverse(f"{latitude}, {longitude}", language='en', timeout=10)
+            if location:
+                code = location.raw.get('address', {}).get('country_code')
+                if code:
+                    return code.upper()
+        except Exception as e:
+            print(f"Nominatim country code lookup error: {e}")
+        return None
 
 
 class RouteService:

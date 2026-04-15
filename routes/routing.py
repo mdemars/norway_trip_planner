@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, request, jsonify
 from models import Trip, Stop, Location, get_db
 from services import geocoding_service, route_service
@@ -256,6 +257,47 @@ def get_trip_locations(trip_id):
     finally:
         db.close()
 
+
+
+@routing_bp.route('/trips/<int:trip_id>/update-countries', methods=['POST'])
+def update_trip_countries(trip_id):
+    """Reverse-geocode all stop coordinates, derive unique country codes, and persist them on the trip."""
+    db = get_db()
+    try:
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+
+        ordered_locations = get_ordered_locations(db, trip_id)
+
+        # Collect all coordinate points (stops + trip start/end)
+        points = []
+        if trip.start_location_latitude and trip.start_location_longitude:
+            points.append((trip.start_location_latitude, trip.start_location_longitude))
+        for loc in ordered_locations:
+            if loc.latitude and loc.longitude:
+                points.append((loc.latitude, loc.longitude))
+        if trip.end_location_latitude and trip.end_location_longitude:
+            points.append((trip.end_location_latitude, trip.end_location_longitude))
+
+        if not points:
+            return jsonify({'error': 'No coordinates available for this trip'}), 400
+
+        # Reverse-geocode each point to get country code, deduplicating results.
+        country_codes = []
+        for lat, lng in points:
+            code = geocoding_service.get_country_code(lat, lng)
+            if code and code not in country_codes:
+                country_codes.append(code)
+
+        trip.country_codes = json.dumps(country_codes)
+        db.commit()
+
+        return jsonify({'country_codes': country_codes})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
 
 
 @routing_bp.route('/validate-address', methods=['POST'])

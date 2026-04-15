@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect, event
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
@@ -32,6 +33,7 @@ class Trip(Base):
     end_location_guid = Column(String(36))
     end_location_distance_km = Column(Float, nullable=True)
     total_distance_km = Column(Float, nullable=True)
+    country_codes = Column(String(200), nullable=True)  # JSON array e.g. '["NO","SE"]'
 
     # Relationships
     stops = relationship('Stop', back_populates='trip', cascade='all, delete-orphan', order_by='Location.id')
@@ -55,7 +57,8 @@ class Trip(Base):
                 'guid': self.end_location_guid,
                 'distance_km': self.end_location_distance_km
             } if (self.end_location_address or self.end_location_latitude) else None,
-            'total_distance_km': self.total_distance_km
+            'total_distance_km': self.total_distance_km,
+            'country_codes': json.loads(self.country_codes) if self.country_codes else []
         }
         if include_stops:
             data['stops'] = [stop.to_dict(include_activities=True) for stop in self.stops]
@@ -404,6 +407,28 @@ def _migrate_add_trip_total_distance_km(engine):
     print("Trip total_distance_km migration complete.")
 
 
+def _migrate_add_trip_country_codes(engine):
+    """Add country_codes column to trips table."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+
+    if 'trips' not in existing_tables:
+        return
+
+    trip_cols = [c['name'] for c in insp.get_columns('trips', schema=schema)]
+    if 'country_codes' in trip_cols:
+        return  # Already migrated
+
+    schema_prefix = f"{TRIPS_SCHEMA}."
+    print("Adding country_codes column to trips...")
+    with engine.connect() as conn:
+        conn.execute(text(f"ALTER TABLE {schema_prefix}trips ADD COLUMN country_codes VARCHAR(200)"))
+        conn.commit()
+
+    print("Trip country_codes migration complete.")
+
+
 def _migrate_waypoints_to_stops(engine):
     """Convert all waypoint rows to stops (type='stop')."""
     insp = inspect(engine)
@@ -433,6 +458,7 @@ def init_db():
     _migrate_add_location_distance_km(engine)
     _migrate_add_trip_end_distance_km(engine)
     _migrate_add_trip_total_distance_km(engine)
+    _migrate_add_trip_country_codes(engine)
     _migrate_waypoints_to_stops(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")

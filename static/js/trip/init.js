@@ -14,6 +14,12 @@ App.loadTrip = async function() {
     if (trip) {
         App.currentTrip = trip;
         document.getElementById('tripTitle').textContent = trip.name;
+        const flagsEl = document.getElementById('tripFlags');
+        if (flagsEl) {
+            flagsEl.textContent = (trip.country_codes || [])
+                .map(c => [...c.toUpperCase()].map(ch => String.fromCodePoint(0x1F1E6 + ch.charCodeAt(0) - 65)).join(''))
+                .join('');
+        }
         const badge = document.getElementById('tripDistanceBadge');
         if (badge && trip.total_distance_km != null) {
             document.getElementById('tripTotalDistance').textContent = `${trip.total_distance_km.toFixed(1)} km`;

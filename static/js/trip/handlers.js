@@ -812,6 +812,7 @@ async function handleCalculateRoute() {
         const routeData = await calculateRoute(tripId);
         drawRoute(routeData);
         await saveRouteDistances(routeData);
+        await updateTripCountries(tripId);
         await App.loadTrip();  // Reload trip to get updated distances and start/end locations
         App.updateMap();  // Refresh markers while preserving the drawn route
         showSuccess(t('notifications.routeCalculated'));
@@ -920,6 +921,17 @@ async function saveRouteDistances(routeData) {
 
     App.stops = result.locations.filter(loc => loc.type === 'stop');
     App.renderStops(App.stops);
+}
+
+async function updateTripCountries(tripId) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/update-countries`, { method: 'POST' });
+        if (!response.ok) {
+            console.warn('Could not update trip country codes');
+        }
+    } catch (error) {
+        console.warn('Error updating trip countries:', error);
+    }
 }
 
 // ============================================================================
