@@ -295,9 +295,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const deleteTripBtn = document.getElementById('deleteTripBtn');
     if (deleteTripBtn) deleteTripBtn.addEventListener('click', handleDeleteTrip);
 
-    // Debug route button
-    const debugRouteBtn = document.getElementById('debugRouteBtn');
-    if (debugRouteBtn) debugRouteBtn.addEventListener('click', handleDebugRoute);
 
     // Calculate route button
     const calculateRouteBtnTop = document.getElementById('calculateRouteBtnTop');

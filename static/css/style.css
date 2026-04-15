@@ -138,7 +138,8 @@ header .subtitle {
     gap: 10px;
 }
 
-.header-actions .icon-btn {
+.header-actions .icon-btn,
+.header-left .icon-btn {
     width: 40px;
     height: 40px;
     padding: 0;
