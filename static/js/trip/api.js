@@ -151,6 +151,27 @@ async function createActivity(stopId, activityData) {
     }
 }
 
+async function updateActivity(activityId, activityData) {
+    try {
+        const response = await fetch(`/api/activities/${activityId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(activityData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || t('errors.failedToUpdateActivity'));
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating activity:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
 async function deleteActivity(activityId) {
     try {
         const response = await fetch(`/api/activities/${activityId}`, {
@@ -276,6 +297,7 @@ App.createStop = createStop;
 App.updateStop = updateStop;
 App.deleteStopApi = deleteStopApi;
 App.createActivity = createActivity;
+App.updateActivity = updateActivity;
 App.deleteActivity = deleteActivity;
 App.calculateRoute = calculateRoute;
 App.fetchBookmarks = fetchBookmarks;
@@ -293,6 +315,7 @@ window.createStop = createStop;
 window.updateStop = updateStop;
 window.deleteStopApi = deleteStopApi;
 window.createActivity = createActivity;
+window.updateActivity = updateActivity;
 window.deleteActivity = deleteActivity;
 window.calculateRoute = calculateRoute;
 window.reorderStops = reorderStops;

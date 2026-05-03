@@ -189,6 +189,7 @@
     "stopsShifted": "Stopp aktualisiert und folgende Stopps verschoben",
     "nextStopAdjusted": "Stopp aktualisiert und nachster Stopp angepasst",
     "activityAdded": "Aktivitat erfolgreich hinzugefugt",
+    "activityUpdated": "Aktivitat erfolgreich aktualisiert",
     "activityDeleted": "Aktivitat erfolgreich geloscht",
 
     "routeCalculated": "Route erfolgreich berechnet",
@@ -215,6 +216,7 @@
     "failedToUpdateStop": "Stopp konnte nicht aktualisiert werden",
     "failedToDeleteStop": "Stopp konnte nicht geloscht werden",
     "failedToCreateActivity": "Aktivitat konnte nicht erstellt werden",
+    "failedToUpdateActivity": "Aktivitat konnte nicht aktualisiert werden",
     "failedToDeleteActivity": "Aktivitat konnte nicht geloscht werden",
 
     "failedToCalculateRoute": "Route konnte nicht berechnet werden",

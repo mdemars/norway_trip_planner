@@ -355,11 +355,12 @@
     <div id="addActivityModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 data-i18n="activities.addActivity">Add Activity</h2>
+                <h2 id="activityModalTitle" data-i18n="activities.addActivity">Add Activity</h2>
                 <button class="close-btn" onclick="closeModal('addActivityModal')">&times;</button>
             </div>
             <form id="addActivityForm">
                 <input type="hidden" id="activityStopId">
+                <input type="hidden" id="activityId">
                 <div class="form-group">
                     <label for="activityName" data-i18n="activities.activityName">Activity Name</label>
                     <input type="text" id="activityName" name="activityName" data-i18n-placeholder="activities.activityNamePlaceholder" placeholder="e.g., Visit Viking Ship Museum" required>
@@ -374,7 +375,7 @@
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('addActivityModal')" data-i18n="buttons.cancel">Cancel</button>
-                    <button type="submit" class="btn btn-primary" data-i18n="activities.addActivity">Add Activity</button>
+                    <button type="submit" id="activitySubmitBtn" class="btn btn-primary" data-i18n="activities.addActivity">Add Activity</button>
                 </div>
             </form>
         </div>

@@ -189,6 +189,7 @@
     "stopsShifted": "Stop updated and following stops shifted",
     "nextStopAdjusted": "Stop updated and next stop adjusted",
     "activityAdded": "Activity added successfully",
+    "activityUpdated": "Activity updated successfully",
     "activityDeleted": "Activity deleted successfully",
 
     "routeCalculated": "Route calculated successfully",
@@ -215,6 +216,7 @@
     "failedToUpdateStop": "Failed to update stop",
     "failedToDeleteStop": "Failed to delete stop",
     "failedToCreateActivity": "Failed to create activity",
+    "failedToUpdateActivity": "Failed to update activity",
     "failedToDeleteActivity": "Failed to delete activity",
 
     "failedToCalculateRoute": "Failed to calculate route",

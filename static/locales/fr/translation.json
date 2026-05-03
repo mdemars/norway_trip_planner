@@ -189,6 +189,7 @@
     "stopsShifted": "Etape mise a jour et etapes suivantes decalees",
     "nextStopAdjusted": "Etape mise a jour et etape suivante ajustee",
     "activityAdded": "Activite ajoutee",
+    "activityUpdated": "Activite mise a jour",
     "activityDeleted": "Activite supprimee",
 
     "routeCalculated": "Itineraire calcule avec succes",
@@ -215,6 +216,7 @@
     "failedToUpdateStop": "Echec de la mise a jour de l'etape",
     "failedToDeleteStop": "Echec de la suppression de l'etape",
     "failedToCreateActivity": "Echec de la creation de l'activite",
+    "failedToUpdateActivity": "Echec de la mise a jour de l'activite",
     "failedToDeleteActivity": "Echec de la suppression de l'activite",
 
     "failedToCalculateRoute": "Echec du calcul de l'itineraire",

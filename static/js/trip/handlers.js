@@ -551,7 +551,31 @@ async function handleDeleteTripLocation(_locationId, locationType, address) {
 
 function openAddActivityModal(stopId) {
     document.getElementById('activityStopId').value = stopId;
+    document.getElementById('activityId').value = '';
+    document.getElementById('activityModalTitle').textContent = t('activities.addActivity');
+    document.getElementById('activitySubmitBtn').textContent = t('activities.addActivity');
     document.getElementById('addActivityForm').reset();
+    openModal('addActivityModal');
+}
+
+function openEditActivityModal(activityId, stopId) {
+    // Find the activity in the current stops data
+    const stop = App.stops.find(s => s.id === stopId);
+    if (!stop) return;
+    
+    const activity = stop.activities.find(a => a.id === activityId);
+    if (!activity) return;
+    
+    document.getElementById('activityStopId').value = stopId;
+    document.getElementById('activityId').value = activityId;
+    document.getElementById('activityModalTitle').textContent = t('buttons.edit');
+    document.getElementById('activitySubmitBtn').textContent = t('buttons.save');
+    
+    // Fill in the form with existing data
+    document.getElementById('activityName').value = activity.name;
+    document.getElementById('activityDescription').value = activity.description || '';
+    document.getElementById('activityUrl').value = activity.url || '';
+    
     openModal('addActivityModal');
 }
 
@@ -560,6 +584,7 @@ async function handleAddActivitySubmit(e) {
 
     const form = e.target;
     const stopId = parseInt(document.getElementById('activityStopId').value);
+    const activityId = parseInt(document.getElementById('activityId').value) || null;
 
     const activityData = {
         name: form.activityName.value.trim(),
@@ -568,10 +593,17 @@ async function handleAddActivitySubmit(e) {
     };
 
     try {
-        await createActivity(stopId, activityData);
+        if (activityId) {
+            // Edit existing activity
+            await updateActivity(activityId, activityData);
+            showSuccess(t('notifications.activityUpdated'));
+        } else {
+            // Create new activity
+            await createActivity(stopId, activityData);
+            showSuccess(t('notifications.activityAdded'));
+        }
         closeModal('addActivityModal');
         form.reset();
-        showSuccess(t('notifications.activityAdded'));
         await loadStops();
     } catch (error) {
         // Error already shown
@@ -983,6 +1015,7 @@ window.handleJustUpdateStop = handleJustUpdateStop;
 window.openEditTripLocationModal = openEditTripLocationModal;
 window.handleDeleteTripLocation = handleDeleteTripLocation;
 window.openAddActivityModal = openAddActivityModal;
+window.openEditActivityModal = openEditActivityModal;
 window.handleAddActivitySubmit = handleAddActivitySubmit;
 window.handleDeleteActivity = handleDeleteActivity;
 window.openAddRoadStopAfter = openAddRoadStopAfter;
