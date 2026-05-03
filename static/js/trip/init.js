@@ -112,6 +112,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update all static translations
     updateAllTranslations();
 
+    // Start presence (SSE collaborative notifications)
+    initPresence(tripId);
+
     // Load data
     await App.loadTrip();
     await App.loadStops();

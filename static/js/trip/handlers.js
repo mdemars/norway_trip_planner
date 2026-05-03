@@ -132,14 +132,15 @@ async function handleAddStopSubmit(e) {
 
     try {
         await createStop(tripId, stopData);
-        
+        notifyAdded('stop', null, stopData.name);
+
         // Clear all distances since the route has changed
         try {
             await App.clearRouteDistances(tripId);
         } catch (e) {
             // Silently ignore - distances clearing is not critical
         }
-        
+
         closeModal('addStopModal');
         form.reset();
         showSuccess(t('notifications.stopAdded'));
@@ -264,6 +265,7 @@ async function handleEditStopSubmit(e) {
     // No duration extension or no following stops - just update normally
     try {
         await updateStop(stopId, stopData);
+        notifySaved('stop', stopId, stopData.name);
         closeModal('editStopModal');
         showSuccess(t('notifications.stopUpdated'));
         await loadStops();
@@ -279,14 +281,15 @@ async function handleDeleteStop(stopId, stopName) {
 
     try {
         await deleteStopApi(stopId);
-        
+        notifyDeleted('stop', stopId, stopName);
+
         // Clear all distances since the route has changed
         try {
             await App.clearRouteDistances(tripId);
         } catch (e) {
             // Silently ignore - distances clearing is not critical
         }
-        
+
         showSuccess(t('notifications.stopDeleted'));
         await loadStops();
     } catch (error) {
@@ -359,6 +362,7 @@ function openEditStopModal(stopId) {
         lonInput.readOnly = true;
     }
 
+    notifyEditing('stop', stop.id, stop.name);
     openModal('editStopModal');
 }
 
@@ -395,6 +399,7 @@ async function handleShiftAllStops() {
             await updateStop(stop.id, updatedData);
         }
 
+        notifySaved('stop', stopId, stopData.name);
         closeModal('durationChangeModal');
         showSuccess(t('notifications.stopsShifted'));
         await loadStops();
@@ -440,6 +445,7 @@ async function handleAdjustNextStop() {
             await updateStop(nextStop.id, updatedData);
         }
 
+        notifySaved('stop', stopId, stopData.name);
         closeModal('durationChangeModal');
         showSuccess(t('notifications.nextStopAdjusted'));
         await loadStops();
@@ -458,6 +464,7 @@ async function handleJustUpdateStop() {
     try {
         // Just update the current stop without adjusting any following stops
         await updateStop(stopId, stopData);
+        notifySaved('stop', stopId, stopData.name);
         closeModal('durationChangeModal');
         showSuccess(t('notifications.stopUpdated'));
         await loadStops();
@@ -570,12 +577,13 @@ function openEditActivityModal(activityId, stopId) {
     document.getElementById('activityId').value = activityId;
     document.getElementById('activityModalTitle').textContent = t('buttons.edit');
     document.getElementById('activitySubmitBtn').textContent = t('buttons.save');
-    
+
     // Fill in the form with existing data
     document.getElementById('activityName').value = activity.name;
     document.getElementById('activityDescription').value = activity.description || '';
     document.getElementById('activityUrl').value = activity.url || '';
-    
+
+    notifyEditing('activity', activityId, activity.name);
     openModal('addActivityModal');
 }
 
@@ -596,10 +604,12 @@ async function handleAddActivitySubmit(e) {
         if (activityId) {
             // Edit existing activity
             await updateActivity(activityId, activityData);
+            notifySaved('activity', activityId, activityData.name);
             showSuccess(t('notifications.activityUpdated'));
         } else {
             // Create new activity
             await createActivity(stopId, activityData);
+            notifyAdded('activity', null, activityData.name);
             showSuccess(t('notifications.activityAdded'));
         }
         closeModal('addActivityModal');
@@ -617,6 +627,7 @@ async function handleDeleteActivity(activityId, activityName) {
 
     try {
         await deleteActivity(activityId);
+        notifyDeleted('activity', activityId, activityName);
         showSuccess(t('notifications.activityDeleted'));
         await loadStops();
     } catch (error) {

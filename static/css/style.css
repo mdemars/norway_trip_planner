@@ -1966,6 +1966,64 @@ header .subtitle {
     text-align: right;
 }
 
+/* ============================================================================
+   Presence toasts — collaborative editing notifications (bottom-left)
+   ============================================================================ */
+
+#presenceToastContainer {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.presence-toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #1a6fbf;
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    font-size: 13px;
+    font-weight: 500;
+    max-width: 320px;
+    opacity: 0;
+    transform: translateX(-24px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.presence-toast--visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.presence-toast--hiding {
+    opacity: 0;
+    transform: translateX(-24px);
+}
+
+.presence-toast svg {
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+
+/* Colour variants per action */
+.presence-toast--editing  { background: #1a6fbf; }
+.presence-toast--saved    { background: #1e8a3e; }
+.presence-toast--added    { background: #1e8a3e; }
+.presence-toast--deleted  { background: #9b3a3a; }
+
+[data-theme="dark"] .presence-toast--editing  { background: #2a7fd4; }
+[data-theme="dark"] .presence-toast--saved    { background: #28a74f; }
+[data-theme="dark"] .presence-toast--added    { background: #28a74f; }
+[data-theme="dark"] .presence-toast--deleted  { background: #b84a4a; }
+
 /* Safe area insets for notch / home indicator (iPhone X+) */
 @supports (padding: env(safe-area-inset-top)) {
     .container {
