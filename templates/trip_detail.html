@@ -81,7 +81,7 @@
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                            <button id="toggleRightPanelBtn" class="icon-btn" title="Toggle map &amp; calendar">
+                            <button id="toggleRightPanelBtn" class="icon-btn" title="Toggle right panel">
                                 <!-- icon swapped by JS -->
                                 <svg id="toggleRightPanelIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -102,48 +102,47 @@
                         <div class="loading" data-i18n="stops.loadingStops">Loading stops...</div>
                     </div>
                 </div>
-
-
-                <div class="section">
-                    <div class="section-header">
-                        <h2 data-i18n="bookmarks.title">Bookmarks</h2>
-                    </div>
-                    <form id="addBookmarkForm" class="bookmark-add-form">
-                        <input type="url" id="bookmarkUrl" placeholder="https://..." required class="bookmark-url-input">
-                        <input type="text" id="bookmarkDescription" placeholder="Description (optional)" class="bookmark-desc-input">
-                        <button type="submit" class="btn btn-primary btn-sm" data-i18n="buttons.add">Add</button>
-                    </form>
-                    <div id="bookmarksContainer">
-                        <table class="bookmarks-table" id="bookmarksTable" style="display:none;">
-                            <tbody id="bookmarksTbody"></tbody>
-                        </table>
-                        <p class="info-text" id="bookmarksEmpty" data-i18n="bookmarks.noBookmarks">No bookmarks yet.</p>
-                    </div>
-                </div>
             </div>
 
             <div class="right-panel">
-                <div class="section">
-                    <div class="section-header">
-                        <h2 data-i18n="map.title">Map</h2>
-                    </div>
-                    <div class="map-container">
-                        <div id="map"></div>
-                    </div>
+                <div class="right-panel-tabs">
+                    <button class="right-tab" data-tab="map" data-i18n="map.title">Map</button>
+                    <button class="right-tab" data-tab="calendar" data-i18n="calendar.title">Calendar</button>
+                    <button class="right-tab" data-tab="bookmarks" data-i18n="bookmarks.title">Bookmarks</button>
                 </div>
-                <div class="section">
-                    <div class="section-header">
-                        <h2 data-i18n="calendar.title">Calendar</h2>
+                <div class="right-panel-body">
+                    <!-- Map tab -->
+                    <div id="tab-map" class="tab-pane">
+                        <div class="map-container">
+                            <div id="map"></div>
+                        </div>
                     </div>
-                    <div id="calendar" class="calendar-container">
-                        <div class="calendar-placeholder">
-                            <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
-                            <p data-i18n="calendar.addStopsToSee">Add stops to see calendar view</p>
+                    <!-- Calendar tab -->
+                    <div id="tab-calendar" class="tab-pane">
+                        <div id="calendar" class="calendar-container">
+                            <div class="calendar-placeholder">
+                                <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <p data-i18n="calendar.addStopsToSee">Add stops to see calendar view</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Bookmarks tab -->
+                    <div id="tab-bookmarks" class="tab-pane">
+                        <form id="addBookmarkForm" class="bookmark-add-form">
+                            <input type="url" id="bookmarkUrl" placeholder="https://..." required class="bookmark-url-input">
+                            <input type="text" id="bookmarkDescription" placeholder="Description (optional)" class="bookmark-desc-input">
+                            <button type="submit" class="btn btn-primary btn-sm" data-i18n="buttons.add">Add</button>
+                        </form>
+                        <div id="bookmarksContainer">
+                            <table class="bookmarks-table" id="bookmarksTable" style="display:none;">
+                                <tbody id="bookmarksTbody"></tbody>
+                            </table>
+                            <p class="info-text" id="bookmarksEmpty" data-i18n="bookmarks.noBookmarks">No bookmarks yet.</p>
                         </div>
                     </div>
                 </div>

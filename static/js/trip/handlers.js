@@ -910,8 +910,6 @@ async function saveRouteDistances(routeData) {
         document.getElementById('tripDistanceBadge').style.display = 'block';
     }
 
-    App.stops = result.locations.filter(loc => loc.type === 'stop');
-    App.renderStops(App.stops);
 }
 
 async function updateTripCountries(tripId) {

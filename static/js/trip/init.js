@@ -317,29 +317,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addBookmarkForm = document.getElementById('addBookmarkForm');
     if (addBookmarkForm) addBookmarkForm.addEventListener('submit', handleAddBookmarkSubmit);
 
-    // Right-panel toggle (map + calendar)
+    // -----------------------------------------------------------------------
+    // Right-panel sticky: pin panel top to match header bottom
+    // -----------------------------------------------------------------------
+    function updateStickyTop() {
+        const headerEl = document.querySelector('.detail-header');
+        if (!headerEl) return;
+        const top = headerEl.getBoundingClientRect().height +
+                    parseFloat(getComputedStyle(headerEl).marginBottom || '0');
+        document.querySelector('.right-panel').style.top = top + 'px';
+        document.querySelector('.right-panel').style.height = `calc(100vh - ${top}px)`;
+    }
+    updateStickyTop();
+
+    // -----------------------------------------------------------------------
+    // Right-panel tab switching
+    // -----------------------------------------------------------------------
+    function activateTab(tabId) {
+        document.querySelectorAll('.right-tab').forEach(b =>
+            b.classList.toggle('active', b.dataset.tab === tabId)
+        );
+        document.querySelectorAll('.tab-pane').forEach(p =>
+            p.classList.toggle('active', p.id === 'tab-' + tabId)
+        );
+    }
+
+    const savedTab = localStorage.getItem('rightPanelTab') || 'map';
+    activateTab(savedTab);
+
+    document.querySelectorAll('.right-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            activateTab(tab);
+            localStorage.setItem('rightPanelTab', tab);
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // Right-panel toggle (show / hide entire panel)
+    // -----------------------------------------------------------------------
     const tripDetailContent = document.querySelector('.trip-detail-content');
     const toggleBtn = document.getElementById('toggleRightPanelBtn');
     const toggleIcon = document.getElementById('toggleRightPanelIcon');
 
     if (tripDetailContent && toggleBtn && toggleIcon) {
-        // SVG paths for the two states
-        const iconExpanded  = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>';   // panel visible → clicking will hide
-        const iconCollapsed = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>';     // panel hidden  → clicking will show
+        const iconExpanded  = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>';
+        const iconCollapsed = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>';
 
         function applyPanelState(collapsed) {
             if (collapsed) {
                 tripDetailContent.classList.add('right-collapsed');
                 toggleIcon.innerHTML = iconCollapsed;
-                toggleBtn.title = 'Show map & calendar';
+                toggleBtn.title = 'Show panel';
             } else {
                 tripDetailContent.classList.remove('right-collapsed');
                 toggleIcon.innerHTML = iconExpanded;
-                toggleBtn.title = 'Hide map & calendar';
+                toggleBtn.title = 'Hide panel';
             }
         }
 
-        // Restore persisted state
         const panelCollapsed = localStorage.getItem('rightPanelCollapsed') === 'true';
         applyPanelState(panelCollapsed);
 

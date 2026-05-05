@@ -386,23 +386,94 @@ header .subtitle {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
+    align-items: start; /* required so sticky sidebar works */
     transition: grid-template-columns 0.25s ease;
 }
 
 .trip-detail-content.right-collapsed {
-    grid-template-columns: 1fr 0;
+    grid-template-columns: 1fr;
 }
 
 .trip-detail-content.right-collapsed .right-panel {
     display: none;
 }
 
-.left-panel,
-.right-panel {
+.left-panel {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    min-width: 0; /* allow grid columns to shrink below content width */
+    min-width: 0;
+}
+
+/* Right panel: sticky, full viewport height, tabbed */
+.right-panel {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg-surface);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+/* Tab bar */
+.right-panel-tabs {
+    display: flex;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-surface);
+}
+
+.right-tab {
+    flex: 1;
+    padding: 12px 8px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px; /* overlap the container border */
+    cursor: pointer;
+    font-size: 0.88em;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.right-tab:hover {
+    color: var(--text-color);
+}
+
+.right-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Tab content area fills remaining height */
+.right-panel-body {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
+.tab-pane {
+    display: none;
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+}
+
+.tab-pane.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Bookmarks tab: padding around content */
+#tab-bookmarks {
+    padding: 20px;
+    gap: 16px;
 }
 
 .section {
@@ -809,10 +880,8 @@ header .subtitle {
    ============================================================================ */
 
 .map-container {
-    background: var(--bg-surface);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    height: 600px;
+    flex: 1;
+    min-height: 0;
     position: relative;
 }
 
@@ -835,12 +904,8 @@ header .subtitle {
    ============================================================================ */
 
 .calendar-container {
-    background: var(--bg-surface);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
     padding: 20px;
-    max-height: 600px;
-    overflow-y: auto;
+    flex: 1;
 }
 
 .calendar-placeholder {
@@ -1535,6 +1600,13 @@ header .subtitle {
         grid-template-columns: 1fr;
     }
 
+    /* Unstick right panel on tablet/narrow layouts */
+    .right-panel {
+        position: relative;
+        top: auto;
+        height: 520px;
+    }
+
     .trips-grid {
         grid-template-columns: 1fr;
     }
@@ -1573,9 +1645,6 @@ header .subtitle {
         text-align: center;
     }
 
-    .map-container {
-        height: 350px;
-    }
 }
 
 
@@ -1584,6 +1653,11 @@ header .subtitle {
    ============================================================================ */
 
 @media (max-width: 600px) {
+
+    /* Right-panel toggle is irrelevant on phones — panel always shows below stops */
+    #toggleRightPanelBtn {
+        display: none;
+    }
 
     /* Prevent iOS font-size zoom when tapping inputs */
     .form-group input,
@@ -1730,14 +1804,11 @@ header .subtitle {
         flex-direction: column;
     }
 
-    /* Map: shorter on phones */
-    .map-container {
-        height: 260px;
-    }
-
-    /* Shorter calendar on phones */
-    .calendar-container {
-        max-height: 420px;
+    /* On phones, right panel becomes full-height block (not sticky) */
+    .right-panel {
+        position: relative;
+        top: auto;
+        height: 480px;
     }
 
     .calendar-day {
@@ -1802,7 +1873,7 @@ header .subtitle {
 
     /* Smooth momentum scrolling for iOS */
     .stops-list,
-    .calendar-container,
+    .tab-pane,
     .modal-content {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
