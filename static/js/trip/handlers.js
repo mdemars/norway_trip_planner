@@ -910,6 +910,15 @@ async function saveRouteDistances(routeData) {
         document.getElementById('tripDistanceBadge').style.display = 'block';
     }
 
+    // Patch distance_km into existing stop list entries (preserves start/end pseudo-stops)
+    result.locations.forEach(loc => {
+        const stop = App.stops.find(s => s.guid === loc.guid);
+        if (stop) stop.distance_km = loc.distance_km;
+    });
+    const endStop = App.stops.find(s => s.type === 'trip-end');
+    if (endStop && result.end_distance_km !== undefined) endStop.distance_km = result.end_distance_km;
+    App.renderStops(App.stops);
+
 }
 
 async function updateTripCountries(tripId) {
