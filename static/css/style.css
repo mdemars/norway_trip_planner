@@ -1714,7 +1714,32 @@ header .subtitle {
     }
 
     .container {
-        padding: 12px;
+        padding: 12px 0;
+    }
+
+    /* Trip cards: full-width list, no rounding, gap between cards */
+    .trips-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .trip-card {
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+    }
+
+    .trip-card:hover {
+        transform: none;
+    }
+
+    /* Stop cards: full-width, no rounding
+       (padding/gap/border-radius also overridden in the post-968px block below) */
+    .stop-card,
+    .waypoint-card {
+        border-radius: 0;
+        margin-left: 0;
     }
 
     /* Touch targets: minimum 44×44px (Apple HIG / Material guidelines) */
@@ -1763,7 +1788,6 @@ header .subtitle {
     }
 
     .waypoint-card {
-        margin-left: 10px;
         padding: 10px 12px;
     }
 
@@ -1923,6 +1947,32 @@ header .subtitle {
 
     .icon-btn:active {
         opacity: 0.65;
+    }
+}
+
+/* Mobile overrides that must come after the second 968px block above,
+   otherwise that block's .section { padding: 14px } wins on phones too. */
+@media (max-width: 600px) {
+    .section {
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .section-header {
+        padding: 14px 12px 12px;
+    }
+
+    .stops-list {
+        gap: 10px;
+        padding: 0 0 10px;
+    }
+
+    .stop-card,
+    .waypoint-card {
+        border-radius: 0;
+        margin-left: 0;
+        border-bottom: none;
     }
 }
 
@@ -2131,6 +2181,14 @@ header .subtitle {
     .container {
         padding-left: max(20px, env(safe-area-inset-left));
         padding-right: max(20px, env(safe-area-inset-right));
+    }
+
+    /* On mobile, only honour the safe-area inset itself (no forced 20px) */
+    @media (max-width: 600px) {
+        .container {
+            padding-left: env(safe-area-inset-left, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
+        }
     }
 
     header {
