@@ -622,6 +622,37 @@ header .subtitle {
     color: var(--danger-color, #dc3545);
 }
 
+/* Weather icon placeholder */
+.weather-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+}
+
+.weather-icon-img {
+    display: block;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* On mobile: weather wraps below the action menu row */
+@media (max-width: 600px) {
+    .stop-header {
+        flex-wrap: wrap;
+    }
+
+    .weather-placeholder {
+        order: 3;
+        width: 100%;
+        justify-content: flex-start;
+        height: auto;
+        padding-top: 4px;
+    }
+}
+
 .icon-btn {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);

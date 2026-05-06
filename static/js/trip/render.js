@@ -27,12 +27,25 @@ App.renderStops = function renderStops(stopsData) {
     const distanceGradient = { min: minDistance, max: maxDistance, range: maxDistance - minDistance || 1 };
 
     let html = '';
+    let lastStopEndDate = null;
     App.stops.forEach((stop, index) => {
         const isLastStop = index === App.stops.length - 1;
-        html += App.createStopCard(stop, index + 1, isLastStop, distanceGradient);
+        let weatherDate = null;
+        if (!stop.is_trip_location) {
+            if (stop.type === 'waypoint') {
+                weatherDate = lastStopEndDate;
+            } else {
+                weatherDate = stop.start_date || null;
+                if (stop.end_date) lastStopEndDate = stop.end_date;
+            }
+        }
+        html += App.createStopCard(stop, index + 1, isLastStop, distanceGradient, weatherDate);
     });
 
     container.innerHTML = html;
+
+    // Load weather icons asynchronously after rendering
+    App.loadWeatherIcons();
 
     // Update map
     App.updateMap();
@@ -41,13 +54,19 @@ App.renderStops = function renderStops(stopsData) {
     App.renderCalendar();
 };
 
-App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGradient = {}) {
+App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGradient = {}, weatherDate = null) {
     // Helper to calculate distance color hue (120=green, 60=yellow, 0=red)
     const getDistanceHue = (distance) => {
         if (distance == null || distanceGradient.range === undefined || distanceGradient.range === 0) {
             return 60; // Yellow for no data
         }
         return Math.round(120 * (1 - (distance - distanceGradient.min) / distanceGradient.range));
+    };
+
+    // Helper to build weather placeholder HTML (filled asynchronously)
+    const renderWeatherPlaceholder = (lat, lng, date) => {
+        if (!lat || !lng || !date) return '';
+        return `<div class="weather-placeholder" data-lat="${lat}" data-lng="${lng}" data-date="${date}" title="Loading weather..."></div>`;
     };
 
     // Helper to build distance badge HTML
@@ -80,6 +99,7 @@ App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGr
                             ${renderDistanceBadge(stop.distance_km)}
                         </h3>
                     </div>
+                    ${renderWeatherPlaceholder(stop.latitude, stop.longitude, weatherDate)}
                     <div class="stop-menu" onclick="event.stopPropagation()">
                         <button class="icon-btn stop-menu-btn" onclick="toggleStopMenu('tl-${stop.id}')">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -169,6 +189,7 @@ App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGr
                         ${renderDistanceBadge(stop.distance_km)}
                     </h3>
                 </div>
+                    ${renderWeatherPlaceholder(stop.latitude, stop.longitude, weatherDate)}
                     <div class="stop-menu" onclick="event.stopPropagation()">
                         <button class="icon-btn stop-menu-btn" onclick="toggleStopMenu(${stop.id})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -245,6 +266,30 @@ App.createActivityItem = function createActivityItem(activity) {
             </div>
         </div>
     `;
+};
+
+App.loadWeatherIcons = async function loadWeatherIcons() {
+    const placeholders = document.querySelectorAll('.weather-placeholder[data-lat][data-lng][data-date]');
+    placeholders.forEach(async (el) => {
+        const { lat, lng, date } = el.dataset;
+        if (!lat || !lng || !date) return;
+        try {
+            const data = await App.fetchWeather(lat, lng, date);
+            if (data && data.available) {
+                el.innerHTML = `<img
+                    class="weather-icon-img"
+                    src="https://openweathermap.org/img/wn/${data.icon}@2x.png"
+                    alt="${data.description}"
+                    title="${data.description}, ${data.temp_c}°C"
+                    width="40" height="40">`;
+                el.classList.add('loaded');
+            } else {
+                el.remove();
+            }
+        } catch {
+            el.remove();
+        }
+    });
 };
 
 // Expose rendering functions globally for backward compatibility

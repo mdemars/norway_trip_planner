@@ -270,6 +270,18 @@ async function reorderStops(tripId, stopIds) {
     }
 }
 
+async function fetchWeather(lat, lng, date) {
+    try {
+        const params = new URLSearchParams({ lat, lng, date });
+        const response = await fetch(`/api/weather?${params}`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching weather:', error);
+        return null;
+    }
+}
+
 async function clearRouteDistances(tripId) {
     try {
         const response = await fetch(`/api/trips/${tripId}/clear-distances`, {
@@ -289,6 +301,7 @@ async function clearRouteDistances(tripId) {
 }
 
 // Attach all API functions to window.TripApp
+App.fetchWeather = fetchWeather;
 App.fetchTrip = fetchTrip;
 App.updateTrip = updateTrip;
 App.deleteTrip = deleteTrip;
