@@ -145,6 +145,10 @@ async function handleAddStopSubmit(e) {
         form.reset();
         showSuccess(t('notifications.stopAdded'));
         await loadStops();
+
+        // Show instant Haversine distance estimates and warn if any leg > 500 km
+        const segData = await App.fetchSegments(tripId);
+        if (segData) App.applySegmentEstimates(segData.segments, segData.warnings);
     } catch (error) {
         // Error already shown
     }
@@ -292,6 +296,10 @@ async function handleDeleteStop(stopId, stopName) {
 
         showSuccess(t('notifications.stopDeleted'));
         await loadStops();
+
+        // Refresh distance estimates after chain changes
+        const segData = await App.fetchSegments(tripId);
+        if (segData) App.applySegmentEstimates(segData.segments, segData.warnings);
     } catch (error) {
         // Error already shown
     }

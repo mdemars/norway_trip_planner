@@ -19,6 +19,31 @@
             "justMyCode": true
         },
         {
+            "name": "MCP Server (stdio)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/venv/Scripts/python.exe",
+            "program": "${workspaceFolder}/mcp_server.py",
+            "env": {
+                "TRANSPORT": "stdio"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "MCP Server (SSE / HTTP)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/venv/Scripts/python.exe",
+            "program": "${workspaceFolder}/mcp_server.py",
+            "env": {
+                "TRANSPORT": "sse",
+                "MCP_PORT": "8090"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "Load Trip",
             "type": "debugpy",
             "request": "launch",

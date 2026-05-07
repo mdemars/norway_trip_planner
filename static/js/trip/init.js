@@ -119,6 +119,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await App.loadTrip();
     await App.loadStops();
 
+    // Apply Haversine estimates for stops that don't yet have a calculated route distance.
+    // Suppress warnings here — user hasn't made a change, no need for error toasts on load.
+    try {
+        const segData = await App.fetchSegments(tripId);
+        if (segData) App.applySegmentEstimates(segData.segments, []);
+    } catch (e) { /* non-critical */ }
+
     // If distances were previously saved, re-fetch the route to draw it on the map
     if (App.currentTrip && App.currentTrip.total_distance_km != null) {
         try {

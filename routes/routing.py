@@ -1,8 +1,19 @@
 import json
+import math
 from flask import Blueprint, request, jsonify
 from models import Trip, Stop, Location, get_db
 from services import geocoding_service, route_service
 from helpers import get_ordered_locations
+
+
+def _haversine_km(lat1, lon1, lat2, lon2):
+    """Straight-line distance between two GPS points using the Haversine formula."""
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return round(2 * R * math.asin(math.sqrt(a)), 2)
 
 routing_bp = Blueprint('routing', __name__, url_prefix='/api')
 
@@ -294,6 +305,99 @@ def update_trip_countries(trip_id):
         db.commit()
 
         return jsonify({'country_codes': country_codes})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
+
+
+@routing_bp.route('/trips/<int:trip_id>/segments', methods=['GET'])
+def get_trip_segments(trip_id):
+    """Fast straight-line distance estimate between consecutive stops.
+
+    Uses the Haversine formula on stored coordinates — no external API call,
+    responds in milliseconds regardless of trip length.
+
+    This is the correct endpoint for validating a maximum driving distance between stops.
+    Straight-line distances are always shorter than actual driving distances, so
+    any segment flagged here will definitely exceed the limit by road too.
+
+    Query parameters:
+        max_km (float, optional): Maximum allowed straight-line distance per segment.
+                                  Defaults to 500.
+
+    For exact driving distances and polylines, use GET /trips/{id}/route instead
+    (that endpoint calls Google Maps and counts against your API quota).
+    """
+    db = get_db()
+    try:
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            return jsonify({'error': 'Trip not found'}), 404
+
+        # Build ordered point list: trip-start → stops/waypoints → trip-end
+        points = []
+        if trip.start_location_latitude and trip.start_location_longitude:
+            points.append({
+                'name': 'Trip Start',
+                'guid': None,
+                'latitude': trip.start_location_latitude,
+                'longitude': trip.start_location_longitude,
+            })
+
+        for loc in get_ordered_locations(db, trip_id):
+            if loc.latitude and loc.longitude:
+                points.append({
+                    'name': loc.name,
+                    'guid': loc.guid,
+                    'latitude': loc.latitude,
+                    'longitude': loc.longitude,
+                })
+
+        if trip.end_location_latitude and trip.end_location_longitude:
+            points.append({
+                'name': 'Trip End',
+                'guid': None,
+                'latitude': trip.end_location_latitude,
+                'longitude': trip.end_location_longitude,
+            })
+
+        if len(points) < 2:
+            return jsonify({'segments': [], 'warnings': [], 'all_ok': True})
+
+        try:
+            max_km = float(request.args.get('max_km', 500))
+            if max_km <= 0:
+                raise ValueError()
+        except ValueError:
+            return jsonify({'error': 'max_km must be a positive number'}), 400
+
+        MAX_KM = max_km
+        segments = []
+        warnings = []
+
+        for i in range(len(points) - 1):
+            p1, p2 = points[i], points[i + 1]
+            dist = _haversine_km(p1['latitude'], p1['longitude'], p2['latitude'], p2['longitude'])
+            over = dist > MAX_KM
+            segments.append({
+                'from_name': p1['name'],
+                'to_name': p2['name'],
+                'to_guid': p2['guid'],
+                'distance_km': dist,
+                'over_500km': over,
+            })
+            if over:
+                warnings.append(
+                    f"{p1['name']} \u2192 {p2['name']}: {dist} km straight-line "
+                    f"(exceeds 500 km \u2014 actual driving distance will be longer)"
+                )
+
+        return jsonify({
+            'segments': segments,
+            'warnings': warnings,
+            'all_ok': len(warnings) == 0,
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

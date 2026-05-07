@@ -46,9 +46,18 @@ def create_app():
     @app.before_request
     def require_login():
         """Require authentication for all routes except auth-related ones"""
+        import secrets
         allowed_prefixes = ('/login', '/auth/', '/logout', '/favicon.ico', '/static/')
         if any(request.path.startswith(p) for p in allowed_prefixes):
             return
+        # Allow Bearer token access for MCP / programmatic clients
+        api_token = Config.API_TOKEN
+        if api_token:
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                provided = auth_header[7:]
+                if secrets.compare_digest(provided, api_token):
+                    return
         if Config.SKIP_AUTH:
             if not session.get('user_email'):
                 session['user_email'] = 'local@localhost'

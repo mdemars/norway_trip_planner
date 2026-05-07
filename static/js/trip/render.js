@@ -69,14 +69,32 @@ App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGr
         return `<div class="weather-placeholder" data-lat="${lat}" data-lng="${lng}" data-date="${date}" title="Loading weather..."></div>`;
     };
 
-    // Helper to build distance badge HTML
-    const renderDistanceBadge = (distance) => {
+    // Helper to build distance badge HTML.
+    // isEstimate=true: Haversine straight-line estimate (dashed border, ~ prefix, absolute colour scale).
+    // isEstimate=false: saved driving distance from a full route calculation.
+    const renderDistanceBadge = (distance, isEstimate = false) => {
         if (distance == null) return '';
-        const hue = getDistanceHue(distance);
+        let hue;
+        if (isEstimate) {
+            // Absolute colour scale so estimates are meaningful without gradient context
+            hue = distance < 200 ? 110 : distance < 350 ? 70 : distance < 500 ? 25 : 0;
+        } else {
+            hue = getDistanceHue(distance);
+        }
         const textColor = `hsl(${hue}, 72%, 42%)`;
         const bgColor = `hsl(${hue}, 72%, 96%)`;
-        return ` <span class="distance-badge" style="background-color: ${bgColor}; color: ${textColor}; border-left: 3px solid ${textColor};">↤ ${distance.toFixed(1)} km</span>`;
+        const borderStyle = isEstimate ? 'dashed' : 'solid';
+        const label = isEstimate ? `~${distance.toFixed(0)} km` : `↤ ${distance.toFixed(1)} km`;
+        const title = isEstimate
+            ? 'Straight-line estimate — click Calculate Route for exact driving distance'
+            : 'Driving distance';
+        return ` <span class="distance-badge" title="${title}" style="background-color: ${bgColor}; color: ${textColor}; border-left: 3px ${borderStyle} ${textColor};">${label}</span>`;
     };
+
+    // Pick the best available distance: prefer real routed distance, fall back to estimate
+    const distanceBadge = (stop) => stop.distance_km != null
+        ? renderDistanceBadge(stop.distance_km, false)
+        : renderDistanceBadge(stop.distance_km_estimate, true);
 
     // Check if this is a trip location (start/end)
     if (stop.is_trip_location) {
@@ -96,7 +114,7 @@ App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGr
                             <span style="color: #6c757d; font-weight: normal; margin-right: 8px;">${index}.</span>
                             <span style="font-style: italic; color: #6c757d;">${labelText}:</span>
                             ${escapeHtml(stop.name)}
-                            ${renderDistanceBadge(stop.distance_km)}
+                            ${distanceBadge(stop)}
                         </h3>
                     </div>
                     ${renderWeatherPlaceholder(stop.latitude, stop.longitude, weatherDate)}
@@ -186,7 +204,7 @@ App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGr
                             ? `<span style="color: #6c757d; font-weight: normal; font-size: 0.85em; margin-left: 8px;">(${dateRangeText}, ${nightsText})</span>`
                             : `<span class="undated-badge">No dates</span>`
                         }
-                        ${renderDistanceBadge(stop.distance_km)}
+                        ${distanceBadge(stop)}
                     </h3>
                 </div>
                     ${renderWeatherPlaceholder(stop.latitude, stop.longitude, weatherDate)}
@@ -290,6 +308,22 @@ App.loadWeatherIcons = async function loadWeatherIcons() {
             el.remove();
         }
     });
+};
+
+// Patch Haversine segment estimates onto stops that have no routed distance yet,
+// then re-render so badges appear immediately after a stop is added/removed.
+// Warnings (over-500km segments) are passed in separately so the caller can
+// choose whether to surface them (e.g. suppress on initial page load).
+App.applySegmentEstimates = function(segments, warnings = []) {
+    segments.forEach(seg => {
+        if (!seg.to_guid) return;
+        const stop = App.stops.find(s => s.guid === seg.to_guid);
+        if (stop && stop.distance_km == null) {
+            stop.distance_km_estimate = seg.distance_km;
+        }
+    });
+    App.renderStops(App.stops);
+    warnings.forEach(w => showError('\u26a0\ufe0f ' + w));
 };
 
 // Expose rendering functions globally for backward compatibility

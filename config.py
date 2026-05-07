@@ -38,6 +38,9 @@ class Config:
     MICROSOFT_CLIENT_ID = os.getenv('MICROSOFT_CLIENT_ID', '')
     MICROSOFT_CLIENT_SECRET = os.getenv('MICROSOFT_CLIENT_SECRET', '')
 
+    # Programmatic / MCP access
+    API_TOKEN = os.getenv('API_TOKEN', '')
+
     # Allowed email addresses (comma-separated in env)
     ALLOWED_EMAILS = [
         e.strip().lower()

@@ -282,6 +282,17 @@ async function fetchWeather(lat, lng, date) {
     }
 }
 
+async function fetchSegments(tripId) {
+    try {
+        const response = await fetch(`/api/trips/${tripId}/segments`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching segments:', error);
+        return null;
+    }
+}
+
 async function clearRouteDistances(tripId) {
     try {
         const response = await fetch(`/api/trips/${tripId}/clear-distances`, {
@@ -301,6 +312,7 @@ async function clearRouteDistances(tripId) {
 }
 
 // Attach all API functions to window.TripApp
+App.fetchSegments = fetchSegments;
 App.fetchWeather = fetchWeather;
 App.fetchTrip = fetchTrip;
 App.updateTrip = updateTrip;
