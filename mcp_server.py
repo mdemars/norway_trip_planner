@@ -28,6 +28,9 @@ Environment variables (all loaded from .env)
                    (only enforced in SSE mode)
   TRANSPORT        "stdio" or "sse"            (default: stdio)
   MCP_PORT         Port for SSE mode           (default: 8090)
+  MCP_PATH         Mount path for SSE mode     (default: None, i.e. "/")
+                   Set to "/mcp" when hosted behind a reverse proxy (e.g. DigitalOcean
+                   App Platform) that forwards the full path to the service.
 """
 
 from __future__ import annotations
@@ -50,6 +53,7 @@ API_TOKEN = os.getenv("API_TOKEN", "")
 MCP_SECRET_KEY = os.getenv("MCP_SECRET_KEY", "")
 TRANSPORT = os.getenv("TRANSPORT", "stdio").lower()
 MCP_PORT = int(os.getenv("MCP_PORT", "8090"))
+MCP_PATH = os.getenv("MCP_PATH") or None   # e.g. "/mcp" on DigitalOcean
 
 if not API_TOKEN:
     print("ERROR: API_TOKEN is not set. Add it to your .env file.", file=sys.stderr)
@@ -394,6 +398,7 @@ if __name__ == "__main__":
         asgi_app = mcp.http_app(
             transport="sse",
             middleware=[Middleware(_BearerAuthMiddleware)],
+            path=MCP_PATH,  # None = serve at "/"; "/mcp" = serve at "/mcp" (DO ingress)
         )
         print(f"MCP server (SSE) listening on port {MCP_PORT}", file=sys.stderr)
         uvicorn.run(asgi_app, host="0.0.0.0", port=MCP_PORT)
