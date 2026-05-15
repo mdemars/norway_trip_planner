@@ -1,0 +1,338 @@
+/* ============================================================================
+   Ask AI page styles
+   ============================================================================ */
+
+/* ── Two-column layout ─────────────────────────────────────────────────────── */
+.ai-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 32px;
+}
+
+@media (max-width: 860px) {
+    .ai-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Input card ────────────────────────────────────────────────────────────── */
+.ai-input-card,
+.ai-progress-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+}
+
+.ai-input-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-color);
+}
+
+.ai-input-hint {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.ai-optional {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* ── Suggestion chips ──────────────────────────────────────────────────────── */
+.ai-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.ai-chip {
+    background: var(--light-gray);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.ai-chip:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* ── Select + textarea ─────────────────────────────────────────────────────── */
+.ai-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-surface);
+    color: var(--text-color);
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.ai-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-surface);
+    color: var(--text-color);
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    margin-top: 4px;
+    transition: border-color 0.15s;
+}
+
+.ai-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+}
+
+.ai-char-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 4px;
+}
+
+/* ── Action buttons ────────────────────────────────────────────────────────── */
+.ai-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    align-items: center;
+}
+
+.ai-submit-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-cancel-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-model-badge {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ai-model-badge::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success-color);
+}
+
+/* ── Progress panel ────────────────────────────────────────────────────────── */
+.ai-progress-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--text-color);
+}
+
+.ai-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* ── Individual step row ───────────────────────────────────────────────────── */
+.ai-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.85rem;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--light-gray);
+    animation: ai-step-in 0.2s ease;
+}
+
+@keyframes ai-step-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ai-step-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+}
+
+.ai-step.step-running .ai-step-icon { color: var(--primary-color); }
+.ai-step.step-ok      .ai-step-icon { color: var(--success-color); }
+.ai-step.step-error   .ai-step-icon { color: var(--danger-color); }
+.ai-step.step-info    .ai-step-icon { color: var(--text-muted); }
+
+.ai-step-text {
+    flex: 1;
+    line-height: 1.4;
+    color: var(--text-color);
+}
+
+/* Spinner SVG animation */
+.ai-spinner {
+    animation: ai-spin 0.9s linear infinite;
+}
+@keyframes ai-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── Final response text ───────────────────────────────────────────────────── */
+.ai-final-response {
+    margin-top: 14px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    white-space: pre-wrap;
+    border-top: 1px solid var(--border-color);
+    padding-top: 14px;
+}
+
+.ai-final-response:empty {
+    display: none;
+}
+
+/* ── Trip link button ──────────────────────────────────────────────────────── */
+.ai-trip-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 10px 18px;
+}
+
+/* ── History section ───────────────────────────────────────────────────────── */
+.ai-history-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 24px;
+    margin-top: 8px;
+}
+
+.ai-history-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.ai-history-hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+.ai-prompts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ai-prompt-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.ai-prompt-row:hover {
+    background: var(--bg-hover);
+}
+
+.ai-prompt-text {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ai-prompt-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.ai-status-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.ai-status-badge.done      { background: #d4edda; color: #155724; }
+.ai-status-badge.running   { background: #cce5ff; color: #004085; }
+.ai-status-badge.cancelled { background: #fff3cd; color: #856404; }
+.ai-status-badge.error     { background: #f8d7da; color: #721c24; }
+
+[data-theme="dark"] .ai-status-badge.done      { background: #1a3d26; color: #7ed6a0; }
+[data-theme="dark"] .ai-status-badge.running   { background: #0d2b4a; color: #7ab8f5; }
+[data-theme="dark"] .ai-status-badge.cancelled { background: #3d2e00; color: #e0b840; }
+[data-theme="dark"] .ai-status-badge.error     { background: #3d0d10; color: #f08090; }
+
+.ai-trip-badge {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.ai-trip-badge:hover {
+    text-decoration: underline;
+}
+
+/* ── Admin AI prompts table ────────────────────────────────────────────────── */
+.ai-admin-prompt-text {
+    max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
+}

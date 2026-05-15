@@ -41,6 +41,11 @@ class Config:
     # Programmatic / MCP access
     API_TOKEN = os.getenv('API_TOKEN', '')
 
+    # Anthropic AI (for Ask AI feature)
+    ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+    AI_MAX_ITERATIONS = int(os.getenv('AI_MAX_ITERATIONS', '15'))
+    FLASK_BASE_URL = os.getenv('FLASK_BASE_URL', 'http://localhost:8080').rstrip('/')
+
     # Allowed email addresses (comma-separated in env)
     ALLOWED_EMAILS = [
         e.strip().lower()

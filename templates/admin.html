@@ -7,6 +7,7 @@
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/ai.css">
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/auth.js"></script>
 </head>
@@ -48,6 +49,7 @@
                 <button class="admin-tab" data-tab="backup" data-url="/admin/backup" role="tab">Database Backup</button>
                 <button class="admin-tab" data-tab="ordering" data-url="/admin/ordering" role="tab">Stop-Link Fix</button>
                 <button class="admin-tab" data-tab="delete-trip" data-url="/admin/delete-trip" role="tab">Delete Trip</button>
+                <button class="admin-tab" data-tab="ai-prompts" data-url="/admin/ai-prompts" role="tab">AI Prompts</button>
             </div>
 
             <!-- Tab: Entity Browser -->
@@ -119,6 +121,17 @@
                 </div>
                 <div id="deleteTripActions" style="display:none; margin-top:16px;">
                     <button id="deleteTripConfirmBtn" class="btn btn-danger">Delete Trip</button>
+                </div>
+            </div>
+
+            <!-- Tab: AI Prompts -->
+            <div id="tab-ai-prompts" class="admin-tab-panel">
+                <div class="admin-controls">
+                    <span class="row-count" id="aiPromptCount"></span>
+                    <button id="aiPromptsRefreshBtn" class="btn btn-secondary btn-sm" style="margin-left:auto;">Refresh</button>
+                </div>
+                <div id="aiPromptsContainer" class="admin-table-container">
+                    <p class="admin-placeholder">Loading AI prompts…</p>
                 </div>
             </div>
 

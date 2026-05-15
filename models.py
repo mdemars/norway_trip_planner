@@ -166,6 +166,29 @@ class Activity(Base):
         }
 
 
+class AiPrompt(Base):
+    """A prompt submitted to the AI trip planner."""
+    __tablename__ = 'ai_prompts'
+    __table_args__ = {'schema': TRIPS_SCHEMA}
+
+    id = Column(Integer, primary_key=True)
+    prompt_text = Column(Text, nullable=False)
+    trip_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.trips.id', ondelete='SET NULL'), nullable=True)
+    status = Column(String(20), default='running')  # running / done / cancelled / error
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    trip = relationship('Trip', backref='ai_prompts', foreign_keys=[trip_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'prompt_text': self.prompt_text,
+            'trip_id': self.trip_id,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class TripBookmark(Base):
     """A URL bookmark associated with a trip"""
     __tablename__ = 'trip_bookmarks'
@@ -448,6 +471,16 @@ def _migrate_waypoints_to_stops(engine):
     print("Waypoints to stops conversion complete.")
 
 
+def _migrate_add_ai_prompts(engine):
+    """Create ai_prompts table for existing databases (create_all handles new installs)."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+    if 'ai_prompts' not in existing_tables:
+        AiPrompt.__table__.create(engine)
+        print("Created ai_prompts table.")
+
+
 def init_db():
     """Initialize the database"""
     _ensure_schema_exists(engine)
@@ -460,6 +493,7 @@ def init_db():
     _migrate_add_trip_total_distance_km(engine)
     _migrate_add_trip_country_codes(engine)
     _migrate_waypoints_to_stops(engine)
+    _migrate_add_ai_prompts(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 

@@ -18,6 +18,12 @@ def trip_detail(trip_id):
 
 
 
+@web_bp.route('/ai')
+def ai_planner():
+    """Ask AI page — natural-language trip creation"""
+    return render_template('ai.html')
+
+
 @web_bp.route('/favicon.ico')
 def favicon():
     """Serve favicon"""

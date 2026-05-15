@@ -84,11 +84,6 @@ def _post(path: str, data: dict) -> dict:
     return r.json()
 
 
-def _delete(path: str) -> dict:
-    r = httpx.delete(f"{FLASK_BASE_URL}{path}", headers=_headers(), timeout=30)
-    r.raise_for_status()
-    return r.json()
-
 
 # ── MCP server ─────────────────────────────────────────────────────────────────
 mcp = FastMCP(
@@ -158,12 +153,6 @@ def create_trip(
     return _post("/api/trips", payload)
 
 
-@mcp.tool()
-def delete_trip(trip_id: int) -> dict:
-    """Permanently delete a trip and all its stops and activities."""
-    return _delete(f"/api/trips/{trip_id}")
-
-
 # ── Stop tools ─────────────────────────────────────────────────────────────────
 @mcp.tool()
 def get_stops(trip_id: int) -> list:
@@ -206,12 +195,6 @@ def add_stop(
             end = date.fromisoformat(start_date) + timedelta(days=nights)
             payload["end_date"] = end.isoformat()
     return _post(f"/api/trips/{trip_id}/stops", payload)
-
-
-@mcp.tool()
-def delete_stop(stop_id: int) -> dict:
-    """Delete a stop (and all its activities) from its trip."""
-    return _delete(f"/api/stops/{stop_id}")
 
 
 @mcp.tool()
@@ -283,12 +266,6 @@ def add_bookmark(trip_id: int, url: str, description: Optional[str] = None) -> d
     if description:
         payload["description"] = description
     return _post(f"/api/trips/{trip_id}/bookmarks", payload)
-
-
-@mcp.tool()
-def delete_bookmark(bookmark_id: int) -> dict:
-    """Delete a bookmark by its ID."""
-    return _delete(f"/api/bookmarks/{bookmark_id}")
 
 
 # ── Route / distance tools ─────────────────────────────────────────────────────

@@ -538,6 +538,65 @@ async function handleDeleteTripConfirm() {
     }
 }
 
+// ── Section 5: AI Prompts ─────────────────────────────────────────────────────
+
+async function loadAiPrompts() {
+    const container = document.getElementById('aiPromptsContainer');
+    const countEl   = document.getElementById('aiPromptCount');
+    container.innerHTML = '<p class="admin-placeholder">Loading…</p>';
+    try {
+        const res = await fetch('/api/ai/prompts');
+        if (!res.ok) throw new Error('Failed to load prompts');
+        const prompts = await res.json();
+        countEl.textContent = `${prompts.length} prompt${prompts.length !== 1 ? 's' : ''}`;
+
+        if (!prompts.length) {
+            container.innerHTML = '<p class="admin-placeholder">No AI prompts yet.</p>';
+            return;
+        }
+
+        const rows = prompts.map(p => {
+            const date = new Date(p.created_at).toLocaleString();
+            const tripCell = p.trip_id
+                ? `<a href="/trip/${p.trip_id}" target="_blank">Trip #${p.trip_id}</a>`
+                : '<span class="null-value">—</span>';
+            return `<tr>
+                <td>${escapeHtml(p.id)}</td>
+                <td class="ai-admin-prompt-text" title="${escapeHtml(p.prompt_text)}">${escapeHtml(p.prompt_text)}</td>
+                <td><span class="ai-status-badge ${p.status}">${p.status}</span></td>
+                <td>${tripCell}</td>
+                <td>${escapeHtml(date)}</td>
+                <td><button class="btn btn-danger btn-sm" data-id="${p.id}">Delete</button></td>
+            </tr>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="table-scroll">
+                <table class="admin-table">
+                    <thead><tr>
+                        <th>ID</th><th>Prompt</th><th>Status</th><th>Trip</th><th>Created</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+
+        container.querySelectorAll('button[data-id]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm(`Delete prompt #${btn.dataset.id}?`)) return;
+                try {
+                    const r = await fetch(`/api/ai/prompts/${btn.dataset.id}`, { method: 'DELETE' });
+                    if (!r.ok) throw new Error((await r.json()).error);
+                    await loadAiPrompts();
+                } catch (err) {
+                    showBackupStatus('Delete failed: ' + err.message, true);
+                }
+            });
+        });
+    } catch (err) {
+        container.innerHTML = `<p class="admin-placeholder" style="color:var(--danger-color);">Error: ${escapeHtml(err.message)}</p>`;
+    }
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
 function activateTab(tabName) {
@@ -659,6 +718,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadDeleteTripPreview(e.target.value);
     });
     document.getElementById('deleteTripConfirmBtn').addEventListener('click', handleDeleteTripConfirm);
+
+    // AI Prompts tab
+    await loadAiPrompts();
+    document.getElementById('aiPromptsRefreshBtn').addEventListener('click', loadAiPrompts);
 
     document.getElementById('importTripInput').addEventListener('change', async (e) => {
         const file = e.target.files[0];
