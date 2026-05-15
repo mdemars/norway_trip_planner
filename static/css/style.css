@@ -398,6 +398,14 @@ header .subtitle {
     display: none;
 }
 
+.trip-detail-content.left-collapsed {
+    grid-template-columns: 1fr;
+}
+
+.trip-detail-content.left-collapsed .left-panel {
+    display: none;
+}
+
 .left-panel {
     display: flex;
     flex-direction: column;
@@ -449,6 +457,20 @@ header .subtitle {
 .right-tab.active {
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
+}
+
+.right-panel-expand-btn {
+    flex-shrink: 0;
+    border-radius: 0;
+    border-left: 1px solid var(--border-color);
+    padding: 0 10px;
+    height: 100%;
+    color: var(--text-muted);
+}
+
+.right-panel-expand-btn:hover {
+    color: var(--text-color);
+    background: var(--bg-hover, rgba(0,0,0,0.04));
 }
 
 /* Tab content area fills remaining height */

@@ -381,6 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         function applyPanelState(collapsed) {
             if (collapsed) {
                 tripDetailContent.classList.add('right-collapsed');
+                tripDetailContent.classList.remove('left-collapsed');
                 toggleIcon.innerHTML = iconCollapsed;
                 toggleBtn.title = 'Show panel';
             } else {
@@ -397,6 +398,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             const nowCollapsed = !tripDetailContent.classList.contains('right-collapsed');
             localStorage.setItem('rightPanelCollapsed', nowCollapsed);
             applyPanelState(nowCollapsed);
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // Left-panel toggle (expand right panel / map to full width)
+    // -----------------------------------------------------------------------
+    const expandRightBtn = document.getElementById('expandRightPanelBtn');
+    const expandRightIcon = document.getElementById('expandRightPanelIcon');
+
+    if (tripDetailContent && expandRightBtn && expandRightIcon) {
+        const iconSplit    = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>';
+        const iconFullWidth = '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>';
+
+        function applyLeftPanelState(collapsed) {
+            if (collapsed) {
+                tripDetailContent.classList.add('left-collapsed');
+                tripDetailContent.classList.remove('right-collapsed');
+                expandRightIcon.innerHTML = iconFullWidth;
+                expandRightBtn.title = 'Show stop list';
+            } else {
+                tripDetailContent.classList.remove('left-collapsed');
+                expandRightIcon.innerHTML = iconSplit;
+                expandRightBtn.title = 'Hide stop list';
+            }
+        }
+
+        const leftCollapsed = localStorage.getItem('leftPanelCollapsed') === 'true';
+        applyLeftPanelState(leftCollapsed);
+
+        expandRightBtn.addEventListener('click', () => {
+            const nowCollapsed = !tripDetailContent.classList.contains('left-collapsed');
+            localStorage.setItem('leftPanelCollapsed', nowCollapsed);
+            applyLeftPanelState(nowCollapsed);
         });
     }
 
