@@ -5,6 +5,11 @@
 (function() {
     const App = window.TripApp;
 
+let pickModeActive = false;
+let pickModeListener = null;
+let pickModeMarker = null;
+let pickModeInfoWindow = null;
+
 function initMap() {
     const mapElement = document.getElementById('map');
 
@@ -18,7 +23,103 @@ function initMap() {
     } catch (error) {
         console.error('Error initializing map:', error);
         mapElement.innerHTML = `<div class="map-placeholder"><p style="color: #dc3545;">${t('map.errorLoading')}</p></div>`;
+        return;
     }
+
+    const pickBtn = document.getElementById('pickLocationBtn');
+    if (pickBtn) {
+        pickBtn.addEventListener('click', () => {
+            if (pickModeActive) exitPickMode();
+            else enterPickMode();
+        });
+    }
+}
+
+function enterPickMode() {
+    if (!App.map) return;
+    pickModeActive = true;
+    App.map.setOptions({ draggableCursor: 'crosshair' });
+    const btn = document.getElementById('pickLocationBtn');
+    if (btn) btn.classList.add('active');
+
+    pickModeListener = App.map.addListener('click', (e) => {
+        handlePickedLocation(e.latLng.lat(), e.latLng.lng());
+    });
+}
+
+function exitPickMode() {
+    pickModeActive = false;
+    if (pickModeListener) {
+        google.maps.event.removeListener(pickModeListener);
+        pickModeListener = null;
+    }
+    if (pickModeMarker) {
+        pickModeMarker.setMap(null);
+        pickModeMarker = null;
+    }
+    if (pickModeInfoWindow) {
+        pickModeInfoWindow.close();
+        pickModeInfoWindow = null;
+    }
+    if (App.map) App.map.setOptions({ draggableCursor: null });
+    const btn = document.getElementById('pickLocationBtn');
+    if (btn) btn.classList.remove('active');
+}
+
+function handlePickedLocation(lat, lng) {
+    if (pickModeMarker) pickModeMarker.setMap(null);
+    if (pickModeInfoWindow) pickModeInfoWindow.close();
+
+    const position = { lat, lng };
+
+    pickModeMarker = new google.maps.Marker({
+        position,
+        map: App.map,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: '#FFA500',
+            fillOpacity: 1,
+            strokeWeight: 3,
+            strokeColor: '#ffffff',
+            scale: 10
+        },
+        animation: google.maps.Animation.DROP,
+        title: `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+    });
+
+    pickModeInfoWindow = new google.maps.InfoWindow({
+        content: `
+            <div style="padding:8px;min-width:190px;">
+                <div style="margin-bottom:8px;font-size:0.85em;color:#6c757d;font-family:monospace;">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+                <button onclick="addPickedLocationToTrip(${lat}, ${lng})" style="padding:6px 12px;background:#0066cc;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;font-size:13px;">
+                    + ${t('map.addAsStop')}
+                </button>
+            </div>
+        `
+    });
+
+    pickModeInfoWindow.open(App.map, pickModeMarker);
+}
+
+function addPickedLocationToTrip(lat, lng) {
+    exitPickMode();
+
+    populateAddStopModal();
+
+    // Switch to GPS mode and fill coordinates
+    const gpsRadio = document.querySelector('input[name="locationType"][value="gps"]');
+    if (gpsRadio) {
+        gpsRadio.checked = true;
+        gpsRadio.dispatchEvent(new Event('change'));
+    }
+    document.getElementById('latitude').value = lat.toFixed(5);
+    document.getElementById('longitude').value = lng.toFixed(5);
+
+    openModal('addStopModal');
+    setTimeout(() => {
+        const stopName = document.getElementById('stopName');
+        if (stopName) stopName.focus();
+    }, 100);
 }
 
 function updateMap() {
@@ -274,10 +375,13 @@ App.initMap = initMap;
 App.updateMap = updateMap;
 App.drawRoute = drawRoute;
 App.showStopOnMap = showStopOnMap;
+App.exitPickMode = exitPickMode;
 
 // Expose on window
 window.initMap = App.initMap;
 window.updateMap = App.updateMap;
 window.drawRoute = App.drawRoute;
 window.showStopOnMap = App.showStopOnMap;
+window.addPickedLocationToTrip = addPickedLocationToTrip;
+window.exitPickMode = exitPickMode;
 })();

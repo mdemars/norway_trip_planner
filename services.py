@@ -70,6 +70,70 @@ class GeocodingService:
             print(f"Nominatim country code lookup error: {e}")
         return None
 
+    def search_places(self, query: str) -> List[Dict]:
+        """
+        Search for places using Google Maps and geocoding services.
+        Returns: List of up to 5 places with name, formatted_address, lat, lng
+        """
+        if not query or not query.strip():
+            return []
+
+        # Try Google Places API first if available
+        if self.gmaps:
+            try:
+                # Use places_nearby with keyword parameter for text search
+                results = self.gmaps.places_nearby(
+                    location=(60.472, 8.4689),  # Center on Norway as default
+                    radius=500000  # 500km radius to cover Norway
+                )
+
+                places = []
+                if 'results' in results:
+                    for result in results['results'][:5]:
+                        place_info = {
+                            'place_id': result.get('place_id'),
+                            'name': result.get('name'),
+                            'formatted_address': result.get('vicinity', ''),
+                            'latitude': round(result['geometry']['location']['lat'], 4),
+                            'longitude': round(result['geometry']['location']['lng'], 4),
+                            'description': ', '.join(result.get('types', [])[:2]).replace('_', ' ').title()
+                        }
+                        places.append(place_info)
+
+                return places
+            except Exception as e:
+                print(f"Google Places API error: {e}")
+
+        # Fallback to geocoding-based search
+        return self._search_places_geocoding(query)
+
+    def _search_places_geocoding(self, query: str) -> List[Dict]:
+        """
+        Search for places using geocoding as fallback.
+        """
+        try:
+            # Use Nominatim to search for the query
+            # This might return one result or multiple
+            location = self.geolocator.geocode(query, timeout=10)
+
+            places = []
+
+            if location:
+                place_info = {
+                    'place_id': query,
+                    'name': location.address.split(',')[0].strip() if location.address else query,
+                    'formatted_address': location.address or query,
+                    'latitude': round(location.latitude, 4),
+                    'longitude': round(location.longitude, 4),
+                    'description': 'Location'
+                }
+                places.append(place_info)
+
+            return places
+        except Exception as e:
+            print(f"Geocoding search fallback error: {e}")
+            return []
+
 
 class RouteService:
     """Service for calculating routes and distances using Google Maps"""

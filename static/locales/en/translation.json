@@ -114,7 +114,12 @@
     "notInitialized": "Map not initialized",
     "errorLoading": "Error loading Google Maps. Check console for details.",
     "authError": "Google Maps Error",
-    "checkApiKey": "Please check your API key configuration in Google Cloud Console."
+    "checkApiKey": "Please check your API key configuration in Google Cloud Console.",
+    "searchLocations": "Search locations...",
+    "searching": "Searching...",
+    "noResultsFound": "No results found",
+    "pickLocation": "Pick on map",
+    "addAsStop": "Add as Stop"
   },
   "calendar": {
     "title": "Calendar",
@@ -220,6 +225,7 @@
     "failedToDeleteActivity": "Failed to delete activity",
 
     "failedToCalculateRoute": "Failed to calculate route",
+    "searchFailed": "Search failed",
     "failedToUpdateLocations": "Failed to update locations",
     "failedToUpdateStops": "Failed to update stops"
   }

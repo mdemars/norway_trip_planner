@@ -431,3 +431,24 @@ def validate_address():
             'valid': False,
             'error': 'Address not found'
         })
+
+
+@routing_bp.route('/places/search', methods=['POST'])
+def search_places():
+    """Search for places using Google Maps Places API"""
+    data = request.json
+
+    if not data or not data.get('query'):
+        return jsonify({'error': 'Search query is required'}), 400
+
+    query = data['query'].strip()
+
+    if not query:
+        return jsonify({'error': 'Search query cannot be empty'}), 400
+
+    try:
+        places = geocoding_service.search_places(query)
+        return jsonify({'places': places})
+    except Exception as e:
+        print(f"Places search error: {e}")
+        return jsonify({'error': 'Failed to search places'}), 500

@@ -143,6 +143,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Map will be initialized via callback from Google Maps script
     // The callback=initMap parameter in the script URL will call initMap() when ready
 
+    // Initialize map search after a short delay to ensure map is ready
+    setTimeout(() => {
+        if (window.initMapSearch) {
+            window.initMapSearch();
+        }
+    }, 500);
+
     // Add stop button
     document.getElementById('addStopBtn').addEventListener('click', () => {
         populateAddStopModal();

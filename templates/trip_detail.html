@@ -113,6 +113,29 @@
                 <div class="right-panel-body">
                     <!-- Map tab -->
                     <div id="tab-map" class="tab-pane">
+                        <div class="map-search-panel">
+                            <div class="map-search-toolbar">
+                                <div class="search-input-group">
+                                    <input type="text" id="mapSearchInput" class="map-search-input" placeholder="Search locations..." data-i18n-placeholder="map.searchLocations">
+                                    <button id="mapSearchClearBtn" class="search-clear-btn" style="display:none;" title="Clear search">✕</button>
+                                </div>
+                                <button id="pickLocationBtn" class="pick-location-btn" data-i18n-title="map.pickLocation" title="Pick location on map">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    <span data-i18n="map.pickLocation">Pick on map</span>
+                                </button>
+                            </div>
+                            <div id="mapSearchResults" class="search-results-container" style="display:none;">
+                                <div class="search-results-list"></div>
+                            </div>
+                            <div id="mapSearchLoading" class="search-loading" style="display:none;">
+                                <div class="spinner"></div>
+                                <span data-i18n="map.searching">Searching...</span>
+                            </div>
+                            <div id="mapSearchError" class="search-error" style="display:none;"></div>
+                        </div>
                         <div class="map-container">
                             <div id="map"></div>
                         </div>
@@ -508,6 +531,7 @@
     <script src="/static/js/trip/api.js"></script>
     <script src="/static/js/trip/render.js"></script>
     <script src="/static/js/trip/map.js"></script>
+    <script src="/static/js/trip/map-search.js"></script>
     <script src="/static/js/trip/calendar.js"></script>
     <script src="/static/js/trip/handlers.js"></script>
     <script src="/static/js/trip/presence.js"></script>

@@ -114,7 +114,12 @@
     "notInitialized": "Carte non initialisee",
     "errorLoading": "Erreur lors du chargement de Google Maps. Verifiez la console.",
     "authError": "Erreur Google Maps",
-    "checkApiKey": "Veuillez verifier la configuration de votre cle API dans Google Cloud Console."
+    "checkApiKey": "Veuillez verifier la configuration de votre cle API dans Google Cloud Console.",
+    "searchLocations": "Rechercher des lieux...",
+    "searching": "Recherche en cours...",
+    "noResultsFound": "Aucun resultat trouve",
+    "pickLocation": "Choisir sur la carte",
+    "addAsStop": "Ajouter comme étape"
   },
   "calendar": {
     "title": "Calendrier",
@@ -220,6 +225,7 @@
     "failedToDeleteActivity": "Echec de la suppression de l'activite",
 
     "failedToCalculateRoute": "Echec du calcul de l'itineraire",
+    "searchFailed": "Echec de la recherche",
     "failedToUpdateLocations": "Echec de la mise a jour des lieux",
     "failedToUpdateStops": "Echec de la mise a jour des etapes"
   }
