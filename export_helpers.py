@@ -658,14 +658,24 @@ def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en'):
         cal_content.append(cal_tbl)
         cal_content.append(Spacer(1, 2))
 
-    overview_data = [[stop_lines, cal_content]]
-    overview_tbl = Table(overview_data, colWidths=[W*0.45, W*0.55])
+    # Build as multi-row table (one item per row) so ReportLab can split across
+    # pages when there are many stops. A single 1-row table would be unsplittable
+    # and causes LayoutError for large trips.
+    n_overview_rows = max(len(stop_lines), len(cal_content))
+    overview_data = [
+        [
+            stop_lines[i] if i < len(stop_lines) else '',
+            cal_content[i] if i < len(cal_content) else '',
+        ]
+        for i in range(n_overview_rows)
+    ]
+    overview_tbl = Table(overview_data, colWidths=[W*0.45, W*0.55], splitByRow=1)
     overview_tbl.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 4),
         ('RIGHTPADDING', (0, 0), (-1, -1), 4),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#DDDDDD')),
         ('LINEAFTER', (0, 0), (0, -1), 0.5, colors.HexColor('#DDDDDD')),
     ]))
