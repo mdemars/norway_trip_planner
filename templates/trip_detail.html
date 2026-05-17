@@ -556,6 +556,17 @@
             }
         };
     </script>
+    <!-- Photo lightbox -->
+    <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="closePhotoLightbox()">
+        <button class="photo-lightbox-close" onclick="closePhotoLightbox()" title="Close">&#x2715;</button>
+        <div class="photo-lightbox-inner" onclick="event.stopPropagation()">
+            <img id="photoLightboxImg" src="" alt="Photo">
+            <input id="photoLightboxCaption" class="photo-lightbox-caption"
+                   type="text" placeholder="Add a description…" maxlength="500"
+                   autocomplete="off">
+        </div>
+    </div>
+
     <script src="/static/js/trip/state.js"></script>
     <script src="/static/js/trip/ui.js"></script>
     <script src="/static/js/trip/api.js"></script>

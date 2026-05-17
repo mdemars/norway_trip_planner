@@ -207,6 +207,9 @@ App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGr
                         ${distanceBadge(stop)}
                     </h3>
                 </div>
+                    <button class="icon-btn photo-header-btn" onclick="event.stopPropagation(); triggerPhotoUpload('stop', ${stop.id})" title="Add photo">
+                        ${_cameraIcon(16)}
+                    </button>
                     ${renderWeatherPlaceholder(stop.latitude, stop.longitude, weatherDate)}
                     <div class="stop-menu" onclick="event.stopPropagation()">
                         <button class="icon-btn stop-menu-btn" onclick="toggleStopMenu(${stop.id})">
@@ -255,20 +258,54 @@ App.createStopCard = function createStopCard(stop, index, isLastStop, distanceGr
                     ${stop.url ? `<div class="stop-url" style="font-size: 0.8em; margin-top: 4px;"><a href="${escapeHtml(stop.url)}" target="_blank" onclick="event.stopPropagation()" style="color: var(--primary-color, #4285F4); text-decoration: none;">${t('locations.viewLink')}</a></div>` : ''}
                 </div>
                 ${hasDates ? activitiesHtml : ''}
+                ${App.createPhotoGallery(stop.photos)}
             </div>
         </div>
     `;
 };
 
+const _cameraIcon = (size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+    <circle cx="12" cy="13" r="4"></circle>
+</svg>`;
+
+App.createPhotoGallery = function createPhotoGallery(photos, small = false) {
+    if (!photos || photos.length === 0) return '';
+    const sizeClass = small ? ' photo-gallery--sm' : '';
+    const thumbs = photos.map(p => {
+        const caption = p.caption ? escapeHtml(p.caption) : '';
+        const captionJson = JSON.stringify(p.caption || '');
+        return `
+        <div class="photo-thumb-wrapper" title="${caption}">
+            <img class="photo-thumb" src="/api/photos/${p.id}"
+                 alt="${caption || escapeHtml(p.filename)}"
+                 loading="lazy"
+                 onclick="event.stopPropagation(); openPhotoLightbox(${p.id}, '/api/photos/${p.id}', ${captionJson})">
+            ${caption ? `<div class="photo-thumb-caption">${caption}</div>` : ''}
+            <button class="photo-delete-btn" onclick="event.stopPropagation(); handleDeletePhoto(${p.id})" title="Delete photo">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>`;
+    }).join('');
+    return `<div class="photo-gallery${sizeClass}">${thumbs}</div>`;
+};
+
 App.createActivityItem = function createActivityItem(activity) {
+    const photosHtml = App.createPhotoGallery(activity.photos, true);
     return `
-        <div class="activity-item">
+        <div class="activity-item" data-activity-id="${activity.id}">
             <div class="activity-info">
                 <div class="activity-name">${escapeHtml(activity.name)}</div>
                 ${activity.description ? `<div class="activity-description">${escapeHtml(activity.description)}</div>` : ''}
                 ${activity.url ? `<div class="activity-url"><a href="${escapeHtml(activity.url)}" target="_blank" onclick="event.stopPropagation()">${t('activities.viewLink')}</a></div>` : ''}
+                ${photosHtml}
             </div>
             <div class="activity-actions">
+                <button class="icon-btn" onclick="event.stopPropagation(); triggerPhotoUpload('activity', ${activity.id})" title="Add photo">
+                    ${_cameraIcon(14)}
+                </button>
                 <button class="icon-btn" onclick="openEditActivityModal(${activity.id}, ${activity.stop_id})" title="${t('buttons.edit')}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -330,4 +367,5 @@ App.applySegmentEstimates = function(segments, warnings = []) {
 window.renderStops = App.renderStops;
 window.createStopCard = App.createStopCard;
 window.createActivityItem = App.createActivityItem;
+window.createPhotoGallery = App.createPhotoGallery;
 })();

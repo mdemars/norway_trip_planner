@@ -331,6 +331,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addBookmarkForm = document.getElementById('addBookmarkForm');
     if (addBookmarkForm) addBookmarkForm.addEventListener('submit', handleAddBookmarkSubmit);
 
+    // Photo drop zones (event delegation on stopsContainer)
+    initDropZones();
+
+    // Photo lightbox caption: save on blur or Enter
+    const captionInput = document.getElementById('photoLightboxCaption');
+    if (captionInput) {
+        captionInput.addEventListener('blur', savePhotoCaption);
+        captionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); captionInput.blur(); }
+            if (e.key === 'Escape') { closePhotoLightbox(); }
+        });
+    }
+
+    // Lightbox: close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const lb = document.getElementById('photoLightbox');
+            if (lb && lb.style.display !== 'none') closePhotoLightbox();
+        }
+    });
+
     // -----------------------------------------------------------------------
     // Right-panel sticky: pin panel top to match header bottom
     // -----------------------------------------------------------------------

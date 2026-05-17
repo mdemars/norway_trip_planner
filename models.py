@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, text, inspect, event
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, LargeBinary, text, inspect, event
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from config import Config
 import uuid
@@ -112,6 +112,8 @@ class Stop(Location):
                         overlaps='locations,trip')
     activities = relationship('Activity', back_populates='stop', cascade='all, delete-orphan',
                               foreign_keys='Activity.stop_id')
+    photos = relationship('Photo', back_populates='stop', cascade='all, delete-orphan',
+                          foreign_keys='Photo.stop_id', order_by='Photo.id')
 
     __mapper_args__ = {
         'polymorphic_identity': 'stop',
@@ -138,6 +140,7 @@ class Stop(Location):
         }
         if include_activities:
             data['activities'] = [activity.to_dict() for activity in self.activities]
+        data['photos'] = [photo.to_dict() for photo in self.photos]
         return data
 
 
@@ -154,6 +157,8 @@ class Activity(Base):
 
     # Relationships
     stop = relationship('Stop', back_populates='activities', foreign_keys=[stop_id])
+    photos = relationship('Photo', back_populates='activity', cascade='all, delete-orphan',
+                          foreign_keys='Photo.activity_id', order_by='Photo.id')
 
     def to_dict(self):
         """Convert activity to dictionary"""
@@ -162,7 +167,37 @@ class Activity(Base):
             'stop_id': self.stop_id,
             'name': self.name,
             'description': self.description,
-            'url': self.url
+            'url': self.url,
+            'photos': [photo.to_dict() for photo in self.photos]
+        }
+
+
+class Photo(Base):
+    """A photo attached to a stop or activity"""
+    __tablename__ = 'photos'
+    __table_args__ = {'schema': TRIPS_SCHEMA}
+
+    id = Column(Integer, primary_key=True)
+    stop_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.locations.id', ondelete='CASCADE'), nullable=True)
+    activity_id = Column(Integer, ForeignKey(f'{TRIPS_SCHEMA}.activities.id', ondelete='CASCADE'), nullable=True)
+    filename = Column(String(500), nullable=False)
+    content_type = Column(String(100), nullable=False)
+    data = Column(LargeBinary, nullable=False)
+    caption = Column(String(1000), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    stop = relationship('Stop', back_populates='photos', foreign_keys=[stop_id])
+    activity = relationship('Activity', back_populates='photos', foreign_keys=[activity_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'stop_id': self.stop_id,
+            'activity_id': self.activity_id,
+            'filename': self.filename,
+            'content_type': self.content_type,
+            'caption': self.caption,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 
@@ -481,6 +516,32 @@ def _migrate_add_ai_prompts(engine):
         print("Created ai_prompts table.")
 
 
+def _migrate_add_photos(engine):
+    """Create photos table for existing databases (create_all handles new installs)."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    existing_tables = insp.get_table_names(schema=schema)
+    if 'photos' not in existing_tables:
+        Photo.__table__.create(engine)
+        print("Created photos table.")
+
+
+def _migrate_add_photo_caption(engine):
+    """Add caption column to photos table."""
+    insp = inspect(engine)
+    schema = TRIPS_SCHEMA
+    if 'photos' not in insp.get_table_names(schema=schema):
+        return
+    cols = [c['name'] for c in insp.get_columns('photos', schema=schema)]
+    if 'caption' in cols:
+        return
+    schema_prefix = f"{TRIPS_SCHEMA}."
+    with engine.connect() as conn:
+        conn.execute(text(f"ALTER TABLE {schema_prefix}photos ADD COLUMN caption VARCHAR(1000)"))
+        conn.commit()
+    print("Added caption column to photos table.")
+
+
 def init_db():
     """Initialize the database"""
     _ensure_schema_exists(engine)
@@ -494,6 +555,8 @@ def init_db():
     _migrate_add_trip_country_codes(engine)
     _migrate_waypoints_to_stops(engine)
     _migrate_add_ai_prompts(engine)
+    _migrate_add_photos(engine)
+    _migrate_add_photo_caption(engine)
     Base.metadata.create_all(engine)
     print("Database initialized successfully!")
 

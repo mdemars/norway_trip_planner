@@ -311,6 +311,111 @@ async function clearRouteDistances(tripId) {
     }
 }
 
+async function updatePhoto(photoId, data) {
+    try {
+        const response = await fetch(`/api/photos/${photoId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update photo');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating photo:', error);
+        throw error;
+    }
+}
+
+async function uploadStopPhotoFromUrl(stopId, url) {
+    try {
+        const response = await fetch(`/api/stops/${stopId}/photos/from-url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to add photo from URL');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading photo from URL:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
+async function uploadActivityPhotoFromUrl(activityId, url) {
+    try {
+        const response = await fetch(`/api/activities/${activityId}/photos/from-url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to add photo from URL');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading activity photo from URL:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
+async function uploadStopPhoto(stopId, file) {
+    const formData = new FormData();
+    formData.append('photo', file);
+    try {
+        const response = await fetch(`/api/stops/${stopId}/photos`, { method: 'POST', body: formData });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to upload photo');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading photo:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
+async function uploadActivityPhoto(activityId, file) {
+    const formData = new FormData();
+    formData.append('photo', file);
+    try {
+        const response = await fetch(`/api/activities/${activityId}/photos`, { method: 'POST', body: formData });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to upload photo');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading photo:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
+async function deletePhotoApi(photoId) {
+    try {
+        const response = await fetch(`/api/photos/${photoId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete photo');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting photo:', error);
+        showError(error.message);
+        throw error;
+    }
+}
+
 // Attach all API functions to window.TripApp
 App.fetchSegments = fetchSegments;
 App.fetchWeather = fetchWeather;
@@ -330,6 +435,12 @@ App.createBookmark = createBookmark;
 App.deleteBookmark = deleteBookmark;
 App.reorderStops = reorderStops;
 App.clearRouteDistances = clearRouteDistances;
+App.uploadStopPhoto = uploadStopPhoto;
+App.uploadActivityPhoto = uploadActivityPhoto;
+App.deletePhotoApi = deletePhotoApi;
+App.updatePhoto = updatePhoto;
+App.uploadStopPhotoFromUrl = uploadStopPhotoFromUrl;
+App.uploadActivityPhotoFromUrl = uploadActivityPhotoFromUrl;
 
 // Expose API functions globally for use by other modules
 window.fetchTrip = fetchTrip;
@@ -347,4 +458,10 @@ window.reorderStops = reorderStops;
 window.fetchBookmarks = fetchBookmarks;
 window.createBookmark = createBookmark;
 window.deleteBookmark = deleteBookmark;
+window.uploadStopPhoto = uploadStopPhoto;
+window.uploadActivityPhoto = uploadActivityPhoto;
+window.deletePhotoApi = deletePhotoApi;
+window.updatePhoto = updatePhoto;
+window.uploadStopPhotoFromUrl = uploadStopPhotoFromUrl;
+window.uploadActivityPhotoFromUrl = uploadActivityPhotoFromUrl;
 })();

@@ -1025,6 +1025,185 @@ async function handleDeleteBookmark(bookmarkId) {
     }
 }
 
+// ============================================================================
+// Photo Handlers
+// ============================================================================
+
+function triggerPhotoUpload(type, id) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
+        for (const file of files) {
+            try {
+                if (type === 'stop') {
+                    await uploadStopPhoto(id, file);
+                } else {
+                    await uploadActivityPhoto(id, file);
+                }
+            } catch {
+                return; // error already shown by API helper
+            }
+        }
+        await loadStops();
+    };
+    input.click();
+}
+
+async function handleDeletePhoto(photoId) {
+    if (!confirm('Delete this photo?')) return;
+    try {
+        await deletePhotoApi(photoId);
+        await loadStops();
+    } catch {
+        // error already shown
+    }
+}
+
+function openPhotoLightbox(photoId, url, caption) {
+    const overlay = document.getElementById('photoLightbox');
+    const img = document.getElementById('photoLightboxImg');
+    const captionInput = document.getElementById('photoLightboxCaption');
+    img.src = url;
+    img.dataset.photoId = photoId;
+    captionInput.value = caption || '';
+    overlay.style.display = 'flex';
+    // Focus caption field on next frame so img renders first
+    requestAnimationFrame(() => captionInput.focus());
+}
+
+function closePhotoLightbox() {
+    const overlay = document.getElementById('photoLightbox');
+    overlay.style.display = 'none';
+    // Clear src to release memory
+    setTimeout(() => { document.getElementById('photoLightboxImg').src = ''; }, 200);
+}
+
+async function savePhotoCaption() {
+    const img = document.getElementById('photoLightboxImg');
+    const captionInput = document.getElementById('photoLightboxCaption');
+    const photoId = parseInt(img.dataset.photoId);
+    if (!photoId) return;
+    const caption = captionInput.value.trim();
+    try {
+        await updatePhoto(photoId, { caption });
+        // Patch local state so re-renders show updated caption without a full reload
+        for (const stop of (App.stops || [])) {
+            for (const p of (stop.photos || [])) {
+                if (p.id === photoId) p.caption = caption || null;
+            }
+            for (const act of (stop.activities || [])) {
+                for (const p of (act.photos || [])) {
+                    if (p.id === photoId) p.caption = caption || null;
+                }
+            }
+        }
+    } catch {
+        // Silently ignore — caption is best-effort
+    }
+}
+
+// ---- Drag & drop ----
+
+function _extractDroppedUrl(dataTransfer) {
+    const uriList = dataTransfer.getData('text/uri-list');
+    if (uriList) {
+        const urls = uriList.split('\n').map(u => u.trim()).filter(u => u && !u.startsWith('#'));
+        if (urls.length) return urls[0];
+    }
+    const html = dataTransfer.getData('text/html');
+    if (html) {
+        const m = html.match(/src=["']([^"']+)["']/i);
+        if (m && /^https?:\/\//i.test(m[1])) return m[1];
+    }
+    const plain = dataTransfer.getData('text/plain');
+    if (plain && /^https?:\/\//i.test(plain.trim())) return plain.trim();
+    return null;
+}
+
+function _getDragTarget(el) {
+    // Activity item takes priority (it's nested inside a stop card)
+    const activity = el.closest('.activity-item[data-activity-id]');
+    if (activity) return activity;
+    // Regular stop cards only (not trip start/end)
+    const stop = el.closest('.stop-card');
+    if (stop && !stop.classList.contains('trip-location-card')) {
+        const stopId = parseInt(stop.dataset.stopId);
+        if (!isNaN(stopId)) return stop;
+    }
+    return null;
+}
+
+function _clearDragOver() {
+    document.querySelectorAll('.stop-card.drag-over, .activity-item.drag-over')
+        .forEach(el => el.classList.remove('drag-over'));
+}
+
+function initDropZones() {
+    const container = document.getElementById('stopsContainer');
+    if (!container) return;
+
+    container.addEventListener('dragover', (e) => {
+        const target = _getDragTarget(e.target);
+        if (!target) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!target.classList.contains('drag-over')) {
+            _clearDragOver();
+            target.classList.add('drag-over');
+        }
+    });
+
+    container.addEventListener('dragleave', (e) => {
+        const target = _getDragTarget(e.target);
+        if (!target) return;
+        if (!target.contains(e.relatedTarget)) {
+            target.classList.remove('drag-over');
+        }
+    });
+
+    container.addEventListener('drop', async (e) => {
+        const target = _getDragTarget(e.target);
+        if (!target) return;
+        e.preventDefault();
+        _clearDragOver();
+
+        const isActivity = target.classList.contains('activity-item');
+        const id = parseInt(isActivity ? target.dataset.activityId : target.dataset.stopId);
+        if (!id || isNaN(id)) return;
+
+        const dt = e.dataTransfer;
+
+        // File(s) from OS / file manager
+        if (dt.files && dt.files.length > 0) {
+            let uploaded = false;
+            for (const file of dt.files) {
+                if (!file.type.startsWith('image/')) continue;
+                try {
+                    if (isActivity) await uploadActivityPhoto(id, file);
+                    else await uploadStopPhoto(id, file);
+                    uploaded = true;
+                } catch { return; }
+            }
+            if (uploaded) await loadStops();
+            return;
+        }
+
+        // Image dragged from another browser tab / webpage
+        const url = _extractDroppedUrl(dt);
+        if (url) {
+            try {
+                if (isActivity) await uploadActivityPhotoFromUrl(id, url);
+                else await uploadStopPhotoFromUrl(id, url);
+                await loadStops();
+            } catch { /* error already shown */ }
+        }
+    });
+}
+
 // Expose all handler functions on window for HTML onclick attributes
 // ============================================================================
 
@@ -1058,4 +1237,10 @@ window.handleCalculateRoute = handleCalculateRoute;
 window.renderBookmarks = renderBookmarks;
 window.handleAddBookmarkSubmit = handleAddBookmarkSubmit;
 window.handleDeleteBookmark = handleDeleteBookmark;
+window.triggerPhotoUpload = triggerPhotoUpload;
+window.handleDeletePhoto = handleDeletePhoto;
+window.openPhotoLightbox = openPhotoLightbox;
+window.closePhotoLightbox = closePhotoLightbox;
+window.savePhotoCaption = savePhotoCaption;
+window.initDropZones = initDropZones;
 })();
