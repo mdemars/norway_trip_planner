@@ -177,7 +177,7 @@ class AiPrompt(Base):
     status = Column(String(20), default='running')  # running / done / cancelled / error
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    trip = relationship('Trip', backref='ai_prompts', foreign_keys=[trip_id])
+    # No ORM relationship — trip_id FK is managed explicitly in delete_trip route
 
     def to_dict(self):
         return {

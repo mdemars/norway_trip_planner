@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import Trip, Stop, get_db
+from models import Trip, Stop, AiPrompt, get_db
 from helpers import geocode_trip_location
 import uuid
 
@@ -184,6 +184,8 @@ def delete_trip(trip_id):
         if not trip:
             return jsonify({'error': 'Trip not found'}), 404
 
+        # Nullify FK on ai_prompts before deleting (works for both SQLite and PostgreSQL)
+        db.query(AiPrompt).filter(AiPrompt.trip_id == trip_id).update({'trip_id': None})
         db.delete(trip)
         db.commit()
         return jsonify({'message': 'Trip deleted successfully'})
