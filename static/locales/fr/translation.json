@@ -210,6 +210,33 @@
     "title": "Favoris",
     "noBookmarks": "Pas encore de favoris."
   },
+  "export": {
+    "stops": "Étapes",
+    "calendar": "Calendrier",
+    "detailedItinerary": "Itinéraire détaillé",
+    "routeMap": "Carte de l'itinéraire",
+    "bookmarksResources": "Favoris et ressources",
+    "activities": "Activités",
+    "kmFromPrevious": "km depuis l'étape précédente",
+    "night": "nuit",
+    "nights": "nuits",
+    "total": "total",
+    "mapUnavailable": "Carte indisponible — coordonnées non trouvées.",
+    "cols": {
+      "num": "N°",
+      "name": "Nom",
+      "address": "Adresse",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "nights": "Nuits",
+      "distanceKm": "Distance (km)",
+      "description": "Description",
+      "url": "URL",
+      "stopNum": "Étape N°",
+      "stopName": "Nom de l'étape",
+      "activity": "Activité"
+    }
+  },
   "errors": {
     "failedToLoadTrips": "Echec du chargement des voyages",
     "failedToCreateTrip": "Echec de la creation du voyage",

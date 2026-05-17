@@ -158,6 +158,45 @@ header .subtitle {
 }
 
 
+.export-dropdown {
+    position: relative;
+}
+
+.export-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--surface-color, #fff);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    min-width: 170px;
+    z-index: 200;
+    padding: 4px 0;
+}
+
+.export-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    text-decoration: none;
+    color: var(--text-color, #333);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.export-menu-item:hover {
+    background: var(--hover-color, #f5f5f5);
+}
+
+.export-menu-divider {
+    height: 1px;
+    background: var(--border-color, #eee);
+    margin: 4px 0;
+}
+
 .back-btn {
     display: inline-flex;
     align-items: center;

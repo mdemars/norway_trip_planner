@@ -210,6 +210,33 @@
     "title": "Bookmarks",
     "noBookmarks": "No bookmarks yet."
   },
+  "export": {
+    "stops": "Stops",
+    "calendar": "Calendar",
+    "detailedItinerary": "Detailed Itinerary",
+    "routeMap": "Route Map",
+    "bookmarksResources": "Bookmarks & Resources",
+    "activities": "Activities",
+    "kmFromPrevious": "km from previous",
+    "night": "night",
+    "nights": "nights",
+    "total": "total",
+    "mapUnavailable": "Map unavailable — no coordinates found.",
+    "cols": {
+      "num": "#",
+      "name": "Name",
+      "address": "Address",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "nights": "Nights",
+      "distanceKm": "Distance (km)",
+      "description": "Description",
+      "url": "URL",
+      "stopNum": "Stop #",
+      "stopName": "Stop Name",
+      "activity": "Activity"
+    }
+  },
   "errors": {
     "failedToLoadTrips": "Failed to load trips",
     "failedToCreateTrip": "Failed to create trip",

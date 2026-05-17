@@ -210,6 +210,33 @@
     "title": "Lesezeichen",
     "noBookmarks": "Noch keine Lesezeichen."
   },
+  "export": {
+    "stops": "Stationen",
+    "calendar": "Kalender",
+    "detailedItinerary": "Detaillierter Reiseplan",
+    "routeMap": "Routenkarte",
+    "bookmarksResources": "Lesezeichen und Ressourcen",
+    "activities": "Aktivitäten",
+    "kmFromPrevious": "km zur vorherigen Station",
+    "night": "Nacht",
+    "nights": "Nächte",
+    "total": "gesamt",
+    "mapUnavailable": "Karte nicht verfügbar — keine Koordinaten gefunden.",
+    "cols": {
+      "num": "Nr.",
+      "name": "Name",
+      "address": "Adresse",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "nights": "Nächte",
+      "distanceKm": "Entfernung (km)",
+      "description": "Beschreibung",
+      "url": "URL",
+      "stopNum": "Station Nr.",
+      "stopName": "Stationsname",
+      "activity": "Aktivität"
+    }
+  },
   "errors": {
     "failedToLoadTrips": "Reisen konnten nicht geladen werden",
     "failedToCreateTrip": "Reise konnte nicht erstellt werden",
