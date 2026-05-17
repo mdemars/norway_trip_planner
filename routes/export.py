@@ -47,7 +47,10 @@ def export_docx(trip_id):
         bookmarks = db.query(TripBookmark).filter(TripBookmark.trip_id == trip_id).all()
 
         lang = request.args.get('lang', 'en')
-        buf = generate_word(trip, stops, bookmarks, api_key=Config.GOOGLE_MAPS_API_KEY, lang=lang)
+        include_photos = request.args.get('include_photos', 'false').lower() == 'true'
+        photo_size = request.args.get('photo_size', 'medium')
+        buf = generate_word(trip, stops, bookmarks, api_key=Config.GOOGLE_MAPS_API_KEY, lang=lang,
+                            include_photos=include_photos, photo_size=photo_size)
         filename = f'{_safe_filename(trip.name)}.docx'
         return send_file(buf,
                          mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -69,7 +72,10 @@ def export_pdf(trip_id):
         bookmarks = db.query(TripBookmark).filter(TripBookmark.trip_id == trip_id).all()
 
         lang = request.args.get('lang', 'en')
-        buf = generate_pdf(trip, stops, bookmarks, api_key=Config.GOOGLE_MAPS_API_KEY, lang=lang)
+        include_photos = request.args.get('include_photos', 'false').lower() == 'true'
+        photo_size = request.args.get('photo_size', 'medium')
+        buf = generate_pdf(trip, stops, bookmarks, api_key=Config.GOOGLE_MAPS_API_KEY, lang=lang,
+                           include_photos=include_photos, photo_size=photo_size)
         filename = f'{_safe_filename(trip.name)}.pdf'
         return send_file(buf, mimetype='application/pdf',
                          as_attachment=True, download_name=filename)

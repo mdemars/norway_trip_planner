@@ -44,12 +44,24 @@
                             <line x1="12" y1="15" x2="12" y2="3"/>
                         </svg>
                     </button>
-                    <div class="export-menu" id="exportMenu" style="display:none;">
-                        <a id="exportDocx" href="/api/trips/{{ trip_id }}/export/docx" class="export-menu-item">
+                    <div class="export-menu" id="exportMenu" style="display:none;" onclick="event.stopPropagation()">
+                        <div class="export-photo-options">
+                            <label class="export-photo-check">
+                                <input type="checkbox" id="exportIncludePhotos" onchange="toggleExportPhotoSize()">
+                                Include photos
+                            </label>
+                            <div id="exportPhotoSizeOpts" style="display:none; margin-top:5px; padding-left:18px;">
+                                <label class="export-size-opt"><input type="radio" name="exportPhotoSize" value="small"> Small (8/row)</label>
+                                <label class="export-size-opt"><input type="radio" name="exportPhotoSize" value="medium" checked> Medium (4/row)</label>
+                                <label class="export-size-opt"><input type="radio" name="exportPhotoSize" value="large"> Large (1/row)</label>
+                            </div>
+                        </div>
+                        <div class="export-menu-divider"></div>
+                        <a id="exportDocx" href="#" class="export-menu-item" onclick="doExport('docx', event)">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             Word (.docx)
                         </a>
-                        <a id="exportPdf" href="/api/trips/{{ trip_id }}/export/pdf" class="export-menu-item">
+                        <a id="exportPdf" href="#" class="export-menu-item" onclick="doExport('pdf', event)">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
                             PDF (.pdf)
                         </a>
@@ -587,13 +599,29 @@
 
     function _updateExportLang() {
         const lang = _exportLang();
-        ['exportDocx', 'exportPdf', 'exportXlsx'].forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const url = new URL(el.href);
-            url.searchParams.set('lang', lang);
-            el.href = url.toString();
-        });
+        const el = document.getElementById('exportXlsx');
+        if (!el) return;
+        const url = new URL(el.href);
+        url.searchParams.set('lang', lang);
+        el.href = url.toString();
+    }
+
+    function doExport(format, e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const lang = _exportLang();
+        const includePhotos = document.getElementById('exportIncludePhotos').checked;
+        let url = `/api/trips/{{ trip_id }}/export/${format}?lang=${lang}`;
+        if (includePhotos) {
+            const sizeEl = document.querySelector('input[name="exportPhotoSize"]:checked');
+            url += `&include_photos=true&photo_size=${sizeEl ? sizeEl.value : 'medium'}`;
+        }
+        window.location.href = url;
+    }
+
+    function toggleExportPhotoSize() {
+        const show = document.getElementById('exportIncludePhotos').checked;
+        document.getElementById('exportPhotoSizeOpts').style.display = show ? 'block' : 'none';
     }
 
     function toggleExportMenu(e) {

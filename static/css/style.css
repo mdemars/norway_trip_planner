@@ -170,7 +170,7 @@ header .subtitle {
     border: 1px solid var(--border-color, #ddd);
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    min-width: 170px;
+    min-width: 190px;
     z-index: 200;
     padding: 4px 0;
 }
@@ -195,6 +195,31 @@ header .subtitle {
     height: 1px;
     background: var(--border-color, #eee);
     margin: 4px 0;
+}
+
+.export-photo-options {
+    padding: 8px 14px 6px;
+    font-size: 0.85rem;
+    color: var(--text-color, #333);
+}
+
+.export-photo-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.export-size-opt {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 0;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.82rem;
+    color: var(--text-muted, #666);
 }
 
 .back-btn {

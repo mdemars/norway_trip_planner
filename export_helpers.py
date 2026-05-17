@@ -18,6 +18,9 @@ STOP_COLORS_LIGHT = [
     '#E8D5F0', '#B2EAF0', '#FFD0C0', '#DFF0C4',
 ]
 
+# Number of photo columns per size option
+PHOTO_COLS = {'small': 8, 'medium': 4, 'large': 1}
+
 _MONTH_KEYS = ['january', 'february', 'march', 'april', 'may', 'june',
                'july', 'august', 'september', 'october', 'november', 'december']
 # calendar.monthcalendar weeks start on Monday → order is Mon..Sun
@@ -305,7 +308,8 @@ def generate_excel(trip, stops, bookmarks, lang='en'):
 
 # ── Word ──────────────────────────────────────────────────────────────────────
 
-def generate_word(trip, stops, bookmarks, api_key=None, lang='en'):
+def generate_word(trip, stops, bookmarks, api_key=None, lang='en',
+                  include_photos=False, photo_size='medium'):
     from docx import Document
     from docx.shared import Inches, Pt, RGBColor, Cm
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -354,6 +358,35 @@ def generate_word(trip, stops, bookmarks, api_key=None, lang='en'):
         if color:
             run.font.color.rgb = RGBColor(*color)
         return p
+
+    def _add_photos(photos):
+        if not photos:
+            return
+        cols = PHOTO_COLS.get(photo_size, 4)
+        img_w = Cm(16.0 / cols)
+        batches = [photos[i:i + cols] for i in range(0, len(photos), cols)]
+        tbl = doc.add_table(rows=len(batches), cols=cols)
+        for r_idx, batch in enumerate(batches):
+            for c_idx in range(cols):
+                cell = tbl.cell(r_idx, c_idx)
+                _remove_cell_borders(cell)
+                cell.paragraphs[0].clear()
+                if c_idx < len(batch):
+                    photo = batch[c_idx]
+                    try:
+                        run = cell.paragraphs[0].add_run()
+                        run.add_picture(BytesIO(photo.data), width=img_w)
+                        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        if photo.caption:
+                            cap = cell.add_paragraph(photo.caption)
+                            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            if cap.runs:
+                                cap.runs[0].font.size = Pt(7)
+                                cap.runs[0].font.color.rgb = RGBColor(120, 120, 120)
+                    except Exception:
+                        pass
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(4)
 
     # ═══════════════════════════════════════
     # PAGE 1 — OVERVIEW
@@ -493,6 +526,8 @@ def generate_word(trip, stops, bookmarks, api_key=None, lang='en'):
             _para(s.description, size=10, space_after=4)
         if s.url:
             _para(s.url, size=9, color=(66, 133, 244), space_after=4)
+        if include_photos:
+            _add_photos(s.photos)
 
         if s.activities:
             _para(f'{tr.t("export.activities", "Activities")}:', size=10, bold=True, space_after=2)
@@ -502,6 +537,8 @@ def generate_word(trip, stops, bookmarks, api_key=None, lang='en'):
                 ap.add_run(act.name).font.size = Pt(10)
                 if act.description:
                     ap.add_run(f' — {act.description}').font.size = Pt(9)
+                if include_photos:
+                    _add_photos(act.photos)
 
     # ---- Bookmarks ----
     if bookmarks:
@@ -537,7 +574,8 @@ def generate_word(trip, stops, bookmarks, api_key=None, lang='en'):
 
 # ── PDF ───────────────────────────────────────────────────────────────────────
 
-def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en'):
+def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en',
+                 include_photos=False, photo_size='medium'):
     from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table,
                                      TableStyle, Image as RLImage, PageBreak, HRFlowable)
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -580,6 +618,46 @@ def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en'):
                                  fontSize=9,
                                  textColor=colors.HexColor('#4285F4'),
                                  spaceAfter=4)
+
+    def _photo_flowables(photos):
+        if not photos:
+            return []
+        try:
+            from PIL import Image as PILImage
+        except ImportError:
+            PILImage = None
+        cols = PHOTO_COLS.get(photo_size, 4)
+        img_w = W / cols
+        batches = [photos[i:i + cols] for i in range(0, len(photos), cols)]
+        rows_data = []
+        for batch in batches:
+            row = []
+            for photo in batch:
+                try:
+                    if PILImage:
+                        pil = PILImage.open(BytesIO(photo.data))
+                        pw, ph = pil.size
+                        img_h = img_w * (ph / pw)
+                    else:
+                        img_h = img_w * 0.75
+                    row.append(RLImage(BytesIO(photo.data), width=img_w, height=img_h))
+                except Exception:
+                    row.append('')
+            while len(row) < cols:
+                row.append('')
+            rows_data.append(row)
+        if not rows_data:
+            return []
+        tbl = Table(rows_data, colWidths=[img_w] * cols, splitByRow=1)
+        tbl.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 1),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+        ]))
+        return [tbl, Spacer(1, 4)]
 
     story = []
 
@@ -716,6 +794,8 @@ def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en'):
             story.append(Paragraph(s.description, body_style))
         if s.url:
             story.append(Paragraph(s.url, url_style))
+        if include_photos:
+            story.extend(_photo_flowables(s.photos))
 
         if s.activities:
             story.append(Paragraph(
@@ -729,6 +809,8 @@ def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en'):
                     story.append(Paragraph(
                         f'&nbsp;&nbsp;<font color="#4285F4">{act.url}</font>',
                         ParagraphStyle('AU', fontSize=8, leftIndent=14, spaceAfter=2)))
+                if include_photos:
+                    story.extend(_photo_flowables(act.photos))
 
         story.append(Spacer(1, 4))
 
