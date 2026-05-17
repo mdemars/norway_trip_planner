@@ -19,7 +19,28 @@ function showBackupStatus(message, isError = false) {
     el.textContent = message;
     el.className = 'backup-status ' + (isError ? 'backup-status-error' : 'backup-status-ok');
     el.style.display = 'block';
-    setTimeout(() => { el.style.display = 'none'; }, 4000);
+    // Auto-hide successes; keep errors visible until the next action clears them
+    if (!isError) setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+function showTabError(panelId, message) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    let el = panel.querySelector('.admin-tab-error');
+    if (!el) {
+        el = document.createElement('div');
+        el.className = 'admin-tab-error';
+        panel.appendChild(el);
+    }
+    el.textContent = 'Error: ' + message;
+    el.style.display = 'block';
+}
+
+function clearTabError(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    const el = panel.querySelector('.admin-tab-error');
+    if (el) el.style.display = 'none';
 }
 
 // ── Section 1: Entity Browser ─────────────────────────────────────────────────
@@ -80,11 +101,12 @@ function renderTable(columns, rows, entityType) {
             const id = btn.dataset.id;
             const type = btn.dataset.type;
             if (!confirm(`Delete ${type} #${id}? This cannot be undone.`)) return;
+            clearTabError('tab-entities');
             try {
                 await deleteEntity(type, id);
                 await loadEntities(type);
             } catch (err) {
-                alert('Error: ' + err.message);
+                showTabError('tab-entities', err.message);
             }
         });
     });
@@ -214,6 +236,7 @@ async function loadChainTrips() {
     const select = document.getElementById('chainTripSelect');
     try {
         const res = await fetch('/api/admin/chain/trips');
+        if (!res.ok) throw new Error((await res.json()).error || 'Failed to load trips');
         const trips = await res.json();
         for (const t of trips) {
             const opt = document.createElement('option');
@@ -222,7 +245,7 @@ async function loadChainTrips() {
             select.appendChild(opt);
         }
     } catch (err) {
-        console.error('Failed to load trips for chain fix:', err);
+        showTabError('tab-ordering', err.message);
     }
 }
 
@@ -237,9 +260,11 @@ async function loadChainLocations(tripId) {
         if (!res.ok) throw new Error((await res.json()).error);
         chainLocations = await res.json();
         chainTripId = tripId;
+        clearTabError('tab-ordering');
         renderChainTable();
     } catch (err) {
         container.innerHTML = `<p class="admin-placeholder" style="color:var(--danger-color);">Error: ${escapeHtml(err.message)}</p>`;
+        showTabError('tab-ordering', err.message);
     }
 }
 
@@ -472,7 +497,6 @@ async function loadDeleteTripList() {
         const res = await fetch('/api/trips');
         if (!res.ok) throw new Error('Failed to load trips');
         const trips = await res.json();
-        // Clear all options except placeholder
         select.innerHTML = '<option value="">-- Select a trip --</option>';
         for (const trip of trips) {
             const opt = document.createElement('option');
@@ -480,8 +504,9 @@ async function loadDeleteTripList() {
             opt.textContent = trip.name;
             select.appendChild(opt);
         }
+        clearTabError('tab-delete-trip');
     } catch (err) {
-        console.error('Failed to load trips for delete:', err);
+        showTabError('tab-delete-trip', err.message);
     }
 }
 
@@ -636,10 +661,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             select.appendChild(opt);
         }
     } catch (err) {
-        console.error('Failed to load entity types:', err);
+        showTabError('tab-entities', err.message);
     }
 
     select.addEventListener('change', () => {
+        clearTabError('tab-entities');
         const type = select.value;
         document.getElementById('rowCount').textContent = '';
         if (!type) {
