@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, LargeBinary, text, inspect, event
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, backref
 from config import Config
 import uuid
 
@@ -234,7 +234,7 @@ class TripBookmark(Base):
     url = Column(String(2000), nullable=False)
     description = Column(String(500), nullable=True)
 
-    trip = relationship('Trip', backref='bookmarks')
+    trip = relationship('Trip', backref=backref('bookmarks', cascade='all, delete-orphan'))
 
     def to_dict(self):
         return {
