@@ -309,7 +309,7 @@ def generate_excel(trip, stops, bookmarks, lang='en'):
 # ── Word ──────────────────────────────────────────────────────────────────────
 
 def generate_word(trip, stops, bookmarks, api_key=None, lang='en',
-                  include_photos=False, photo_size='medium'):
+                  include_photos=False, photo_size='medium', include_map=False):
     from docx import Document
     from docx.shared import Inches, Pt, RGBColor, Cm
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -553,18 +553,19 @@ def generate_word(trip, stops, bookmarks, api_key=None, lang='en',
             url_run.font.size = Pt(9)
             url_run.font.color.rgb = RGBColor(66, 133, 244)
 
-    # ═══════════════════════════════════════
-    # MAP PAGE
-    # ═══════════════════════════════════════
-    doc.add_page_break()
-    doc.add_heading(tr.t('export.routeMap', 'Route Map'), level=1)
+    if include_map:
+        # ═══════════════════════════════════════
+        # MAP PAGE
+        # ═══════════════════════════════════════
+        doc.add_page_break()
+        doc.add_heading(tr.t('export.routeMap', 'Route Map'), level=1)
 
-    map_bytes = _get_static_map_image(stops, trip, api_key)
-    if map_bytes:
-        doc.add_picture(BytesIO(map_bytes), width=Inches(6.5))
-    else:
-        _para(tr.t('export.mapUnavailable', 'Map unavailable — no coordinates found.'),
-              size=10, color=(150, 150, 150))
+        map_bytes = _get_static_map_image(stops, trip, api_key)
+        if map_bytes:
+            doc.add_picture(BytesIO(map_bytes), width=Inches(6.5))
+        else:
+            _para(tr.t('export.mapUnavailable', 'Map unavailable — no coordinates found.'),
+                  size=10, color=(150, 150, 150))
 
     buf = BytesIO()
     doc.save(buf)
@@ -575,7 +576,7 @@ def generate_word(trip, stops, bookmarks, api_key=None, lang='en',
 # ── PDF ───────────────────────────────────────────────────────────────────────
 
 def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en',
-                 include_photos=False, photo_size='medium'):
+                 include_photos=False, photo_size='medium', include_map=False):
     from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table,
                                      TableStyle, Image as RLImage, PageBreak, HRFlowable)
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -826,22 +827,23 @@ def generate_pdf(trip, stops, bookmarks, api_key=None, lang='en',
             text += f'<font color="#4285F4">{bm.url}</font>'
             story.append(Paragraph(text, bullet_style))
 
-    # ═══════════════════════════════════════
-    # MAP PAGE
-    # ═══════════════════════════════════════
-    story.append(PageBreak())
-    story.append(Paragraph(tr.t('export.routeMap', 'Route Map'), h1_style))
-    story.append(HRFlowable(width='100%', thickness=1,
-                              color=colors.HexColor('#2E4057')))
-    story.append(Spacer(1, 0.3*cm))
+    if include_map:
+        # ═══════════════════════════════════════
+        # MAP PAGE
+        # ═══════════════════════════════════════
+        story.append(PageBreak())
+        story.append(Paragraph(tr.t('export.routeMap', 'Route Map'), h1_style))
+        story.append(HRFlowable(width='100%', thickness=1,
+                                  color=colors.HexColor('#2E4057')))
+        story.append(Spacer(1, 0.3*cm))
 
-    map_bytes = _get_static_map_image(stops, trip, api_key, width=800, height=520)
-    if map_bytes:
-        story.append(RLImage(BytesIO(map_bytes), width=W, height=W * 520/800))
-    else:
-        story.append(Paragraph(
-            tr.t('export.mapUnavailable', 'Map unavailable — no coordinates found.'),
-            meta_style))
+        map_bytes = _get_static_map_image(stops, trip, api_key, width=800, height=520)
+        if map_bytes:
+            story.append(RLImage(BytesIO(map_bytes), width=W, height=W * 520/800))
+        else:
+            story.append(Paragraph(
+                tr.t('export.mapUnavailable', 'Map unavailable — no coordinates found.'),
+                meta_style))
 
     doc.build(story)
     buf.seek(0)

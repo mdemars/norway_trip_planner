@@ -47,6 +47,10 @@
                     <div class="export-menu" id="exportMenu" style="display:none;" onclick="event.stopPropagation()">
                         <div class="export-photo-options">
                             <label class="export-photo-check">
+                                <input type="checkbox" id="exportIncludeMap">
+                                Include map
+                            </label>
+                            <label class="export-photo-check" style="margin-top:5px;">
                                 <input type="checkbox" id="exportIncludePhotos" onchange="toggleExportPhotoSize()">
                                 Include photos
                             </label>
@@ -611,7 +615,9 @@
         e.stopPropagation();
         const lang = _exportLang();
         const includePhotos = document.getElementById('exportIncludePhotos').checked;
+        const includeMap = document.getElementById('exportIncludeMap').checked;
         let url = `/api/trips/{{ trip_id }}/export/${format}?lang=${lang}`;
+        if (includeMap) url += '&include_map=true';
         if (includePhotos) {
             const sizeEl = document.querySelector('input[name="exportPhotoSize"]:checked');
             url += `&include_photos=true&photo_size=${sizeEl ? sizeEl.value : 'medium'}`;
